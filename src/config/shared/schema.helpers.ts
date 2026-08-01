@@ -25,6 +25,14 @@ export const booleanEnv = (defaultValue: 'true' | 'false') =>
 export const positiveIntEnv = (defaultValue: number) => z.coerce.number().int().positive().default(defaultValue);
 
 /**
+ * A non-negative integer with a default.
+ *
+ * Distinct from `positiveIntEnv` because some settings use `0` as a meaningful
+ * sentinel — "unlimited", "disabled" — which a positive-only schema rejects.
+ */
+export const nonNegativeIntEnv = (defaultValue: number) => z.coerce.number().int().min(0).default(defaultValue);
+
+/**
  * A comma-separated list constrained to a fixed set of allowed values.
  */
 export const enumListEnv = <const T extends readonly [string, ...string[]]>(values: T, defaultValue: string) =>

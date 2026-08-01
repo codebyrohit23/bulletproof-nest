@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { AppConfigService, appConfig } from './app/index.js';
 import { DatabaseConfigService, databaseConfig } from './database/index.js';
+import { RedisConfigService, redisConfig } from './redis/index.js';
 import { SecurityConfigService, securityConfig } from './security/index.js';
 
 /**
@@ -22,10 +23,10 @@ import { SecurityConfigService, securityConfig } from './security/index.js';
       isGlobal: true,
       cache: true,
       expandVariables: true,
-      load: [appConfig, databaseConfig, securityConfig],
+      load: [appConfig, databaseConfig, redisConfig, securityConfig],
     }),
   ],
-  providers: [AppConfigService, DatabaseConfigService, SecurityConfigService],
-  exports: [AppConfigService, DatabaseConfigService, SecurityConfigService],
+  providers: [AppConfigService, DatabaseConfigService, RedisConfigService, SecurityConfigService],
+  exports: [AppConfigService, DatabaseConfigService, RedisConfigService, SecurityConfigService],
 })
 export class AppConfigModule {}

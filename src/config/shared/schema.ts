@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { appSchema } from '../app/app.schema.js';
 import { databaseSchema } from '../database/database.schema.js';
+import { redisSchema } from '../redis/redis.schema.js';
 import { securitySchema } from '../security/security.schema.js';
 
 /**
@@ -15,5 +16,6 @@ import { securitySchema } from '../security/security.schema.js';
 export const envSchema = z.object({
   ...appSchema.shape,
   ...databaseSchema.shape,
+  ...redisSchema.shape,
   ...securitySchema.shape,
 });

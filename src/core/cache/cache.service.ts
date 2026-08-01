@@ -1,0 +1,238 @@
+import { Injectable } from '@nestjs/common';
+
+import { RequestContextService } from '@/core/context/index.js'; // value import — required for DI metadata
+import { AppLoggerService } from '@/core/logger/index.js'; // value import — required for DI metadata
+
+import { CACHE_LOG_CONTEXT } from './constants/cache.constants.js';
+import type { CacheKeyDescriptor, CacheRememberOptions, CacheSetOptions, CacheStats } from './interfaces/index.js';
+import { CacheMetricsService } from './metrics/cache-metrics.service.js'; // value import — required for DI metadata
+import { CircuitBreaker } from './resilience/circuit-breaker.js';
+import { SingleFlight } from './resilience/single-flight.js';
+import { RedisCacheStore } from './stores/redis-cache.store.js'; // value import — required for DI metadata
+import {
+  buildGlobalCacheKey,
+  buildGlobalResourcePrefix,
+  buildTenantCacheKey,
+  buildTenantCachePrefix,
+  buildTenantResourcePrefix,
+} from './utils/cache-key.util.js';
+import { applyTtlJitter, deserialize, serialize } from './utils/serialization.util.js';
+
+/**
+ * Cache-aside operations over a backing store.
+ *
+ * ---------------------------------------------------------------------------
+ * THE CONTRACT: NOTHING HERE THROWS ON A STORE FAILURE
+ * ---------------------------------------------------------------------------
+ * A cache is an optimisation. If Redis is unreachable every request must still
+ * succeed — slower, not broken. So store errors are logged, counted, and
+ * treated as a miss, and writes never block the caller.
+ *
+ * The one exception is a *programming* error: asking for a tenant-scoped key
+ * with no organization in context. That is not a degraded cache, it is a
+ * request about to read another tenant's data, and it fails loudly.
+ *
+ * Modules do not call this directly. Each owns a small cache service — see
+ * `modules/<name>/cache/` — which holds its own key builders, TTLs and schema
+ * version, and exposes typed methods rather than string keys.
+ */
+@Injectable()
+export class CacheService {
+  private readonly circuit = new CircuitBreaker();
+
+  private readonly singleFlight = new SingleFlight();
+
+  constructor(
+    private readonly store: RedisCacheStore,
+
+    private readonly requestContext: RequestContextService,
+
+    private readonly metrics: CacheMetricsService,
+
+    private readonly logger: AppLoggerService,
+  ) {}
+
+  /**
+   * Builds a key scoped to the active organization.
+   *
+   * Throws when there is no organization in context — see the class note.
+   */
+  key(descriptor: CacheKeyDescriptor): string {
+    return buildTenantCacheKey(this.requireOrganizationId(), descriptor);
+  }
+
+  /**
+   * Builds a key for something that genuinely spans tenants — a user identity,
+   * a verification code, an IP rate-limit counter.
+   *
+   * A separate method rather than an option so that opting out of tenant
+   * isolation is visible at the call site during review.
+   */
+  globalKey(descriptor: CacheKeyDescriptor): string {
+    return buildGlobalCacheKey(descriptor);
+  }
+
+  resourcePrefix(resource: string, version: number): string {
+    return buildTenantResourcePrefix(this.requireOrganizationId(), resource, version);
+  }
+
+  globalResourcePrefix(resource: string, version: number): string {
+    return buildGlobalResourcePrefix(resource, version);
+  }
+
+  tenantPrefix(): string {
+    return buildTenantCachePrefix(this.requireOrganizationId());
+  }
+
+  async get<T>(key: string): Promise<T | null> {
+    if (this.circuit.isOpen) {
+      this.metrics.recordSkip();
+
+      return null;
+    }
+
+    try {
+      const payload = await this.store.get(key);
+
+      this.circuit.recordSuccess();
+
+      if (payload === null) {
+        this.metrics.recordMiss();
+
+        return null;
+      }
+
+      this.metrics.recordHit();
+
+      return deserialize<T>(payload);
+    } catch (error) {
+      this.handleFailure(error, 'get', key);
+
+      return null;
+    }
+  }
+
+  async set<T>(key: string, value: T, options: CacheSetOptions): Promise<void> {
+    if (this.circuit.isOpen) {
+      this.metrics.recordSkip();
+
+      return;
+    }
+
+    try {
+      await this.store.set(key, serialize(value), applyTtlJitter(options.ttlSeconds));
+
+      this.circuit.recordSuccess();
+    } catch (error) {
+      this.handleFailure(error, 'set', key);
+    }
+  }
+
+  async delete(key: string | readonly string[]): Promise<void> {
+    const keys = typeof key === 'string' ? [key] : key;
+
+    if (keys.length === 0 || this.circuit.isOpen) {
+      return;
+    }
+
+    try {
+      await this.store.delete(keys);
+
+      this.circuit.recordSuccess();
+    } catch (error) {
+      this.handleFailure(error, 'delete', keys.join(','));
+    }
+  }
+
+  /**
+   * Removes every key under a prefix.
+   *
+   * Scans, so it costs more than a version bump. Prefer bumping a resource's
+   * schema version for wholesale invalidation; use this for the narrow case of
+   * one entity's several cached views.
+   */
+  async deleteByPrefix(prefix: string): Promise<number> {
+    if (this.circuit.isOpen) {
+      return 0;
+    }
+
+    try {
+      const removed = await this.store.deleteByPrefix(prefix);
+
+      this.circuit.recordSuccess();
+
+      return removed;
+    } catch (error) {
+      this.handleFailure(error, 'deleteByPrefix', prefix);
+
+      return 0;
+    }
+  }
+
+  /**
+   * Cache-aside: return the cached value, otherwise load, store and return it.
+   *
+   * Concurrent callers for the same key share one loader invocation, so an
+   * expiring hot key produces a single database query rather than one per
+   * in-flight request.
+   *
+   * `null` from the loader is only cached when `negativeTtlSeconds` is given.
+   * Without it, repeated lookups of a non-existent id reach the database every
+   * time — trivially triggered when the id comes from a URL.
+   */
+  async remember<T>(key: string, loader: () => Promise<T>, options: CacheRememberOptions): Promise<T> {
+    const cached = await this.get<T>(key);
+
+    if (cached !== null) {
+      return cached;
+    }
+
+    return this.singleFlight.run(key, async () => {
+      const value = await loader();
+
+      if (value === null || value === undefined) {
+        if (options.negativeTtlSeconds !== undefined) {
+          await this.set(key, value, { ttlSeconds: options.negativeTtlSeconds });
+        }
+
+        return value;
+      }
+
+      await this.set(key, value, { ttlSeconds: options.ttlSeconds });
+
+      return value;
+    });
+  }
+
+  get stats(): CacheStats {
+    return this.metrics.stats;
+  }
+
+  private requireOrganizationId(): string {
+    const organizationId = this.requestContext.organizationId;
+
+    if (organizationId === undefined) {
+      throw new Error(
+        'A tenant-scoped cache key was requested with no organization in context. ' +
+          'Use globalKey() for entities that genuinely span tenants.',
+      );
+    }
+
+    return organizationId;
+  }
+
+  private handleFailure(error: unknown, operation: string, key: string): void {
+    this.circuit.recordFailure();
+    this.metrics.recordError();
+
+    this.logger.warn(`Cache ${operation} failed — treating as a miss`, {
+      context: CACHE_LOG_CONTEXT,
+      operation,
+      metadata: {
+        key,
+        reason: error instanceof Error ? error.message : 'unknown',
+        circuitOpen: this.circuit.isOpen,
+      },
+    });
+  }
+}
