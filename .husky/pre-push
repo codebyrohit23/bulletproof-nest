@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+echo "🔍 Running  check..."
+pnpm check || exit 1

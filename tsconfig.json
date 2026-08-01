@@ -1,0 +1,70 @@
+{
+  "compilerOptions": {
+    /*Language */
+    "target": "ES2022",
+    "lib": ["ES2023"],
+
+    /*Modules */
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "verbatimModuleSyntax": true,
+    "resolvePackageJsonExports": true,
+    "resolvePackageJsonImports": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+
+    /*Modules */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    /* ==========================================================
+     * Strictness
+     * ========================================================== */
+    "strict": true,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "useUnknownInCatchVariables": true,
+    "exactOptionalPropertyTypes": true,
+
+    /*Emit*/
+    "declaration": false,
+    "sourceMap": true,
+    "removeComments": true,
+    "incremental": true,
+    "isolatedModules": true,
+
+    /* Paths */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    /* Output */
+    "outDir": "./dist",
+
+    /* Misc */
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Temporary — remove once TS 6.0 lands and the deprecated flags are dropped */
+    "ignoreDeprecations": "5.0"
+  },
+
+  /*
+   * Every TypeScript file in the repository must belong to a project.
+   * A file outside `include` gets no type checking, and type-aware ESLint
+   * reports it as "not found in any project" instead of linting it.
+   * `tsconfig.build.json` narrows this back down to `src` for compilation.
+   */
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts", "scripts/**/*.ts", "prisma/**/*.ts", "prisma.config.ts"],
+
+  "exclude": ["dist", "node_modules"]
+}

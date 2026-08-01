@@ -1,0 +1,422 @@
+## Folder 1 — .github/
+
+    workflows/
+
+    ISSUE_TEMPLATE/
+
+    PULL_REQUEST_TEMPLATE.md
+
+    CODEOWNERS
+
+    dependabot.yml
+
+## Folder 2 — .husky
+
+    pre-commit
+
+    pre-push
+
+    commit-msg
+
+## Folder 3 — .vscode
+
+    Only editor settings.
+
+## Folder 4 — docs
+
+## Folder 5 — prisma
+
+    prisma/
+
+    schema/
+
+    migrations/
+
+    seed/
+
+    extensions/
+
+    helpers/
+
+## Folder 6 — scripts
+
+    scripts/
+
+    seed.ts
+
+    cleanup.ts
+
+    generate-api-key.ts
+
+    create-admin.ts
+
+    migrate-storage.ts
+
+## Folder 7 — test/
+
+    integration/
+
+    e2e/
+
+    fixtures/
+
+    helpers/
+
+    factories/
+
+## Folder 8 — coverage
+
+    Generated.
+
+    Ignored.
+
+## Folder 9 — dist
+
+    Generated.
+
+    Ignored.
+
+## Folder 10 — generated
+
+    Generated code.
+
+    Example
+
+    generated/
+
+    prisma/
+
+    openapi/
+
+    graphql/
+
+    clients/
+
+## Folder 10 src/
+
+    bootstrap/
+
+    config/
+
+    core/
+
+    shared/
+
+    infrastructure/
+
+    modules/
+
+    main.ts
+
+    app.module.ts
+
+## bootstrap/
+
+    app.bootstrap.ts
+
+    swagger.bootstrap.ts
+
+    validation.bootstrap.ts
+
+    logger.bootstrap.ts
+
+    cors.bootstrap.ts
+
+    helmet.bootstrap.ts
+
+    interceptors.bootstrap.ts
+
+    filters.bootstrap.ts
+
+    pipes.bootstrap.ts
+
+    shutdown.bootstrap.ts
+
+## config/
+
+    loaders/
+
+    schemas/
+
+    constants/
+
+    interfaces/
+
+    services/
+
+    utils/
+
+    config.module.ts
+
+## core/
+
+      api/
+
+      auth/
+
+      exceptions/
+
+      events/
+
+      logger/
+
+      health/
+
+      security/
+
+      rbac/
+
+## shared/
+
+    constants/
+
+    decorators/
+
+    pipes/
+
+    utils/
+
+    helpers/
+
+    types/
+
+    interfaces/
+
+    validators/
+
+## infrastructure/
+
+    Prisma
+
+    Redis
+
+    BullMQ
+
+    Firebase
+
+    Cloudinary
+
+    S3
+
+    OpenAI
+
+    HTTP
+
+    Storage
+
+    Cache
+
+    Mail
+
+    Push
+
+    SMS
+
+    Providers
+
+## modules/
+
+    iam/
+
+    organizations/
+
+    users/
+
+    contacts/
+
+    leads/
+
+    pipelines/
+
+    deals/
+
+    inbox/
+
+    automation/
+
+    billing/
+
+    notifications/
+
+    analytics/
+
+    audit/
+
+    integrations/
+
+    storage/
+
+    ai/
+
+modules/
+│
+├── iam/
+│
+│ ├── controllers/
+│ │
+│ ├── services/
+│ │
+│ ├── repositories/
+│ │
+│ ├── dto/
+│ │
+│ ├── validators/
+│ │
+│ ├── mappers/
+│ │
+│ ├── guards/
+│ │
+│ ├── decorators/
+│ │
+│ ├── events/
+│ │
+│ ├── listeners/
+│ │
+│ ├── jobs/
+│ │
+│ ├── cache/
+│ │
+│ ├── constants/
+│ │
+│ ├── enums/
+│ │
+│ ├── interfaces/
+│ │
+│ ├── types/
+│ │
+│ ├── utils/
+│ │
+│ ├── iam.module.ts
+│ │
+│ └── index.ts
+
+<!-- For Large module -->
+
+automation/
+
+features/
+
+    workflows/
+
+    triggers/
+
+    executions/
+
+    templates/
+
+    schedules/
+
+shared/
+
+automation.module.ts
+
+## bootstrap
+
+├── app.bootstrap.ts // Orchestrator
+├── fastify.bootstrap.ts // Fastify plugins
+├── security.bootstrap.ts // Helmet, CORS, rate limiting
+├── hooks.bootstrap.ts // Fastify hooks (raw body, etc.)
+├── versioning.bootstrap.ts // Global prefix + API versioning
+├── validation.bootstrap.ts // ValidationPipe
+├── logger.bootstrap.ts // Logger setup
+├── filter.bootstrap.ts // Global exception filters
+├── guard.bootstrap.ts // Global guards
+├── interceptor.bootstrap.ts // Global interceptors
+├── swagger.bootstrap.ts // Swagger/OpenAPI
+├── shutdown.bootstrap.ts // Graceful shutdown
+├── application.bootstrap.ts // Calls all setup functions
+└── index.ts
+
+| Folder                       | Barrel (`index.ts`) |
+| ---------------------------- | ------------------- |
+| `shared/constants`           | ✅ Yes              |
+| `shared/utils`               | ✅ Yes              |
+| `shared/types`               | ✅ Yes              |
+| `config/constants`           | ✅ Yes              |
+| `bootstrap`                  | ✅ Yes              |
+| `modules/users` (public API) | ✅ Yes              |
+| `controllers`                | ❌ No               |
+| `services`                   | ❌ No               |
+| `repositories`               | ❌ No               |
+| `validators`                 | ❌ No               |
+| `guards`                     | ❌ No               |
+| `dto`                        | ❌ No               |
+
+{
+"success": false,
+"statusCode": 404,
+"message": "User not found.",
+"error": {
+"code": "USER_NOT_FOUND"
+},
+"timestamp": "2026-07-19T12:00:00.000Z",
+"path": "/api/v1/users/1"
+}
+
+{
+"success": false,
+"statusCode": 500,
+"message": "Internal server error.",
+"error": {
+"code": "INTERNAL_SERVER_ERROR",
+"name": "PrismaClientKnownRequestError",
+"details": "...",
+"stack": "..."
+},
+"timestamp": "2026-07-19T12:00:00.000Z",
+"path": "/api/v1/users"
+}
+
+| Layer            | Recommendation                                                               |
+| ---------------- | ---------------------------------------------------------------------------- |
+| Framework        | NestJS                                                                       |
+| Language         | TypeScript                                                                   |
+| Validation       | Zod                                                                          |
+| ORM              | Prisma                                                                       |
+| Database         | PostgreSQL                                                                   |
+| Cache            | Redis                                                                        |
+| Queue            | BullMQ                                                                       |
+| Events           | NestJS EventEmitter                                                          |
+| Logging          | Pino                                                                         |
+| Auth             | JWT + Refresh Tokens + OAuth + MFA                                           |
+| Authorization    | CASL (RBAC + ABAC)                                                           |
+| Password Hashing | Argon2                                                                       |
+| API Docs         | Swagger/OpenAPI                                                              |
+| Monitoring       | OpenTelemetry + Prometheus + Grafana + Sentry                                |
+| Object Storage   | S3 / Cloudflare R2 / MinIO                                                   |
+| Email            | Resend / Postmark / SES                                                      |
+| Payments         | Stripe                                                                       |
+| Scheduling       | @nestjs/schedule                                                             |
+| Testing          | Jest + Supertest + Testcontainers                                            |
+| Deployment       | Docker + GitHub Actions                                                      |
+| Security         | Helmet, CORS, Redis-backed rate limiting, CSP, audit logs, encrypted secrets |
+
+export const RegisterSchema = z.object({
+email: z.email(),
+password: z.string().min(8),
+});
+
+export class RegisterDto extends createZodDto(RegisterSchema) {}
+
+
+health module
+
+// health/health.controller.ts
+import { Controller, Get } from '@nestjs/common';
+import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
+
+import { PrismaHealthIndicator } from '@/infrastructure/database/prisma/index.js';
+
+@Controller('health')
+export class HealthController {
+  constructor(
+    private readonly health: HealthCheckService,
+    private readonly prismaHealth: PrismaHealthIndicator,
+  ) {}
+
+  @Get()
+  @HealthCheck()
+  check() {
+    return this.health.check([() => this.prismaHealth.isHealthy('database')]);
+  }
+}
