@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
+import { REDIS_KEY_SEPARATOR } from '@/config/redis/index.js';
 import { RequestContextService } from '@/core/context/index.js'; // value import — required for DI metadata
 import { AppLoggerService } from '@/core/logger/index.js'; // value import — required for DI metadata
+import { RedisLockService } from '@/infrastructure/redis/index.js'; // value import — required for DI metadata
+import { delay } from '@/shared/utils/async.util.js';
 
-import { CACHE_LOG_CONTEXT } from './constants/cache.constants.js';
+import { CACHE_LOCK, CACHE_LOG_CONTEXT } from './constants/cache.constants.js';
 import type { CacheKeyDescriptor, CacheRememberOptions, CacheSetOptions, CacheStats } from './interfaces/index.js';
 import { CacheMetricsService } from './metrics/cache-metrics.service.js'; // value import — required for DI metadata
 import { CircuitBreaker } from './resilience/circuit-breaker.js';
@@ -46,6 +49,8 @@ export class CacheService {
     private readonly store: RedisCacheStore,
 
     private readonly requestContext: RequestContextService,
+
+    private readonly lock: RedisLockService,
 
     private readonly metrics: CacheMetricsService,
 
@@ -109,6 +114,66 @@ export class CacheService {
       this.handleFailure(error, 'get', key);
 
       return null;
+    }
+  }
+
+  /**
+   * Reads several keys in one round trip.
+   *
+   * Positional: index `i` is the value for `keys[i]`, `null` for a miss. Twenty
+   * leads for a list view cost one round trip instead of twenty.
+   */
+  async getMany<T>(keys: readonly string[]): Promise<(T | null)[]> {
+    if (keys.length === 0) {
+      return [];
+    }
+
+    if (this.circuit.isOpen) {
+      this.metrics.recordSkip();
+
+      return keys.map(() => null);
+    }
+
+    try {
+      const payloads = await this.store.getMany(keys);
+
+      this.circuit.recordSuccess();
+
+      return payloads.map((payload) => {
+        if (payload === null) {
+          this.metrics.recordMiss();
+
+          return null;
+        }
+
+        this.metrics.recordHit();
+
+        return deserialize<T>(payload);
+      });
+    } catch (error) {
+      this.handleFailure(error, 'getMany', `${keys.length} keys`);
+
+      return keys.map(() => null);
+    }
+  }
+
+  async setMany<T>(entries: readonly { key: string; value: T; ttlSeconds: number }[]): Promise<void> {
+    if (entries.length === 0 || this.circuit.isOpen) {
+      return;
+    }
+
+    try {
+      await this.store.setMany(
+        entries.map((entry) => ({
+          key: entry.key,
+          value: serialize(entry.value),
+          ttlSeconds: applyTtlJitter(entry.ttlSeconds),
+        })),
+      );
+
+      this.circuit.recordSuccess();
+    } catch (error) {
+      this.handleFailure(error, 'setMany', `${entries.length} keys`);
     }
   }
 
@@ -187,21 +252,64 @@ export class CacheService {
       return cached;
     }
 
-    return this.singleFlight.run(key, async () => {
-      const value = await loader();
+    return this.singleFlight.run(key, async () =>
+      options.lock === true ? this.loadWithLock(key, loader, options) : this.loadAndStore(key, loader, options),
+    );
+  }
 
-      if (value === null || value === undefined) {
-        if (options.negativeTtlSeconds !== undefined) {
-          await this.set(key, value, { ttlSeconds: options.negativeTtlSeconds });
-        }
+  /**
+   * One replica loads, the rest wait for its result.
+   *
+   * The loser polls the cache rather than the lock: what it needs is the value,
+   * and the winner writes it the moment it has it. Giving up after the wait
+   * budget and loading unguarded is deliberate — a crashed or very slow winner
+   * must not stall every other request until the lock's TTL expires.
+   */
+  private async loadWithLock<T>(key: string, loader: () => Promise<T>, options: CacheRememberOptions): Promise<T> {
+    const lockKey = `${key}${REDIS_KEY_SEPARATOR}${CACHE_LOCK.KEY_SUFFIX}`;
+    const handle = await this.lock.acquire(lockKey, CACHE_LOCK.TTL_SECONDS);
 
-        return value;
+    if (handle !== null) {
+      try {
+        return await this.loadAndStore(key, loader, options);
+      } finally {
+        await this.lock.release(handle);
+      }
+    }
+
+    for (let attempt = 0; attempt < CACHE_LOCK.MAX_WAITS; attempt += 1) {
+      await delay(CACHE_LOCK.WAIT_MS);
+
+      const cached = await this.get<T>(key);
+
+      if (cached !== null) {
+        return cached;
+      }
+    }
+
+    this.logger.warn('Cache lock wait exhausted — loading without it', {
+      context: CACHE_LOG_CONTEXT,
+      operation: 'remember',
+      metadata: { key, waitedMs: CACHE_LOCK.WAIT_MS * CACHE_LOCK.MAX_WAITS },
+    });
+
+    return this.loadAndStore(key, loader, options);
+  }
+
+  private async loadAndStore<T>(key: string, loader: () => Promise<T>, options: CacheRememberOptions): Promise<T> {
+    const value = await loader();
+
+    if (value === null || value === undefined) {
+      if (options.negativeTtlSeconds !== undefined) {
+        await this.set(key, value, { ttlSeconds: options.negativeTtlSeconds });
       }
 
-      await this.set(key, value, { ttlSeconds: options.ttlSeconds });
-
       return value;
-    });
+    }
+
+    await this.set(key, value, { ttlSeconds: options.ttlSeconds });
+
+    return value;
   }
 
   get stats(): CacheStats {

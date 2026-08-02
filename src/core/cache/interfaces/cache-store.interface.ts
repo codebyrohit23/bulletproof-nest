@@ -9,10 +9,26 @@
  * Implementations may throw. `CacheService` catches, because a cache failure
  * must degrade to a miss rather than fail the request.
  */
+export interface CacheStoreEntry {
+  readonly key: string;
+
+  readonly value: string;
+
+  readonly ttlSeconds: number;
+}
+
 export interface CacheStore {
   get(key: string): Promise<string | null>;
 
+  /**
+   * Reads several keys in one round trip. Results are positional — index `i`
+   * corresponds to `keys[i]`, and a missing key is `null`.
+   */
+  getMany(keys: readonly string[]): Promise<(string | null)[]>;
+
   set(key: string, value: string, ttlSeconds: number): Promise<void>;
+
+  setMany(entries: readonly CacheStoreEntry[]): Promise<void>;
 
   delete(keys: readonly string[]): Promise<void>;
 

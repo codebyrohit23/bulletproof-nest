@@ -37,3 +37,18 @@ export const REDIS_HEALTH_TIMEOUT_MS = 2_000;
 export const REDIS_RECONNECT_JITTER_RATIO = 0.2;
 
 export const REDIS_PING_REPLY = 'PONG';
+
+/**
+ * Compare-and-delete, so a lock is only released by the process that owns it.
+ *
+ * `DEL` alone is unsafe: a holder that overran its TTL would delete a lock
+ * another process has since acquired. The read and the delete must be one
+ * atomic step, which on Redis means a script.
+ */
+export const REDIS_LOCK_RELEASE_SCRIPT = `
+if redis.call("get", KEYS[1]) == ARGV[1] then
+  return redis.call("del", KEYS[1])
+else
+  return 0
+end
+`;

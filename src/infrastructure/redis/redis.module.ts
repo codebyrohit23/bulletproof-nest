@@ -4,6 +4,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { AppConfigModule } from '@/config/index.js';
 
 import { RedisHealthIndicator } from './indicators/redis-health.indicator.js';
+import { RedisLockService } from './locks/redis-lock.service.js';
 import { RedisService } from './redis.service.js';
 
 /**
@@ -18,7 +19,7 @@ import { RedisService } from './redis.service.js';
 @Global()
 @Module({
   imports: [AppConfigModule, TerminusModule],
-  providers: [RedisService, RedisHealthIndicator],
-  exports: [RedisService, RedisHealthIndicator],
+  providers: [RedisService, RedisHealthIndicator, RedisLockService],
+  exports: [RedisService, RedisHealthIndicator, RedisLockService],
 })
 export class RedisModule {}

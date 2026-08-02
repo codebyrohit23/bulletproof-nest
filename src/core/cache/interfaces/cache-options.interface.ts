@@ -12,6 +12,21 @@ export interface CacheRememberOptions extends CacheSetOptions {
    * `CACHE_NEGATIVE_TTL_SECONDS`.
    */
   readonly negativeTtlSeconds?: number;
+
+  /**
+   * Take a cross-pod lock so only one replica runs the loader.
+   *
+   * Off by default. In-process single-flight already collapses concurrent
+   * callers within a replica, so this buys the difference between one load per
+   * pod and one load overall — worth two extra Redis round trips for an
+   * aggregation, a report or an external API call, and not worth it for a
+   * single indexed lookup.
+   *
+   * Best-effort: a replica that cannot take the lock waits briefly, re-checks
+   * the cache, and eventually loads anyway. It reduces duplicate work; it does
+   * not guarantee exactly one execution.
+   */
+  readonly lock?: boolean;
 }
 
 /**

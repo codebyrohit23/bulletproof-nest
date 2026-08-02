@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { RedisService } from '@/infrastructure/redis/index.js'; // value import — required for DI metadata
 
 import { CACHE_SCAN_COUNT } from '../constants/cache.constants.js';
-import type { CacheStore } from '../interfaces/index.js';
+import type { CacheStore, CacheStoreEntry } from '../interfaces/index.js';
 
 @Injectable()
 export class RedisCacheStore implements CacheStore {
@@ -13,8 +13,56 @@ export class RedisCacheStore implements CacheStore {
     return this.redis.client.get(key);
   }
 
+  /**
+   * A pipeline of `GET`s rather than a single `MGET`.
+   *
+   * `MGET` is one command, so in Redis Cluster every key must hash to the same
+   * slot — and cache keys deliberately carry no hash tag, so they will not. A
+   * pipeline is still one round trip on a standalone server, and in a cluster
+   * ioredis splits it per node automatically. Same cost today, works unchanged
+   * later.
+   */
+  async getMany(keys: readonly string[]): Promise<(string | null)[]> {
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const pipeline = this.redis.client.pipeline();
+
+    for (const key of keys) {
+      pipeline.get(key);
+    }
+
+    const replies = await pipeline.exec();
+
+    if (replies === null) {
+      return keys.map(() => null);
+    }
+
+    /*
+     * Each reply is `[error, value]`. A per-key failure reads as a miss rather
+     * than failing the whole batch — one bad key must not deny the caller the
+     * other nineteen.
+     */
+    return replies.map(([error, value]) => (error !== null || typeof value !== 'string' ? null : value));
+  }
+
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
     await this.redis.client.set(key, value, 'EX', ttlSeconds);
+  }
+
+  async setMany(entries: readonly CacheStoreEntry[]): Promise<void> {
+    if (entries.length === 0) {
+      return;
+    }
+
+    const pipeline = this.redis.client.pipeline();
+
+    for (const entry of entries) {
+      pipeline.set(entry.key, entry.value, 'EX', entry.ttlSeconds);
+    }
+
+    await pipeline.exec();
   }
 
   async delete(keys: readonly string[]): Promise<void> {
