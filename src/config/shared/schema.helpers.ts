@@ -12,12 +12,16 @@ import { parseCommaSeparated } from './utils.js';
 /**
  * `z.coerce.boolean()` is `Boolean(value)`, which makes the string `'false'`
  * evaluate to `true`. Every boolean environment variable must use this instead.
+ *
+ * Only `true` and `false` are accepted. `1`/`0` would be a second spelling of
+ * the same thing, and one canonical form means an `.env` file reads the same
+ * way everywhere.
  */
 export const booleanEnv = (defaultValue: 'true' | 'false') =>
   z
-    .enum(['true', 'false', '1', '0'])
+    .enum(['true', 'false'])
     .default(defaultValue)
-    .transform((value) => value === 'true' || value === '1');
+    .transform((value) => value === 'true');
 
 /**
  * A positive integer with a default, used for ports, pool sizes and timeouts.

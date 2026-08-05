@@ -8,6 +8,7 @@ import { InterceptorModule } from '@/core/interceptors/index.js';
 import { AppLoggerModule } from '@/core/logger/index.js';
 import { ValidationModule } from '@/core/validation/index.js';
 import { PrismaModule } from '@/infrastructure/database/prisma/index.js';
+import { QueueModule, QueueWorkerModule } from '@/infrastructure/queue/index.js';
 import { RedisModule } from '@/infrastructure/redis/index.js';
 
 /**
@@ -28,6 +29,8 @@ import { RedisModule } from '@/infrastructure/redis/index.js';
     PrismaModule,
     RedisModule,
     CacheModule,
+    QueueModule,
+    QueueWorkerModule,
     ExceptionModule,
     InterceptorModule,
     ValidationModule,
