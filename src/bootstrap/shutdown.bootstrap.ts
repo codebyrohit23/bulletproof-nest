@@ -1,7 +1,7 @@
 import { ShutdownSignal } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
-import { AppLoggerService } from '@/core/logger/index.js';
+import { AppLoggerService } from '#/core/logger/index.js';
 
 const SHUTDOWN_SIGNALS = [ShutdownSignal.SIGTERM, ShutdownSignal.SIGINT];
 const FORCED_SHUTDOWN_TIMEOUT_MS = 10_000;

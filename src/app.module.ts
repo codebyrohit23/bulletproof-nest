@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 
-import { AppConfigModule } from '@/config/index.js';
-import { CacheModule } from '@/core/cache/index.js';
-import { ContextModule } from '@/core/context/index.js';
-import { ExceptionModule } from '@/core/exceptions/index.js';
-import { InterceptorModule } from '@/core/interceptors/index.js';
-import { AppLoggerModule } from '@/core/logger/index.js';
-import { ValidationModule } from '@/core/validation/index.js';
-import { PrismaModule } from '@/infrastructure/database/prisma/index.js';
-import { QueueModule, QueueWorkerModule } from '@/infrastructure/queue/index.js';
-import { RedisModule } from '@/infrastructure/redis/index.js';
-import { HealthModule } from '@/modules/health/index.js';
+import { AppConfigModule } from '#/config/index.js';
+import { CacheModule } from '#/core/cache/index.js';
+import { ContextModule } from '#/core/context/index.js';
+import { ExceptionModule } from '#/core/exceptions/index.js';
+import { InterceptorModule } from '#/core/interceptors/index.js';
+import { AppLoggerModule } from '#/core/logger/index.js';
+import { ValidationModule } from '#/core/validation/index.js';
+import { PrismaModule } from '#/infrastructure/database/prisma/index.js';
+import { QueueModule, QueueWorkerModule } from '#/infrastructure/queue/index.js';
+import { RedisModule } from '#/infrastructure/redis/index.js';
+import { HealthModule } from '#/modules/health/index.js';
 
 /**
  * Every module is imported explicitly, in dependency order, even the ones marked

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { RedisService } from '@/infrastructure/redis/index.js'; // value import — required for DI metadata
+import { RedisService } from '#/infrastructure/redis/index.js'; // value import — required for DI metadata
 
 import { CACHE_SCAN_COUNT } from '../constants/cache.constants.js';
 import type { CacheStore, CacheStoreEntry } from '../interfaces/index.js';

@@ -6,7 +6,7 @@ export function validateEnv() {
   const result = envSchema.safeParse(process.env);
 
   if (!result.success) {
-    console.error('Invalid environment variables', z.treeifyError(result.error));
+    console.error('Invalid environment variables', z.prettifyError(result.error));
 
     throw new Error('Environment validation failed.');
   }

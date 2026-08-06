@@ -1,24 +1,16 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, type HealthCheckResult } from '@nestjs/terminus';
 
-import { RawResponse } from '@/core/interceptors/index.js';
-import { PrismaHealthIndicator } from '@/infrastructure/database/prisma/index.js'; // value import — required for DI metadata
-import { RedisHealthIndicator } from '@/infrastructure/redis/index.js'; // value import — required for DI metadata
+import { RawResponse } from '#/core/interceptors/index.js';
+import { PrismaHealthIndicator } from '#/infrastructure/database/prisma/index.js';
+import { RedisHealthIndicator } from '#/infrastructure/redis/index.js';
 
+import { HEALTH_API_TAG } from '../constants/health.constants.js';
 import type { LivenessResult } from '../interfaces/index.js';
 
-/**
- * Liveness and readiness, deliberately separate.
- *
- * They answer different questions and an orchestrator reacts to them
- * differently — conflating them is the single most common way a health check
- * turns a small problem into an outage.
- *
- * Routes sit at `/health`, not `/api/v1/health`: `versioning.bootstrap.ts`
- * excludes them from the global prefix so probes never break when the API is
- * versioned.
- */
-@Controller('health')
+@ApiTags(HEALTH_API_TAG.name)
+@Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
@@ -41,6 +33,7 @@ export class HealthController {
    * is yes.
    */
   @Get('live')
+  @ApiOperation({ summary: 'Liveness — is the process running?' })
   @RawResponse()
   live(): LivenessResult {
     return {
@@ -57,6 +50,7 @@ export class HealthController {
    * it running — it will recover on its own when its dependencies do.
    */
   @Get('ready')
+  @ApiOperation({ summary: 'Readiness — can it serve traffic? Checks Postgres and Redis.' })
   @RawResponse()
   @HealthCheck()
   ready(): Promise<HealthCheckResult> {
@@ -68,6 +62,7 @@ export class HealthController {
    * checks as readiness.
    */
   @Get()
+  @ApiOperation({ summary: 'Readiness, at the conventional default path.' })
   @RawResponse()
   @HealthCheck()
   check(): Promise<HealthCheckResult> {

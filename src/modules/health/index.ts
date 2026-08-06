@@ -46,4 +46,6 @@
 
 export { HealthModule } from './health.module.js';
 
+export { HEALTH_API_TAG } from './constants/health.constants.js';
+
 export type { LivenessResult } from './interfaces/index.js';

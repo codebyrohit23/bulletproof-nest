@@ -2,7 +2,7 @@ import { type ArgumentsHost, Catch, type ExceptionFilter, Injectable } from '@ne
 import { HttpAdapterHost } from '@nestjs/core';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import { AppLoggerService } from '@/core/logger/index.js';
+import { AppLoggerService } from '#/core/logger/index.js';
 
 import { ErrorResponseBuilder } from '../builders/error-response.builder.js';
 import { ExceptionMapperService } from '../exception-mapper.service.js';

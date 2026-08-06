@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { LoggerModule as NestjsPinoModule, type Params } from 'nestjs-pino';
 
-import { AppConfigService } from '@/config/app/index.js';
-import { AppConfigModule } from '@/config/index.js';
+import { AppConfigService } from '#/config/app/index.js';
+import { AppConfigModule } from '#/config/index.js';
 
 import { createLoggerConfig } from './logger.config.js';
 import { AppLoggerService } from './logger.service.js';

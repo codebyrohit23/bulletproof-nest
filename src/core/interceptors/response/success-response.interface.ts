@@ -1,4 +1,4 @@
-import type { ResponseMeta } from '@/shared/response/index.js';
+import type { ResponseMeta } from '#/shared/response/index.js';
 
 /**
  * The success half of the API contract.

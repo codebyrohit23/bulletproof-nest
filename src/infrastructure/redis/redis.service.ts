@@ -1,8 +1,8 @@
 import { Injectable, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 
-import { RedisConfigService } from '@/config/redis/index.js'; // value import — required for DI metadata
-import { AppLoggerService } from '@/core/logger/index.js'; // value import — required for DI metadata
+import { RedisConfigService } from '#/config/redis/index.js'; // value import — required for DI metadata
+import { AppLoggerService } from '#/core/logger/index.js'; // value import — required for DI metadata
 
 import {
   REDIS_CLIENT,

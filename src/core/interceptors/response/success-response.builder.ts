@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import type { ResponseMeta } from '@/shared/response/index.js';
+import type { ResponseMeta } from '#/shared/response/index.js';
 
 import { DEFAULT_SUCCESS_MESSAGE, FALLBACK_SUCCESS_MESSAGE } from './response.constants.js';
 import type { SuccessResponseBuilderOptions } from './success-response-builder-options.interface.js';

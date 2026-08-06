@@ -1,12 +1,13 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger } from 'nestjs-pino';
 
-import { configureShutdown } from '@/bootstrap/shutdown.bootstrap.js';
-import { configureVersioning } from '@/bootstrap/versioning.bootstrap.js';
+import { configureShutdown } from '#/bootstrap/shutdown.bootstrap.js';
+import { configureVersioning } from '#/bootstrap/versioning.bootstrap.js';
 
 import { configureFastify } from './fastify.bootstrap.js';
 import { configureHooks } from './hooks.bootstrap.js';
 import { configureSecurity } from './security.bootstrap.js';
+import { configureSwagger } from './swagger/swagger.bootstrap.js';
 
 export async function bootstrapApplication(app: NestFastifyApplication): Promise<void> {
   /**
@@ -32,6 +33,6 @@ export async function bootstrapApplication(app: NestFastifyApplication): Promise
 
   configureHooks(app);
   configureVersioning(app);
-  // await configureSwagger(app);
+  configureSwagger(app);
   configureShutdown(app);
 }

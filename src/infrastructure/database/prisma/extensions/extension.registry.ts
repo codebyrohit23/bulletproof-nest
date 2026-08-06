@@ -1,4 +1,4 @@
-import type { AppLoggerService } from '@/core/logger/index.js';
+import type { AppLoggerService } from '#/core/logger/index.js';
 
 import type { BasePrismaClient } from '../types/prisma.types.js';
 

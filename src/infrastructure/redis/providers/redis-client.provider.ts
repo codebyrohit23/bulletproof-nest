@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis';
 
-import type { RedisConfigService } from '@/config/redis/index.js';
+import type { RedisConfigService } from '#/config/redis/index.js';
 
 import { REDIS_CLIENT, type RedisClientName } from '../constants/redis.constants.js';
 import { createReconnectStrategy } from '../utils/reconnect.util.js';

@@ -1,7 +1,7 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 
-import { AppLoggerService } from '@/core/logger/index.js'; // value import — required for DI metadata
+import { AppLoggerService } from '#/core/logger/index.js'; // value import — required for DI metadata
 
 import { QUEUE_LOG_CONTEXT } from '../constants/queue.constants.js';
 import { JOB_HANDLER_METADATA } from '../decorators/job-handler.decorator.js';

@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 
-import { bootstrapApplication } from '@/bootstrap/index.js';
-import { AppConfigService } from '@/config/app/index.js';
+import { bootstrapApplication } from '#/bootstrap/index.js';
+import { AppConfigService } from '#/config/app/index.js';
 
 import { AppModule } from './app.module.js';
 

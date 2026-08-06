@@ -1,4 +1,4 @@
-import type { RequestContext } from '@/core/context/index.js';
+import type { RequestContext } from '#/core/context/index.js';
 
 /**
  * What is actually stored in Redis for a job.

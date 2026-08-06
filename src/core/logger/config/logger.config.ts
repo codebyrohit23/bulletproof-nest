@@ -1,4 +1,4 @@
-// import type { AppConfigService } from '@/config/app/index.js';
+// import type { AppConfigService } from '#/config/app/index.js';
 
 // import { CORRELATION_ID_HEADER, LOGGER_REDACT_PATHS, REQUEST_ID_HEADER } from '../constants/logger.constants.js';
 // import type { LoggerConfig } from '../interfaces/logger-config.interface.js';

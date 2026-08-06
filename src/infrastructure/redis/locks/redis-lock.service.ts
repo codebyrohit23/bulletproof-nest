@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { Injectable } from '@nestjs/common';
 
-import { AppLoggerService } from '@/core/logger/index.js'; // value import — required for DI metadata
+import { AppLoggerService } from '#/core/logger/index.js'; // value import — required for DI metadata
 
 import { REDIS_LOCK_RELEASE_SCRIPT, REDIS_LOG_CONTEXT } from '../constants/redis.constants.js';
 import type { RedisLockHandle } from '../interfaces/index.js';

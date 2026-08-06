@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { Job } from 'bullmq';
 
-import { RequestContextService } from '@/core/context/index.js'; // value import — required for DI metadata
-import { AppLoggerService } from '@/core/logger/index.js'; // value import — required for DI metadata
+import { RequestContextService } from '#/core/context/index.js'; // value import — required for DI metadata
+import { AppLoggerService } from '#/core/logger/index.js'; // value import — required for DI metadata
 
 import { QUEUE_LOG_CONTEXT, QUEUE_SETTINGS, type QueueName } from '../constants/queue.constants.js';
 import type { JobEnvelope, JobMeta } from '../interfaces/index.js';

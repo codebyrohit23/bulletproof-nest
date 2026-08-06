@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-import type { PostgresConfig } from '@/config/database/index.js';
+import type { PostgresConfig } from '#/config/database/index.js';
 
 /**
  * Creates the underlying `pg` connection pool.

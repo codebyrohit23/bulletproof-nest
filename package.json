@@ -13,7 +13,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main.js",
     "// Build": "",
-    "build": "rimraf dist && nest build && tsc-alias -p tsconfig.build.json",
+    "build": "rimraf dist && nest build",
     "// Quality": "",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -44,11 +44,13 @@
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.0",
+    "@fastify/static": "^10.1.2",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-fastify": "^11.1.28",
+    "@nestjs/swagger": "^11.4.6",
     "@nestjs/terminus": "^11.1.1",
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.8.0",
@@ -121,5 +123,11 @@
     "node": "^24.0.0",
     "pnpm": "^10.31.0"
   },
-  "packageManager": "pnpm@10.31.0"
+  "packageManager": "pnpm@10.31.0",
+  "imports": {
+    "#/*": {
+      "types": "./src/*",
+      "default": "./dist/*"
+    }
+  }
 }

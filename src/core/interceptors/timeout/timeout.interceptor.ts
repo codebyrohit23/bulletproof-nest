@@ -9,7 +9,7 @@ import type { Observable } from 'rxjs';
 import { throwError, TimeoutError } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
 
-import { AppConfigService } from '@/config/app/index.js'; // value import — required for DI metadata
+import { AppConfigService } from '#/config/app/index.js'; // value import — required for DI metadata
 
 /**
  * Bounds how long a handler may run.

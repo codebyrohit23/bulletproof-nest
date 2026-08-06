@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
-import { AppConfigService } from '@/config/app/index.js';
-import { RequestContextService } from '@/core/context/index.js'; // value import — required for DI metadata
-import type { ResponseMeta } from '@/shared/response/index.js';
+import { AppConfigService } from '#/config/app/index.js';
+import { RequestContextService } from '#/core/context/index.js'; // value import — required for DI metadata
+import type { ResponseMeta } from '#/shared/response/index.js';
 
 import type { ApiError } from '../interfaces/api-error.interface.js';
 import type { ErrorResponseBuilderOptions } from '../interfaces/error-response-builder-options.interface.js';

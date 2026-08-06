@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { RequestMethod, VersioningType } from '@nestjs/common';
 
-import { API_PREFIX, API_VERSION_PREFIX, ApiVersion } from '@/shared/constants/index.js';
+import { API_PREFIX, API_VERSION_PREFIX, ApiVersion } from '#/shared/constants/index.js';
 
 export function configureVersioning(app: INestApplication): void {
   app.setGlobalPrefix(API_PREFIX, {
@@ -12,10 +12,6 @@ export function configureVersioning(app: INestApplication): void {
       },
       {
         path: 'health/*path',
-        method: RequestMethod.ALL,
-      },
-      {
-        path: 'admin/*path',
         method: RequestMethod.ALL,
       },
     ],

@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 
-import { AppConfigModule } from '@/config/index.js';
+import { AppConfigModule } from '#/config/index.js';
 
 import { RedisHealthIndicator } from './indicators/redis-health.indicator.js';
 import { RedisLockService } from './locks/redis-lock.service.js';

@@ -2,9 +2,9 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
-import { RequestContextService } from '@/core/context/index.js'; // value import — required for DI metadata
-import { AppLoggerService } from '@/core/logger/index.js'; // value import — required for DI metadata
-import { TransactionService } from '@/infrastructure/database/prisma/index.js'; // value import — required for DI metadata
+import { RequestContextService } from '#/core/context/index.js'; // value import — required for DI metadata
+import { AppLoggerService } from '#/core/logger/index.js'; // value import — required for DI metadata
+import { TransactionService } from '#/infrastructure/database/prisma/index.js'; // value import — required for DI metadata
 
 import { JOB_DEFAULTS, QUEUE, QUEUE_LOG_CONTEXT, type QueueName } from '../constants/queue.constants.js';
 import type { DispatchOptions, JobEnvelope } from '../interfaces/index.js';

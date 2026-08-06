@@ -1,8 +1,8 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Global, Module } from '@nestjs/common';
 
-import { AppConfigModule } from '@/config/index.js';
-import { RedisConfigService } from '@/config/redis/index.js';
+import { AppConfigModule } from '#/config/index.js';
+import { RedisConfigService } from '#/config/redis/index.js';
 
 import { QUEUE_NAMES, buildQueuePrefix } from './constants/queue.constants.js';
 import { JobDispatcher } from './services/job-dispatcher.service.js';

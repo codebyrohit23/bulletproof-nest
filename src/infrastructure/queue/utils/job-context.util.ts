@@ -1,6 +1,6 @@
 import { uuidv7 } from 'uuidv7';
 
-import { DEFAULT_LOCALE, type RequestContext } from '@/core/context/index.js';
+import { DEFAULT_LOCALE, type RequestContext } from '#/core/context/index.js';
 
 import type { JobContextSnapshot } from '../interfaces/index.js';
 

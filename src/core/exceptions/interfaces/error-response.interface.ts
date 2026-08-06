@@ -1,4 +1,4 @@
-import type { ResponseMeta } from '@/shared/response/index.js';
+import type { ResponseMeta } from '#/shared/response/index.js';
 
 import type { ApiError } from './api-error.interface.js';
 import type { ValidationError } from './validation-error.interface.js';

@@ -1,4 +1,4 @@
-import { REDIS_RECONNECT_UNLIMITED, type RedisReconnectConfig } from '@/config/redis/index.js';
+import { REDIS_RECONNECT_UNLIMITED, type RedisReconnectConfig } from '#/config/redis/index.js';
 
 import { REDIS_RECONNECT_JITTER_RATIO } from '../constants/redis.constants.js';
 

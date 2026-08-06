@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { ENVIRONMENTS } from '@/config/app/app.constants.js';
+import { ENVIRONMENTS } from '#/config/app/app.constants.js';
 
 import type { AppConfig } from './app.interface.js';
 

@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 
-import { AppConfigModule } from '@/config/index.js';
+import { AppConfigModule } from '#/config/index.js';
 
 import { PrismaHealthIndicator } from './indicators/prisma-health.indicator.js';
 import { PrismaService } from './prisma.service.js';

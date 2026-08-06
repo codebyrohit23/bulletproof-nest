@@ -1,8 +1,8 @@
 import { Injectable, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
 import type { Pool } from 'pg';
 
-import { DatabaseConfigService } from '@/config/database/index.js'; // value import — required for DI metadata
-import { AppLoggerService } from '@/core/logger/index.js'; // value import — required for DI metadata
+import { DatabaseConfigService } from '#/config/database/index.js'; // value import — required for DI metadata
+import { AppLoggerService } from '#/core/logger/index.js'; // value import — required for DI metadata
 
 import { DATABASE_RETRY, PRISMA_LOG_CONTEXT } from './constants/prisma.constants.js';
 import { applyPrismaExtensions } from './extensions/index.js';

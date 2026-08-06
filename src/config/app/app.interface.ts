@@ -1,5 +1,5 @@
-import type { Environment } from '@/config/app/app.constants.js';
-import type { LogLevel } from '@/core/logger/logger.constants.js';
+import type { Environment } from '#/config/app/app.constants.js';
+import type { LogLevel } from '#/core/logger/logger.constants.js';
 
 export interface AppConfig {
   readonly env: Environment;

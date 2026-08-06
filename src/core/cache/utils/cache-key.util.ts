@@ -1,4 +1,4 @@
-import { REDIS_KEY_SEPARATOR } from '@/config/redis/index.js';
+import { REDIS_KEY_SEPARATOR } from '#/config/redis/index.js';
 
 import { CACHE_DOMAIN, CACHE_SCOPE, CACHE_VERSION_PREFIX } from '../constants/cache.constants.js';
 import type { CacheKeyDescriptor } from '../interfaces/index.js';

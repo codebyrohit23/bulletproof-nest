@@ -2,7 +2,7 @@ import { performance } from 'node:perf_hooks';
 
 import { Prisma } from '@prisma/client';
 
-import type { AppLoggerService } from '@/core/logger/index.js';
+import type { AppLoggerService } from '#/core/logger/index.js';
 
 import { PRISMA_QUERY_LOG_CONTEXT } from '../constants/prisma.constants.js';
 

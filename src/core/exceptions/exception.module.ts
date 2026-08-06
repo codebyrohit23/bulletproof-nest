@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 
-import { AppLoggerModule } from '@/core/logger/index.js';
+import { AppLoggerModule } from '#/core/logger/index.js';
 
 import { ErrorResponseBuilder } from './builders/error-response.builder.js';
 import { EXCEPTION_HANDLERS } from './constants/index.js';

@@ -2,7 +2,7 @@ import compress from '@fastify/compress';
 import cookie from '@fastify/cookie';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
-import { SecurityConfigService } from '@/config/security/index.js';
+import { SecurityConfigService } from '#/config/security/index.js';
 
 /**
  * Registers Fastify-specific plugins.
