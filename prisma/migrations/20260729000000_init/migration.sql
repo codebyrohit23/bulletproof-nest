@@ -41,6 +41,9 @@ CREATE TYPE "UserAuthProvider" AS ENUM ('PASSWORD', 'GOOGLE', 'APPLE', 'FACEBOOK
 CREATE TYPE "SessionStatus" AS ENUM ('ACTIVE', 'LOGGED_OUT', 'REVOKED', 'EXPIRED');
 
 -- CreateEnum
+CREATE TYPE "TokenRevokeReason" AS ENUM ('ROTATED', 'REUSE_DETECTED', 'LOGOUT', 'SESSION_REVOKED');
+
+-- CreateEnum
 CREATE TYPE "DeviceType" AS ENUM ('DESKTOP', 'LAPTOP', 'TABLET', 'MOBILE', 'OTHER');
 
 -- CreateEnum
@@ -147,11 +150,9 @@ CREATE TABLE "refresh_tokens" (
     "id" UUID NOT NULL DEFAULT uuidv7(),
     "session_id" UUID NOT NULL,
     "token_hash" VARCHAR(255) NOT NULL,
-    "token_family" UUID NOT NULL,
-    "jti" UUID NOT NULL,
     "expires_at" TIMESTAMPTZ(6) NOT NULL,
     "revoked_at" TIMESTAMPTZ(6),
-    "replaced_by_token_id" UUID,
+    "revoked_reason" "TokenRevokeReason",
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "refresh_tokens_pkey" PRIMARY KEY ("id")
@@ -212,7 +213,7 @@ CREATE INDEX "user_sessions_expires_at_idx" ON "user_sessions"("expires_at");
 CREATE INDEX "user_sessions_last_activity_at_idx" ON "user_sessions"("last_activity_at");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "refresh_tokens_jti_key" ON "refresh_tokens"("jti");
+CREATE UNIQUE INDEX "refresh_tokens_token_hash_key" ON "refresh_tokens"("token_hash");
 
 -- CreateIndex
 CREATE INDEX "refresh_tokens_session_id_idx" ON "refresh_tokens"("session_id");

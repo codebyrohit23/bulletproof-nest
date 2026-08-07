@@ -5,6 +5,7 @@ import { CacheModule } from '#/core/cache/index.js';
 import { ContextModule } from '#/core/context/index.js';
 import { ExceptionModule } from '#/core/exceptions/index.js';
 import { InterceptorModule } from '#/core/interceptors/index.js';
+import { JwtModule } from '#/core/jwt/index.js';
 import { AppLoggerModule } from '#/core/logger/index.js';
 import { SecurityModule } from '#/core/security/index.js';
 import { ValidationModule } from '#/core/validation/index.js';
@@ -37,6 +38,7 @@ import { HealthModule } from '#/modules/health/index.js';
     InterceptorModule,
     ValidationModule,
     SecurityModule,
+    JwtModule,
 
     HealthModule,
   ],

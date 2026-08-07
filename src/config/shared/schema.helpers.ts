@@ -37,6 +37,43 @@ export const positiveIntEnv = (defaultValue: number) => z.coerce.number().int().
 export const nonNegativeIntEnv = (defaultValue: number) => z.coerce.number().int().min(0).default(defaultValue);
 
 /**
+ * A PEM key delivered base64-encoded, decoded back to PEM for the config layer.
+ *
+ * Keys are wrapped in base64 because a PEM is multi-line, and `.env` files,
+ * `docker --env-file` and hosted secret stores each mangle embedded newlines
+ * differently. The usual workaround — storing `\n` escapes and calling
+ * `.replace(/\\n/g, '\n')` — breaks on whichever platform does not escape them.
+ * One opaque line behaves identically everywhere and round-trips exactly.
+ *
+ * `Buffer.from(value, 'base64')` never throws: it silently skips characters
+ * outside the alphabet and truncates a malformed tail. So the decode cannot be
+ * the check — the banner is. Anything that is not really base64 decodes to
+ * bytes that do not start with a PEM banner and is rejected here.
+ *
+ * Deliberately has no default. Every other helper takes one; a signing key that
+ * silently falls back to a value baked into the source is the one case where a
+ * default is indistinguishable from having no security at all.
+ */
+export const base64PemEnv = (header: string) =>
+  z
+    .string()
+    .min(1)
+    .transform((value, ctx) => {
+      const decoded = Buffer.from(value, 'base64').toString('utf8');
+
+      if (!decoded.startsWith(header)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `must be a base64-encoded PEM beginning with "${header}"`,
+        });
+
+        return z.NEVER;
+      }
+
+      return decoded;
+    });
+
+/**
  * A comma-separated list constrained to a fixed set of allowed values.
  */
 export const enumListEnv = <const T extends readonly [string, ...string[]]>(values: T, defaultValue: string) =>
