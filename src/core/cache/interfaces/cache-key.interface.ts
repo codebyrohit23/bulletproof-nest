@@ -8,7 +8,7 @@
  */
 export interface CacheKeyDescriptor {
   /**
-   * The entity family: `lead`, `user`, `organization`.
+   * The entity family: `lead`, `user`, `workspace`.
    */
   readonly resource: string;
 
@@ -22,7 +22,7 @@ export interface CacheKeyDescriptor {
    * can reproduce it.
    *
    * Per resource, never global: one shared counter would mean changing the
-   * `Lead` DTO also evicts users, organizations and sessions.
+   * `Lead` DTO also evicts users, workspaces and sessions.
    */
   readonly version: number;
 

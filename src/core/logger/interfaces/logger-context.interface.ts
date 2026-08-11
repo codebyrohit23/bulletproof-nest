@@ -24,7 +24,7 @@ export interface LogContext {
   readonly traceId?: string;
 
   readonly userId?: string;
-  readonly organizationId?: string;
+  readonly workspaceId?: string;
   readonly sessionId?: string;
 
   readonly statusCode?: number;

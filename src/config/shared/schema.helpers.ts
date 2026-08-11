@@ -10,6 +10,22 @@ import { parseCommaSeparated } from './utils.js';
  */
 
 /**
+ * Makes a variable optional, treating an empty value as absent.
+ *
+ * `.optional()` alone is not enough. It covers a *missing* key, while an `.env`
+ * file that declares `SOME_VAR=` supplies a key whose value is the empty
+ * string — and hosting platforms hand over empty strings for variables an
+ * operator has cleared rather than deleted. Without this, "not set" has two
+ * spellings and only one of them works.
+ *
+ * The practical case is a variable that exists only some of the time, such as
+ * the outgoing key during a JWT rotation: leaving the line blank between
+ * rotations must mean the same thing as deleting it.
+ */
+export const optionalEnv = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+
+/**
  * `z.coerce.boolean()` is `Boolean(value)`, which makes the string `'false'`
  * evaluate to `true`. Every boolean environment variable must use this instead.
  *

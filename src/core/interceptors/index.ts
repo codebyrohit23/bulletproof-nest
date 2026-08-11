@@ -42,9 +42,9 @@
  *                          it belongs in core/logger, next to the logger.
  *
  *   cache.interceptor      A URL-keyed cache cannot know that `GET /leads` for
- *                          one organization must not serve another's page. In a
+ *                          one workspace must not serve another's page. In a
  *                          multi-tenant app that is a data-leak vector. Cache
- *                          inside services, where organizationId is in scope.
+ *                          inside services, where workspaceId is in scope.
  *
  *   serialization          Each module's `mappers/` builds responses field by
  *                          field — a whitelist. A global stripper is a

@@ -48,8 +48,8 @@ export class RequestContextService {
     return requestContextStorage.getStore()?.userId;
   }
 
-  get organizationId(): string | undefined {
-    return requestContextStorage.getStore()?.organizationId;
+  get workspaceId(): string | undefined {
+    return requestContextStorage.getStore()?.workspaceId;
   }
 
   get sessionId(): string | undefined {

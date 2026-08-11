@@ -32,7 +32,7 @@ import { applyTtlJitter, deserialize, serialize } from './utils/serialization.ut
  * treated as a miss, and writes never block the caller.
  *
  * The one exception is a *programming* error: asking for a tenant-scoped key
- * with no organization in context. That is not a degraded cache, it is a
+ * with no workspace in context. That is not a degraded cache, it is a
  * request about to read another tenant's data, and it fails loudly.
  *
  * Modules do not call this directly. Each owns a small cache service — see
@@ -58,12 +58,12 @@ export class CacheService {
   ) {}
 
   /**
-   * Builds a key scoped to the active organization.
+   * Builds a key scoped to the active workspace.
    *
-   * Throws when there is no organization in context — see the class note.
+   * Throws when there is no workspace in context — see the class note.
    */
   key(descriptor: CacheKeyDescriptor): string {
-    return buildTenantCacheKey(this.requireOrganizationId(), descriptor);
+    return buildTenantCacheKey(this.requireWorkspaceId(), descriptor);
   }
 
   /**
@@ -78,7 +78,7 @@ export class CacheService {
   }
 
   resourcePrefix(resource: string, version: number): string {
-    return buildTenantResourcePrefix(this.requireOrganizationId(), resource, version);
+    return buildTenantResourcePrefix(this.requireWorkspaceId(), resource, version);
   }
 
   globalResourcePrefix(resource: string, version: number): string {
@@ -86,7 +86,7 @@ export class CacheService {
   }
 
   tenantPrefix(): string {
-    return buildTenantCachePrefix(this.requireOrganizationId());
+    return buildTenantCachePrefix(this.requireWorkspaceId());
   }
 
   async get<T>(key: string): Promise<T | null> {
@@ -316,17 +316,17 @@ export class CacheService {
     return this.metrics.stats;
   }
 
-  private requireOrganizationId(): string {
-    const organizationId = this.requestContext.organizationId;
+  private requireWorkspaceId(): string {
+    const workspaceId = this.requestContext.workspaceId;
 
-    if (organizationId === undefined) {
+    if (workspaceId === undefined) {
       throw new Error(
-        'A tenant-scoped cache key was requested with no organization in context. ' +
+        'A tenant-scoped cache key was requested with no workspace in context. ' +
           'Use globalKey() for entities that genuinely span tenants.',
       );
     }
 
-    return organizationId;
+    return workspaceId;
   }
 
   private handleFailure(error: unknown, operation: string, key: string): void {

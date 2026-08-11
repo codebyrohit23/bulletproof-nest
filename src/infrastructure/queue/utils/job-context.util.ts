@@ -30,7 +30,7 @@ export function captureJobContext(context: Readonly<RequestContext> | undefined)
     requestId: context.requestId,
     correlationId: context.correlationId,
     locale: context.locale,
-    ...(context.organizationId !== undefined ? { organizationId: context.organizationId } : {}),
+    ...(context.workspaceId !== undefined ? { workspaceId: context.workspaceId } : {}),
     ...(context.userId !== undefined ? { userId: context.userId } : {}),
   };
 }
@@ -49,7 +49,7 @@ export function restoreJobContext(snapshot: JobContextSnapshot): RequestContext 
     requestId: uuidv7(),
     correlationId: snapshot.correlationId,
     locale: snapshot.locale,
-    ...(snapshot.organizationId !== undefined ? { organizationId: snapshot.organizationId } : {}),
+    ...(snapshot.workspaceId !== undefined ? { workspaceId: snapshot.workspaceId } : {}),
     ...(snapshot.userId !== undefined ? { userId: snapshot.userId } : {}),
   };
 }

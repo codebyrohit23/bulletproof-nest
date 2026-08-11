@@ -25,11 +25,11 @@ export const CurrentUserId = createParamDecorator(
 );
 
 /**
- * The active tenant. Never read the organization from a request body or a
+ * The active tenant. Never read the workspace from a request body or a
  * route parameter — only from here, where it came from a verified session.
  */
-export const CurrentOrganizationId = createParamDecorator(
-  (_data: unknown, _ctx: ExecutionContext): string | undefined => requestContextStorage.getStore()?.organizationId,
+export const CurrentWorkspaceId = createParamDecorator(
+  (_data: unknown, _ctx: ExecutionContext): string | undefined => requestContextStorage.getStore()?.workspaceId,
 );
 
 export const RequestId = createParamDecorator(

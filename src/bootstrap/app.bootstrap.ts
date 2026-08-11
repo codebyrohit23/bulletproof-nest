@@ -4,10 +4,13 @@ import { Logger } from 'nestjs-pino';
 import { configureShutdown } from '#/bootstrap/shutdown.bootstrap.js';
 import { configureVersioning } from '#/bootstrap/versioning.bootstrap.js';
 
+import { configureDocumentation } from './documentation.bootstrap.js';
 import { configureFastify } from './fastify.bootstrap.js';
 import { configureHooks } from './hooks.bootstrap.js';
 import { configureSecurity } from './security.bootstrap.js';
-import { configureSwagger } from './swagger/swagger.bootstrap.js';
+// Retired in favour of `configureDocumentation`. Kept until Scalar has been
+// exercised in practice; `bootstrap/swagger/` goes with it.
+// import { configureSwagger } from './swagger/swagger.bootstrap.js';
 
 export async function bootstrapApplication(app: NestFastifyApplication): Promise<void> {
   /**
@@ -17,7 +20,7 @@ export async function bootstrapApplication(app: NestFastifyApplication): Promise
    * 2. Security
    * 3. Hooks
    * 4. Versioning
-   * 5. Swagger
+   * 5. Documentation
    * 6. Shutdown hooks
    *
    * Filters, pipes, guards and interceptors are deliberately not registered
@@ -33,6 +36,6 @@ export async function bootstrapApplication(app: NestFastifyApplication): Promise
 
   configureHooks(app);
   configureVersioning(app);
-  configureSwagger(app);
+  configureDocumentation(app);
   configureShutdown(app);
 }

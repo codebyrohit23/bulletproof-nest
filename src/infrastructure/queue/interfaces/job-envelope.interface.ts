@@ -8,7 +8,7 @@ import type { RequestContext } from '#/core/context/index.js';
  * dispatched is gone by the time a worker picks it up, possibly minutes later
  * on another machine.
  *
- * Without the snapshot, a tenant-scoped job has no organization — and in this
+ * Without the snapshot, a tenant-scoped job has no workspace — and in this
  * codebase that is not a subtle degradation: `CacheService.key()` throws, and
  * no log line can be traced back to the request that created the job.
  */
@@ -28,5 +28,5 @@ export interface JobEnvelope<TPayload> {
 
 export type JobContextSnapshot = Pick<
   RequestContext,
-  'requestId' | 'correlationId' | 'organizationId' | 'userId' | 'locale'
+  'requestId' | 'correlationId' | 'workspaceId' | 'userId' | 'locale'
 >;

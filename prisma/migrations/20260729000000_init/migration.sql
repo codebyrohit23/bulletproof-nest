@@ -50,7 +50,7 @@ CREATE TYPE "DeviceType" AS ENUM ('DESKTOP', 'LAPTOP', 'TABLET', 'MOBILE', 'OTHE
 CREATE TYPE "DevicePlatform" AS ENUM ('WEB', 'ANDROID', 'IOS');
 
 -- CreateEnum
-CREATE TYPE "OrganizationState" AS ENUM ('ACTIVE', 'SUSPENDED', 'ARCHIVED');
+CREATE TYPE "WorkspaceState" AS ENUM ('ACTIVE', 'SUSPENDED', 'ARCHIVED');
 
 -- CreateEnum
 CREATE TYPE "MembershipStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'LEFT', 'REMOVED');

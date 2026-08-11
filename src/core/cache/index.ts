@@ -76,7 +76,7 @@
  * ---------------------------------------------------------------------------
  *   cache.interceptor.ts   An HTTP interceptor keys on the URL, and a URL does
  *                          not contain the tenant. In a multi-tenant app that
- *                          serves organization A's list to organization B.
+ *                          serves workspace A's list to workspace B.
  *                          Caching happens in services, where the tenant is in
  *                          scope.
  */

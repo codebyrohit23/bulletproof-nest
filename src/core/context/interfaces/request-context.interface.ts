@@ -5,7 +5,7 @@
  *
  * - **Transport fields** (`requestId` … `clientId`) are set once by the
  *   middleware, before guards run, and never change.
- * - **Identity fields** (`userId`, `organizationId`, `sessionId`) are unknown
+ * - **Identity fields** (`userId`, `workspaceId`, `sessionId`) are unknown
  *   until authentication has run, so they are filled in later by the auth
  *   guard via `RequestContextService.set()`.
  *
@@ -37,7 +37,7 @@ export interface RequestContext {
    * The active tenant. Every tenant-scoped query is filtered by this, so it
    * must never be inferred from a request body — only from a verified session.
    */
-  organizationId?: string;
+  workspaceId?: string;
 
   sessionId?: string;
 }
@@ -46,4 +46,4 @@ export interface RequestContext {
  * Fields the auth layer is allowed to add after the context already exists.
  * Transport fields are deliberately excluded — they are immutable once set.
  */
-export type RequestIdentityPatch = Pick<RequestContext, 'userId' | 'organizationId' | 'sessionId'>;
+export type RequestIdentityPatch = Pick<RequestContext, 'userId' | 'workspaceId' | 'sessionId'>;

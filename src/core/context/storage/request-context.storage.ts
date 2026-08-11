@@ -6,7 +6,7 @@ import type { RequestContext } from '../interfaces/index.js';
  * The single AsyncLocalStorage instance for request identity.
  *
  * Module-level rather than a field on the service because parameter decorators
- * (`@CurrentUser()`, `@CurrentOrganization()`) run outside dependency
+ * (`@CurrentUser()`, `@CurrentWorkspace()`) run outside dependency
  * injection and cannot resolve a provider. Both the service and the decorators
  * read this same instance, so there is exactly one store.
  *

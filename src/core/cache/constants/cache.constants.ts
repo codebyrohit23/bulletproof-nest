@@ -39,7 +39,7 @@ export const CACHE_TTL_JITTER_RATIO = 0.1;
 export const CACHE_DOMAIN = 'cache';
 
 export const CACHE_SCOPE = {
-  TENANT: 'org',
+  TENANT: 'ws',
   GLOBAL: 'global',
 } as const;
 

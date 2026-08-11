@@ -2,7 +2,7 @@
  * Request context — ambient identity for the current unit of work.
  *
  * Carries: requestId, correlationId, locale, timezone, ip, userAgent, clientId,
- * and once authentication has run, userId / organizationId / sessionId.
+ * and once authentication has run, userId / workspaceId / sessionId.
  *
  * Does NOT do: logging, validation, caching, database access, authorisation.
  * It only holds values other layers put in and read out.
@@ -22,9 +22,9 @@
  *     re-querying. That is when `CurrentUser` becomes an object and
  *     `@CurrentUserId()` gains a `@CurrentUser()` sibling.
  *
- *   interfaces/tenant.interface.ts         WITH modules/organizations
- *     Same reasoning for `organizationId`. Becomes an object once callers need
- *     the plan, feature flags or limits of the active organization inline.
+ *   interfaces/tenant.interface.ts         WITH modules/workspaces
+ *     Same reasoning for `workspaceId`. Becomes an object once callers need
+ *     the plan, feature flags or limits of the active workspace inline.
  *
  *   interfaces/trace-context.interface.ts  WITH OpenTelemetry
  *     traceId / spanId / traceFlags, parsed from the W3C `traceparent` header.
@@ -57,7 +57,7 @@ export { RequestContextService } from './services/request-context.service.js';
 export {
   CorrelationId,
   CurrentContext,
-  CurrentOrganizationId,
+  CurrentWorkspaceId,
   CurrentUserId,
   Locale,
   RequestId,

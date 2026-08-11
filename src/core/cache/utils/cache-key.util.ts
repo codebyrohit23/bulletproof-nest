@@ -8,7 +8,7 @@ import type { CacheKeyDescriptor } from '../interfaces/index.js';
  *
  * Layout:
  *
- *     cache:org:<organizationId>:v<n>:<resource>:<segments...>
+ *     cache:ws:<workspaceId>:v<n>:<resource>:<segments...>
  *     cache:global:v<n>:<resource>:<segments...>
  *
  * Deliberately **no hash tags**. A tag forces every key sharing it onto one
@@ -21,8 +21,8 @@ import type { CacheKeyDescriptor } from '../interfaces/index.js';
  * Pure: no DI, no Redis, no request context.
  */
 
-export function buildTenantCacheKey(organizationId: string, descriptor: CacheKeyDescriptor): string {
-  return join([CACHE_DOMAIN, CACHE_SCOPE.TENANT, organizationId, ...versionedResource(descriptor)]);
+export function buildTenantCacheKey(workspaceId: string, descriptor: CacheKeyDescriptor): string {
+  return join([CACHE_DOMAIN, CACHE_SCOPE.TENANT, workspaceId, ...versionedResource(descriptor)]);
 }
 
 /**
@@ -42,19 +42,19 @@ export function buildGlobalCacheKey(descriptor: CacheKeyDescriptor): string {
  * Useful for an operator dropping a tenant's cache by hand. Application code
  * should prefer a version bump — that is O(1) and needs no scan.
  */
-export function buildTenantCachePrefix(organizationId: string): string {
-  return `${join([CACHE_DOMAIN, CACHE_SCOPE.TENANT, organizationId])}${REDIS_KEY_SEPARATOR}`;
+export function buildTenantCachePrefix(workspaceId: string): string {
+  return `${join([CACHE_DOMAIN, CACHE_SCOPE.TENANT, workspaceId])}${REDIS_KEY_SEPARATOR}`;
 }
 
 /**
  * Prefix covering every cached entry for one resource within a tenant, at a
  * given version — what a module's `invalidate*` method deletes.
  */
-export function buildTenantResourcePrefix(organizationId: string, resource: string, version: number): string {
+export function buildTenantResourcePrefix(workspaceId: string, resource: string, version: number): string {
   return `${join([
     CACHE_DOMAIN,
     CACHE_SCOPE.TENANT,
-    organizationId,
+    workspaceId,
     formatVersion(version),
     resource,
   ])}${REDIS_KEY_SEPARATOR}`;

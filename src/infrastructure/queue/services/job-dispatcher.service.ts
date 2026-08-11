@@ -16,7 +16,7 @@ import { captureJobContext } from '../utils/job-context.util.js';
  * Two behaviours are automatic here rather than remembered at each call site,
  * because forgetting either produces a bug that is hard to reproduce:
  *
- * **Context is captured.** The organization, user and request id are snapshotted
+ * **Context is captured.** The workspace, user and request id are snapshotted
  * into the envelope so the worker can restore them. Without this a tenant-scoped
  * job has no tenant.
  *
