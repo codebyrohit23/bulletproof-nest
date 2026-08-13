@@ -35,10 +35,10 @@ CREATE TYPE "IdentifierType" AS ENUM ('EMAIL', 'PHONE');
 CREATE TYPE "VerificationPurpose" AS ENUM ('EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET', 'LOGIN');
 
 -- CreateEnum
-CREATE TYPE "UserAuthProvider" AS ENUM ('PASSWORD', 'GOOGLE', 'APPLE', 'FACEBOOK');
+CREATE TYPE "UserAuthProvider" AS ENUM ('GOOGLE', 'APPLE', 'FACEBOOK');
 
 -- CreateEnum
-CREATE TYPE "SessionStatus" AS ENUM ('ACTIVE', 'LOGGED_OUT', 'REVOKED', 'EXPIRED');
+CREATE TYPE "SessionRevokeReason" AS ENUM ('LOGOUT', 'USER_REVOKED', 'ADMIN_REVOKED', 'PASSWORD_CHANGED', 'TOKEN_REUSE_DETECTED');
 
 -- CreateEnum
 CREATE TYPE "TokenRevokeReason" AS ENUM ('ROTATED', 'REUSE_DETECTED', 'LOGOUT', 'SESSION_REVOKED');
@@ -83,7 +83,6 @@ CREATE TABLE "user_identities" (
     "user_id" UUID NOT NULL,
     "identifier_type" "IdentifierType" NOT NULL,
     "identifier_value" VARCHAR(320) NOT NULL,
-    "is_verified" BOOLEAN NOT NULL DEFAULT false,
     "verified_at" TIMESTAMPTZ(6),
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
@@ -93,14 +92,13 @@ CREATE TABLE "user_identities" (
 
 -- CreateTable
 CREATE TABLE "user_credentials" (
-    "id" UUID NOT NULL DEFAULT uuidv7(),
     "user_id" UUID NOT NULL,
     "password_hash" VARCHAR(255) NOT NULL,
-    "password_changed_at" TIMESTAMPTZ(6),
+    "password_changed_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "user_credentials_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_credentials_pkey" PRIMARY KEY ("user_id")
 );
 
 -- CreateTable
@@ -119,7 +117,6 @@ CREATE TABLE "user_auth_accounts" (
 CREATE TABLE "user_sessions" (
     "id" UUID NOT NULL DEFAULT uuidv7(),
     "user_id" UUID NOT NULL,
-    "status" "SessionStatus" NOT NULL DEFAULT 'ACTIVE',
     "device_id" VARCHAR(255),
     "device_name" VARCHAR(255),
     "device_type" "DeviceType",
@@ -129,16 +126,14 @@ CREATE TABLE "user_sessions" (
     "os_name" VARCHAR(100),
     "os_version" VARCHAR(100),
     "user_agent" TEXT,
-    "fcm_token" TEXT,
-    "push_enabled" BOOLEAN NOT NULL DEFAULT true,
     "ip_address" INET,
     "country_code" CHAR(2),
-    "country_name" VARCHAR(100),
     "region" VARCHAR(100),
     "city" VARCHAR(100),
     "last_activity_at" TIMESTAMPTZ(6),
     "expires_at" TIMESTAMPTZ(6) NOT NULL,
     "revoked_at" TIMESTAMPTZ(6),
+    "revoked_reason" "SessionRevokeReason",
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
@@ -146,10 +141,27 @@ CREATE TABLE "user_sessions" (
 );
 
 -- CreateTable
+CREATE TABLE "user_push_tokens" (
+    "user_id" UUID NOT NULL,
+    "device_id" VARCHAR(255) NOT NULL,
+    "token" TEXT NOT NULL,
+    "platform" "DevicePlatform" NOT NULL,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "last_seen_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "user_push_tokens_pkey" PRIMARY KEY ("user_id","device_id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_push_tokens_token_key" ON "user_push_tokens"("token");
+
+-- CreateTable
 CREATE TABLE "refresh_tokens" (
     "id" UUID NOT NULL DEFAULT uuidv7(),
     "session_id" UUID NOT NULL,
-    "token_hash" VARCHAR(255) NOT NULL,
+    "token_hash" VARCHAR(64) NOT NULL,
     "expires_at" TIMESTAMPTZ(6) NOT NULL,
     "revoked_at" TIMESTAMPTZ(6),
     "revoked_reason" "TokenRevokeReason",
@@ -164,10 +176,9 @@ CREATE TABLE "verification_codes" (
     "identifier_type" "IdentifierType" NOT NULL,
     "identifier_value" VARCHAR(320) NOT NULL,
     "purpose" "VerificationPurpose" NOT NULL,
-    "code_hash" VARCHAR(255) NOT NULL,
+    "code_hash" VARCHAR(64) NOT NULL,
     "attempts" INTEGER NOT NULL DEFAULT 0,
     "expires_at" TIMESTAMPTZ(6) NOT NULL,
-    "verified_at" TIMESTAMPTZ(6),
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "verification_codes_pkey" PRIMARY KEY ("id")
@@ -177,25 +188,13 @@ CREATE TABLE "verification_codes" (
 CREATE INDEX "users_state_idx" ON "users"("state");
 
 -- CreateIndex
-CREATE INDEX "users_deleted_at_idx" ON "users"("deleted_at");
-
--- CreateIndex
-CREATE INDEX "user_identities_identifier_value_idx" ON "user_identities"("identifier_value");
-
--- CreateIndex
-CREATE INDEX "user_identities_is_verified_idx" ON "user_identities"("is_verified");
-
--- CreateIndex
 CREATE UNIQUE INDEX "user_identities_user_id_identifier_type_key" ON "user_identities"("user_id", "identifier_type");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_identities_identifier_type_identifier_value_key" ON "user_identities"("identifier_type", "identifier_value");
+CREATE UNIQUE INDEX "user_identities_identifier_value_identifier_type_key" ON "user_identities"("identifier_value", "identifier_type");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_credentials_user_id_key" ON "user_credentials"("user_id");
-
--- CreateIndex
-CREATE INDEX "user_auth_accounts_user_id_idx" ON "user_auth_accounts"("user_id");
+CREATE UNIQUE INDEX "user_auth_accounts_user_id_provider_key" ON "user_auth_accounts"("user_id", "provider");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_auth_accounts_provider_provider_account_id_key" ON "user_auth_accounts"("provider", "provider_account_id");
@@ -204,13 +203,7 @@ CREATE UNIQUE INDEX "user_auth_accounts_provider_provider_account_id_key" ON "us
 CREATE INDEX "user_sessions_user_id_idx" ON "user_sessions"("user_id");
 
 -- CreateIndex
-CREATE INDEX "user_sessions_status_idx" ON "user_sessions"("status");
-
--- CreateIndex
 CREATE INDEX "user_sessions_expires_at_idx" ON "user_sessions"("expires_at");
-
--- CreateIndex
-CREATE INDEX "user_sessions_last_activity_at_idx" ON "user_sessions"("last_activity_at");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "refresh_tokens_token_hash_key" ON "refresh_tokens"("token_hash");
@@ -222,13 +215,10 @@ CREATE INDEX "refresh_tokens_session_id_idx" ON "refresh_tokens"("session_id");
 CREATE INDEX "refresh_tokens_expires_at_idx" ON "refresh_tokens"("expires_at");
 
 -- CreateIndex
-CREATE INDEX "verification_codes_identifier_type_identifier_value_idx" ON "verification_codes"("identifier_type", "identifier_value");
-
--- CreateIndex
 CREATE INDEX "verification_codes_expires_at_idx" ON "verification_codes"("expires_at");
 
 -- CreateIndex
-CREATE INDEX "verification_codes_purpose_idx" ON "verification_codes"("purpose");
+CREATE UNIQUE INDEX "verification_codes_identifier_value_identifier_type_purpose_key" ON "verification_codes"("identifier_value", "identifier_type", "purpose");
 
 -- AddForeignKey
 ALTER TABLE "user_identities" ADD CONSTRAINT "user_identities_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -241,6 +231,9 @@ ALTER TABLE "user_auth_accounts" ADD CONSTRAINT "user_auth_accounts_user_id_fkey
 
 -- AddForeignKey
 ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_push_tokens" ADD CONSTRAINT "user_push_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "user_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;

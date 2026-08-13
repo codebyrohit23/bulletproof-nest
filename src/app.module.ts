@@ -13,6 +13,7 @@ import { PrismaModule } from '#/infrastructure/database/prisma/index.js';
 import { QueueModule, QueueWorkerModule } from '#/infrastructure/queue/index.js';
 import { RedisModule } from '#/infrastructure/redis/index.js';
 import { HealthModule } from '#/modules/health/index.js';
+import { UserAuthModule } from '#/modules/user-auth/index.js';
 
 /**
  * Every module is imported explicitly, in dependency order, even the ones marked
@@ -41,6 +42,7 @@ import { HealthModule } from '#/modules/health/index.js';
     JwtModule,
 
     HealthModule,
+    UserAuthModule,
   ],
   controllers: [],
   providers: [],

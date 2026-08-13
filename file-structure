@@ -420,3 +420,11 @@ export class HealthController {
     return this.health.check([() => this.prismaHealth.isHealthy('database')]);
   }
 }
+
+When the client sends the token — five triggers
+
+1. After login succeeds        ← NOT during login
+2. On FCM token refresh        ← onNewToken / onTokenRefresh fires
+3. On every app cold start     ← cheap, self-healing
+4. When permission is granted later (Settings → Allow)
+5. On logout / permission revoked  → DELETE, not POST

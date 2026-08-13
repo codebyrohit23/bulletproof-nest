@@ -34,18 +34,17 @@ enum VerificationPurpose {
 }
 
 enum UserAuthProvider {
-  EMAIL
-  PHONE
   GOOGLE
   APPLE
   FACEBOOK
 }
 
-enum SessionStatus {
-  ACTIVE
-  LOGGED_OUT
-  REVOKED
-  EXPIRED
+enum SessionRevokeReason {
+  LOGOUT
+  USER_REVOKED
+  ADMIN_REVOKED
+  PASSWORD_CHANGED
+  TOKEN_REUSE_DETECTED
 }
 
 enum TokenRevokeReason {
@@ -132,12 +131,13 @@ model User {
 
   sessions UserSession[] @relation("UserSessions")
 
+  pushTokens UserPushToken[] @relation("UserPushTokens")
+
   // memberships WorkspaceMember[] @relation("UserMemberships")
 
   // invitationsSent WorkspaceInvitation[] @relation("UserSentInvitations")
 
   @@index([state])
-  @@index([deletedAt])
   @@map("users")
 }
 
@@ -156,8 +156,6 @@ model UserIdentity {
 
   identifierValue String @map("identifier_value") @db.VarChar(320)
 
-  isVerified Boolean @default(false) @map("is_verified")
-
   verifiedAt DateTime? @map("verified_at") @db.Timestamptz(6)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -165,9 +163,7 @@ model UserIdentity {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([userId, identifierType])
-  @@unique([identifierType, identifierValue])
-  @@index([identifierValue])
-  @@index([isVerified])
+  @@unique([identifierValue, identifierType])
   @@map("user_identities")
 }
 
@@ -176,15 +172,13 @@ model UserIdentity {
 // ======================================================
 
 model UserCredential {
-  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
-
-  userId String @unique @map("user_id") @db.Uuid
+  userId String @id @map("user_id") @db.Uuid
 
   user User @relation("UserCredential", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   passwordHash String @map("password_hash") @db.VarChar(255)
 
-  passwordChangedAt DateTime? @map("password_changed_at") @db.Timestamptz(6)
+  passwordChangedAt DateTime @default(now()) @map("password_changed_at") @db.Timestamptz(6)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -213,22 +207,19 @@ model UserAuthAccount {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([provider, providerAccountId])
-  @@index([userId])
+  @@unique([userId, provider])
   @@map("user_auth_accounts")
 }
 
 // ======================================================
 // User Session Model
 // ======================================================
-
 model UserSession {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
   userId String @map("user_id") @db.Uuid
 
   user User @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  status SessionStatus @default(ACTIVE)
 
   deviceId String? @map("device_id") @db.VarChar(255)
 
@@ -248,15 +239,9 @@ model UserSession {
 
   userAgent String? @map("user_agent") @db.Text
 
-  fcmToken String? @map("fcm_token") @db.Text
-
-  pushEnabled Boolean @default(true) @map("push_enabled")
-
   ipAddress String? @map("ip_address") @db.Inet
 
   countryCode String? @map("country_code") @db.Char(2)
-
-  countryName String? @map("country_name") @db.VarChar(100)
 
   region String? @map("region") @db.VarChar(100)
 
@@ -267,6 +252,8 @@ model UserSession {
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
 
   revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  revokedReason SessionRevokeReason? @map("revoked_reason")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -281,16 +268,39 @@ model UserSession {
   // ======================================================
 
   @@index([userId])
-  @@index([status])
   @@index([expiresAt])
-  @@index([lastActivityAt])
   @@map("user_sessions")
+}
+
+// ======================================================
+// User Push Token Model
+// ======================================================
+model UserPushToken {
+  userId String @map("user_id") @db.Uuid
+
+  user User @relation("UserPushTokens", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  deviceId String @map("device_id") @db.VarChar(255)
+
+  token String @unique @db.Text
+
+  platform DevicePlatform
+
+  enabled Boolean @default(true)
+
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([userId, deviceId])
+  @@map("user_push_tokens")
 }
 
 // ======================================================
 // User Refresh Token Model
 // ======================================================
-
 model UserRefreshToken {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -298,7 +308,7 @@ model UserRefreshToken {
 
   session UserSession @relation("UserRefreshTokens", fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  tokenHash String @unique @map("token_hash") @db.VarChar(255)
+  tokenHash String @unique @map("token_hash") @db.VarChar(64)
 
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
 
@@ -314,9 +324,8 @@ model UserRefreshToken {
 }
 
 // ======================================================
-// User Refresh Token Model
+// Verification Code Model
 // ======================================================
-
 model VerificationCode {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -326,18 +335,15 @@ model VerificationCode {
 
   purpose VerificationPurpose
 
-  codeHash String @map("code_hash") @db.VarChar(255)
+  codeHash String @map("code_hash") @db.VarChar(64)
 
   attempts Int @default(0)
 
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
 
-  verifiedAt DateTime? @map("verified_at") @db.Timestamptz(6)
-
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@index([identifierType, identifierValue])
+  @@unique([identifierValue, identifierType, purpose])
   @@index([expiresAt])
-  @@index([purpose])
   @@map("verification_codes")
 }
