@@ -1,7 +1,11 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { hash, needsRehash, verify } from 'argon2';
 
-import { DUMMY_PASSWORD, PASSWORD_HASH_OPTIONS, PASSWORD_MAX_LENGTH } from '../constants/security.constants.js';
+import {
+  DUMMY_PASSWORD,
+  PASSWORD_HASH_OPTIONS,
+  PASSWORD_MAX_LENGTH,
+} from '../constants/security.constants.js';
 
 @Injectable()
 export class PasswordService implements OnModuleInit {

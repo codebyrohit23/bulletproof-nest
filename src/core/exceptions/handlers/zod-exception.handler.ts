@@ -3,7 +3,12 @@ import { ZodError } from 'zod';
 import type { $ZodIssue } from 'zod/v4/core';
 
 import { EXCEPTION_MESSAGE } from '../constants/index.js';
-import type { ApiError, ExceptionDetails, ExceptionHandler, ValidationError } from '../interfaces/index.js';
+import type {
+  ApiError,
+  ExceptionDetails,
+  ExceptionHandler,
+  ValidationError,
+} from '../interfaces/index.js';
 import { ExceptionCodeMapper } from '../mappers/exception-code.mapper.js';
 
 @Injectable()

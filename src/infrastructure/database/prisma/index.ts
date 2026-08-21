@@ -13,8 +13,17 @@ export { TransactionContextService, TransactionService } from './services/index.
 
 export { PrismaHealthIndicator } from './indicators/prisma-health.indicator.js';
 
-export { PRISMA_HEALTH_KEY, SOFT_DELETABLE_MODELS, SOFT_DELETE_FIELD } from './constants/prisma.constants.js';
+export {
+  PRISMA_HEALTH_KEY,
+  SOFT_DELETABLE_MODELS,
+  SOFT_DELETE_FIELD,
+} from './constants/prisma.constants.js';
 
-export type { AfterCommitHook, TransactionCallback, TransactionOptions, TransactionStore } from './interfaces/index.js';
+export type {
+  AfterCommitHook,
+  TransactionCallback,
+  TransactionOptions,
+  TransactionStore,
+} from './interfaces/index.js';
 
 export type { ExtendedPrismaClient, PrismaTransactionClient } from './types/prisma.types.js';

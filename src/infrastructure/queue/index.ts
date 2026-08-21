@@ -78,4 +78,8 @@ export { JobHandler } from './decorators/job-handler.decorator.js';
 
 export { QUEUE, QUEUE_NAMES, type QueueName } from './constants/queue.constants.js';
 
-export type { DispatchOptions, JobHandler as JobHandlerContract, JobMeta } from './interfaces/index.js';
+export type {
+  DispatchOptions,
+  JobHandler as JobHandlerContract,
+  JobMeta,
+} from './interfaces/index.js';

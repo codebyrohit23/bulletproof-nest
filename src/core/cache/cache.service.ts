@@ -7,7 +7,12 @@ import { RedisLockService } from '#/infrastructure/redis/index.js'; // value imp
 import { delay } from '#/shared/utils/async.util.js';
 
 import { CACHE_LOCK, CACHE_LOG_CONTEXT } from './constants/cache.constants.js';
-import type { CacheKeyDescriptor, CacheRememberOptions, CacheSetOptions, CacheStats } from './interfaces/index.js';
+import type {
+  CacheKeyDescriptor,
+  CacheRememberOptions,
+  CacheSetOptions,
+  CacheStats,
+} from './interfaces/index.js';
 import { CacheMetricsService } from './metrics/cache-metrics.service.js'; // value import — required for DI metadata
 import { CircuitBreaker } from './resilience/circuit-breaker.js';
 import { SingleFlight } from './resilience/single-flight.js';
@@ -157,7 +162,9 @@ export class CacheService {
     }
   }
 
-  async setMany<T>(entries: readonly { key: string; value: T; ttlSeconds: number }[]): Promise<void> {
+  async setMany<T>(
+    entries: readonly { key: string; value: T; ttlSeconds: number }[],
+  ): Promise<void> {
     if (entries.length === 0 || this.circuit.isOpen) {
       return;
     }
@@ -245,7 +252,11 @@ export class CacheService {
    * Without it, repeated lookups of a non-existent id reach the database every
    * time — trivially triggered when the id comes from a URL.
    */
-  async remember<T>(key: string, loader: () => Promise<T>, options: CacheRememberOptions): Promise<T> {
+  async remember<T>(
+    key: string,
+    loader: () => Promise<T>,
+    options: CacheRememberOptions,
+  ): Promise<T> {
     const cached = await this.get<T>(key);
 
     if (cached !== null) {
@@ -253,7 +264,9 @@ export class CacheService {
     }
 
     return this.singleFlight.run(key, async () =>
-      options.lock === true ? this.loadWithLock(key, loader, options) : this.loadAndStore(key, loader, options),
+      options.lock === true
+        ? this.loadWithLock(key, loader, options)
+        : this.loadAndStore(key, loader, options),
     );
   }
 
@@ -265,7 +278,11 @@ export class CacheService {
    * budget and loading unguarded is deliberate — a crashed or very slow winner
    * must not stall every other request until the lock's TTL expires.
    */
-  private async loadWithLock<T>(key: string, loader: () => Promise<T>, options: CacheRememberOptions): Promise<T> {
+  private async loadWithLock<T>(
+    key: string,
+    loader: () => Promise<T>,
+    options: CacheRememberOptions,
+  ): Promise<T> {
     const lockKey = `${key}${REDIS_KEY_SEPARATOR}${CACHE_LOCK.KEY_SUFFIX}`;
     const handle = await this.lock.acquire(lockKey, CACHE_LOCK.TTL_SECONDS);
 
@@ -296,7 +313,11 @@ export class CacheService {
     return this.loadAndStore(key, loader, options);
   }
 
-  private async loadAndStore<T>(key: string, loader: () => Promise<T>, options: CacheRememberOptions): Promise<T> {
+  private async loadAndStore<T>(
+    key: string,
+    loader: () => Promise<T>,
+    options: CacheRememberOptions,
+  ): Promise<T> {
     const value = await loader();
 
     if (value === null || value === undefined) {

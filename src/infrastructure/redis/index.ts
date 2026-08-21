@@ -35,6 +35,10 @@ export { RedisLockService } from './locks/redis-lock.service.js';
 
 export { RedisHealthIndicator } from './indicators/redis-health.indicator.js';
 
-export { REDIS_CLIENT, REDIS_HEALTH_KEY, type RedisClientName } from './constants/redis.constants.js';
+export {
+  REDIS_CLIENT,
+  REDIS_HEALTH_KEY,
+  type RedisClientName,
+} from './constants/redis.constants.js';
 
 export type { RedisLockHandle } from './interfaces/index.js';

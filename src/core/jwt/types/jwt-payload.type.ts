@@ -1,7 +1,10 @@
 import type { z } from 'zod';
 
 import type { JWT_AUDIENCE } from '../constants/jwt.constants.js';
-import type { accessTokenPayloadSchema, verificationTokenPayloadSchema } from '../schemas/jwt-payload.schema.js';
+import type {
+  accessTokenPayloadSchema,
+  verificationTokenPayloadSchema,
+} from '../schemas/jwt-payload.schema.js';
 
 export type AccessTokenPayload = z.infer<typeof accessTokenPayloadSchema>;
 

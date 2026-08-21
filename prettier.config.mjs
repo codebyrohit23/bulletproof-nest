@@ -16,7 +16,12 @@ export default {
 
   endOfLine: 'lf',
 
-  printWidth: 120,
+  /*
+   * Kept in step with `editor.rulers` in `.vscode/settings.json`. If one moves,
+   * move the other — a ruler that disagrees with the formatter draws a limit
+   * Prettier will not enforce, so lines look over-long while being correct.
+   */
+  printWidth: 100,
 
   tabWidth: 2,
 

@@ -70,4 +70,11 @@ export {
   RESPONSE_REQUEST_ID_HEADER,
 } from './constants/context.constants.js';
 
+/**
+ * Exported for the composition root only: it is wired into the Fastify
+ * adapter's `genReqId`, which is constructed before the DI container exists and
+ * so cannot inject `RequestContextService`.
+ */
+export { resolveRequestId } from './utils/request-id.util.js';
+
 export type { RequestContext, RequestIdentityPatch } from './interfaces/index.js';

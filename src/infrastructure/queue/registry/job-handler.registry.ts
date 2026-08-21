@@ -38,7 +38,10 @@ export class JobHandlerRegistry implements OnModuleInit {
         continue;
       }
 
-      const jobName = this.reflector.get<string | undefined>(JOB_HANDLER_METADATA, instance.constructor);
+      const jobName = this.reflector.get<string | undefined>(
+        JOB_HANDLER_METADATA,
+        instance.constructor,
+      );
 
       if (jobName === undefined) {
         continue;

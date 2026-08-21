@@ -16,4 +16,7 @@ import type { Prisma } from '@prisma/client';
  * `state` is absent because a new account is always `PENDING` by schema
  * default; becoming `ACTIVE` is a separate, deliberate transition.
  */
-export type CreateUserInput = Pick<Prisma.UserCreateInput, 'firstName' | 'lastName' | 'displayName' | 'avatarFileId'>;
+export type CreateUserInput = Pick<
+  Prisma.UserCreateInput,
+  'firstName' | 'lastName' | 'displayName' | 'avatarFileId'
+>;

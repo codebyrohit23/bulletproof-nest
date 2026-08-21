@@ -33,7 +33,9 @@ export class TimeoutInterceptor implements NestInterceptor {
       catchError((error: unknown) =>
         throwError(() =>
           error instanceof TimeoutError
-            ? new RequestTimeoutException(`Request exceeded ${this.appConfigService.requestTimeoutMs}ms.`)
+            ? new RequestTimeoutException(
+                `Request exceeded ${this.appConfigService.requestTimeoutMs}ms.`,
+              )
             : error,
         ),
       ),

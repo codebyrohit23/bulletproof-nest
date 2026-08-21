@@ -1,32 +1,88 @@
 {
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  // ==========================================================================
+  // Formatting
+  // ==========================================================================
+  //
+  // Prettier is the only formatter. It is set per-language rather than only
+  // globally, because a language-specific `editor.defaultFormatter` in *user*
+  // settings silently overrides a global one set here — so a teammate with
+  // `"[typescript]": { ... }` in their own settings would otherwise not be
+  // formatted by this project's Prettier config.
+  //
+  // Requires the `esbenp.prettier-vscode` extension (see extensions.json).
+  // Without it, nothing formats: ESLint no longer reports formatting, by
+  // design — see the header comment in eslint.config.mjs.
   "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
 
+  "[typescript]": { "editor.defaultFormatter": "vscode.typescript-language-features" },
+  "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[jsonc]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[yaml]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[markdown]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+
+  // ==========================================================================
+  // Save actions
+  // ==========================================================================
+  //
+  // `source.organizeImports` is deliberately absent. It is TypeScript's own
+  // import printer and it disagrees with this repository on two points, which
+  // it re-applied on every save:
+  //
+  //   1. It emits no trailing commas, while `trailingComma: 'all'` in
+  //      prettier.config.mjs requires them. Code actions run *before* the
+  //      formatter, so it silently undid the fix applied moments earlier.
+  //   2. It collapses the blank lines between import groups, while the
+  //      `import/order` rule sets `'newlines-between': 'always'`.
+  //
+  // `import/order` already sorts and groups imports and
+  // `@typescript-eslint/no-unused-vars` already reports unused ones, so
+  // `source.fixAll.eslint` covers everything this action was here for.
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit",
-    "source.organizeImports": "explicit"
+    "source.fixAll.eslint": "explicit"
   },
 
   "eslint.useFlatConfig": true,
-
   "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
 
+  // ==========================================================================
+  // TypeScript
+  // ==========================================================================
   "js/ts.tsdk.path": "node_modules/typescript/lib",
   "js/ts.preferences.importModuleSpecifier": "non-relative",
   "js/ts.updateImportsOnFileMove.enabled": "always",
 
+  // ==========================================================================
+  // Whitespace — matches .editorconfig and prettier.config.mjs
+  // ==========================================================================
   "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
   "files.eol": "\n",
 
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
+
+  // Must equal `printWidth` in prettier.config.mjs.
   "editor.rulers": [100],
 
+  // ==========================================================================
+  // Editor
+  // ==========================================================================
   "editor.bracketPairColorization.enabled": true,
   "editor.guides.bracketPairs": true,
   "editor.stickyScroll.enabled": true,
   "editor.minimap.enabled": false,
+
+  "search.exclude": {
+    "**/dist": true,
+    "**/coverage": true,
+    "**/generated": true,
+    "**/node_modules": true,
+    "**/pnpm-lock.yaml": true
+  },
 
   "explorer.confirmDelete": false,
   "explorer.confirmDragAndDrop": false,

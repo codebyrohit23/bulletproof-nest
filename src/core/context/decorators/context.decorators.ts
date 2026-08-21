@@ -17,11 +17,13 @@ import { requestContextStorage } from '../storage/request-context.storage.js';
  */
 
 export const CurrentContext = createParamDecorator(
-  (_data: unknown, _ctx: ExecutionContext): Readonly<RequestContext> | undefined => requestContextStorage.getStore(),
+  (_data: unknown, _ctx: ExecutionContext): Readonly<RequestContext> | undefined =>
+    requestContextStorage.getStore(),
 );
 
 export const CurrentUserId = createParamDecorator(
-  (_data: unknown, _ctx: ExecutionContext): string | undefined => requestContextStorage.getStore()?.userId,
+  (_data: unknown, _ctx: ExecutionContext): string | undefined =>
+    requestContextStorage.getStore()?.userId,
 );
 
 /**
@@ -29,17 +31,21 @@ export const CurrentUserId = createParamDecorator(
  * route parameter — only from here, where it came from a verified session.
  */
 export const CurrentWorkspaceId = createParamDecorator(
-  (_data: unknown, _ctx: ExecutionContext): string | undefined => requestContextStorage.getStore()?.workspaceId,
+  (_data: unknown, _ctx: ExecutionContext): string | undefined =>
+    requestContextStorage.getStore()?.workspaceId,
 );
 
 export const RequestId = createParamDecorator(
-  (_data: unknown, _ctx: ExecutionContext): string | undefined => requestContextStorage.getStore()?.requestId,
+  (_data: unknown, _ctx: ExecutionContext): string | undefined =>
+    requestContextStorage.getStore()?.requestId,
 );
 
 export const CorrelationId = createParamDecorator(
-  (_data: unknown, _ctx: ExecutionContext): string | undefined => requestContextStorage.getStore()?.correlationId,
+  (_data: unknown, _ctx: ExecutionContext): string | undefined =>
+    requestContextStorage.getStore()?.correlationId,
 );
 
 export const Locale = createParamDecorator(
-  (_data: unknown, _ctx: ExecutionContext): string | undefined => requestContextStorage.getStore()?.locale,
+  (_data: unknown, _ctx: ExecutionContext): string | undefined =>
+    requestContextStorage.getStore()?.locale,
 );

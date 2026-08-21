@@ -9,18 +9,52 @@ export const LOG_LEVEL = {
 
 export type LogLevel = (typeof LOG_LEVEL)[keyof typeof LOG_LEVEL];
 
+export const LOG_FORMAT = {
+  JSON: 'json',
+  PRETTY: 'pretty',
+} as const;
+
+export type LogFormat = (typeof LOG_FORMAT)[keyof typeof LOG_FORMAT];
+
 export const LOGGER_CONTEXT = 'Application';
 
-// Request/correlation header names live in `core/context` — it is what reads
-// them off the wire. Import them from there rather than redefining them here.
+export const LOGGER_SERVICE_NAME = 'leadflow-backend-service';
+
+export const LOGGER_SILENT_LEVEL = 'silent';
 
 export const LOGGER_REDACT_PATHS = [
   'req.headers.authorization',
   'req.headers.cookie',
-  'req.body.password',
-  'req.body.confirmPassword',
-  'req.body.token',
-  'req.body.refreshToken',
-  'req.body.accessToken',
-  'req.body.secret',
+  'res.headers["set-cookie"]',
+
+  'password',
+  'confirmPassword',
+  'currentPassword',
+  'newPassword',
+  'token',
+  'accessToken',
+  'refreshToken',
+  'secret',
+  'apiKey',
+  'otp',
+
+  '*.password',
+  '*.confirmPassword',
+  '*.currentPassword',
+  '*.newPassword',
+  '*.token',
+  '*.accessToken',
+  '*.refreshToken',
+  '*.secret',
+  '*.apiKey',
+  '*.otp',
 ] as const;
+
+export const LOGGER_QUIET_ROUTE_PATTERN =
+  /^\/(?:health(?:\/(?:live|ready))?|metrics|favicon\.ico)$/;
+
+export const LOGGER_USER_AGENT_MAX_LENGTH = 200;
+
+export const LOGGER_SERVER_ERROR_STATUS = 500;
+
+export const LOGGER_CLIENT_ERROR_STATUS = 400;

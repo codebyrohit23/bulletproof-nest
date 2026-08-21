@@ -2,7 +2,11 @@ import { z } from 'zod';
 
 import { booleanEnv, nonNegativeIntEnv, positiveIntEnv } from '../shared/schema.helpers.js';
 
-import { REDIS_DEFAULTS, REDIS_KEY_PREFIX_PATTERN, REDIS_KEY_SEPARATOR } from './redis.constants.js';
+import {
+  REDIS_DEFAULTS,
+  REDIS_KEY_PREFIX_PATTERN,
+  REDIS_KEY_SEPARATOR,
+} from './redis.constants.js';
 
 export const redisSchema = z.object({
   REDIS_URL: z.url(),
@@ -14,7 +18,9 @@ export const redisSchema = z.object({
     .regex(REDIS_KEY_PREFIX_PATTERN, 'must not contain { or }')
     .default('')
     .transform((value) =>
-      value.length === 0 || value.endsWith(REDIS_KEY_SEPARATOR) ? value : `${value}${REDIS_KEY_SEPARATOR}`,
+      value.length === 0 || value.endsWith(REDIS_KEY_SEPARATOR)
+        ? value
+        : `${value}${REDIS_KEY_SEPARATOR}`,
     ),
 
   REDIS_CONNECT_TIMEOUT_MS: positiveIntEnv(REDIS_DEFAULTS.CONNECT_TIMEOUT_MS),

@@ -70,7 +70,12 @@ export class RedisLockService {
    */
   async release(handle: RedisLockHandle): Promise<boolean> {
     try {
-      const released = await this.redis.client.eval(REDIS_LOCK_RELEASE_SCRIPT, 1, handle.key, handle.token);
+      const released = await this.redis.client.eval(
+        REDIS_LOCK_RELEASE_SCRIPT,
+        1,
+        handle.key,
+        handle.token,
+      );
 
       return released === 1;
     } catch (error) {
@@ -88,7 +93,11 @@ export class RedisLockService {
    * Runs `operation` while holding the lock, or returns `null` if it is held
    * elsewhere. The caller decides what to do when it loses.
    */
-  async withLock<T>(key: string, ttlSeconds: number, operation: () => Promise<T>): Promise<T | null> {
+  async withLock<T>(
+    key: string,
+    ttlSeconds: number,
+    operation: () => Promise<T>,
+  ): Promise<T | null> {
     const handle = await this.acquire(key, ttlSeconds);
 
     if (handle === null) {

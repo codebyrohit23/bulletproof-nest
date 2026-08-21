@@ -10,7 +10,9 @@ import { REDIS_RECONNECT_JITTER_RATIO } from '../constants/redis.constants.js';
  *
  * Pure — no client, no logger, no DI.
  */
-export function createReconnectStrategy(config: RedisReconnectConfig): (attempt: number) => number | null {
+export function createReconnectStrategy(
+  config: RedisReconnectConfig,
+): (attempt: number) => number | null {
   return (attempt: number): number | null => {
     if (config.maxAttempts !== REDIS_RECONNECT_UNLIMITED && attempt > config.maxAttempts) {
       return null;

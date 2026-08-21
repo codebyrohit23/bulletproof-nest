@@ -13,7 +13,10 @@ import { PRISMA_QUERY_LOG_CONTEXT } from '../constants/prisma.constants.js';
  * verification codes and customer PII — none of which belongs in a log stream.
  * Only the model, the operation and the duration are recorded.
  */
-export function createQueryLoggingExtension(logger: AppLoggerService, slowQueryThresholdMs: number) {
+export function createQueryLoggingExtension(
+  logger: AppLoggerService,
+  slowQueryThresholdMs: number,
+) {
   return Prisma.defineExtension({
     name: 'query-logging',
     query: {

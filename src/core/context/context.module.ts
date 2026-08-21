@@ -1,4 +1,10 @@
-import { Global, type MiddlewareConsumer, Module, type NestModule, RequestMethod } from '@nestjs/common';
+import {
+  Global,
+  type MiddlewareConsumer,
+  Module,
+  type NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 
 import { RequestContextMiddleware } from './middleware/request-context.middleware.js';
 import { RequestContextService } from './services/request-context.service.js';
@@ -33,6 +39,8 @@ export class ContextModule implements NestModule {
      * produced, and it cannot be avoided from here — only by not registering
      * this as Nest middleware at all.
      */
-    consumer.apply(RequestContextMiddleware).forRoutes({ path: '{*path}', method: RequestMethod.ALL });
+    consumer
+      .apply(RequestContextMiddleware)
+      .forRoutes({ path: '{*path}', method: RequestMethod.ALL });
   }
 }

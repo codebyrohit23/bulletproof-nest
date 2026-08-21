@@ -15,7 +15,8 @@ export type ExtendedPrismaClient = ReturnType<typeof applyPrismaExtensions>;
 /**
  * Operations Prisma strips from the client it hands to a `$transaction` callback.
  */
-type TransactionDenyList = '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends';
+type TransactionDenyList =
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends';
 
 /**
  * What repositories are given by `PrismaService.db`.

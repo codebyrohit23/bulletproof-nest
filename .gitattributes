@@ -1,0 +1,40 @@
+# Line endings
+#
+# Prettier is configured with `endOfLine: 'lf'` and `prettier/prettier` is an
+# ESLint error, so a CRLF file is a wall of red squiggles. Without this file the
+# checkout encoding depends on each developer's *global* `core.autocrlf`, which
+# means the same commit lints clean on one machine and fails on another.
+#
+# `text=auto eol=lf` normalises every text file to LF in the index *and* in the
+# working tree, on every platform. Nothing here relies on local git config.
+
+* text=auto eol=lf
+
+# Shell scripts must be LF even on Windows — husky hooks and CI scripts are
+# executed by sh, and a trailing CR makes the interpreter fail with
+# `\r: command not found`.
+*.sh      text eol=lf
+*.bash    text eol=lf
+
+# Windows-only scripts are the one exception: cmd.exe requires CRLF.
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+
+# Binary files — never touch, never diff.
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.webp    binary
+*.pdf     binary
+*.zip     binary
+*.gz      binary
+*.woff    binary
+*.woff2   binary
+*.ttf     binary
+*.otf     binary
+
+# Lockfile — LF, but collapse it in diffs and mark it generated so it does not
+# dominate review or trigger language-stats noise.
+pnpm-lock.yaml  text eol=lf -diff linguist-generated=true

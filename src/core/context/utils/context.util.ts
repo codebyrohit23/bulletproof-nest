@@ -45,7 +45,10 @@ export function sanitizeIdentifier(value: string | undefined, maxLength = 128): 
  * Only meaningful behind a trusted proxy — `x-forwarded-for` is client-writable
  * when the app is exposed directly, so never use this for authorisation.
  */
-export function resolveClientIp(headers: IncomingHttpHeaders, remoteAddress: string | undefined): string | undefined {
+export function resolveClientIp(
+  headers: IncomingHttpHeaders,
+  remoteAddress: string | undefined,
+): string | undefined {
   const forwarded = readHeader(headers, FORWARDED_FOR_HEADER);
 
   if (forwarded !== undefined) {

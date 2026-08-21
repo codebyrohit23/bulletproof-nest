@@ -9,7 +9,8 @@ import { RAW_RESPONSE_KEY, RESPONSE_MESSAGE_KEY } from './response.constants.js'
  * fine for most reads. Use it where the message is part of the product copy:
  * `@ResponseMessage('Invitation sent.')`
  */
-export const ResponseMessage = (message: string): MethodDecorator => SetMetadata(RESPONSE_MESSAGE_KEY, message);
+export const ResponseMessage = (message: string): MethodDecorator =>
+  SetMetadata(RESPONSE_MESSAGE_KEY, message);
 
 /**
  * Opts a handler out of the envelope entirely.

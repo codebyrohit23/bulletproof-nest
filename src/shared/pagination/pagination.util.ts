@@ -1,10 +1,19 @@
-import type { CursorPagination, OffsetPagination, Paginated, Pagination } from './pagination.interface.js';
+import type {
+  CursorPagination,
+  OffsetPagination,
+  Paginated,
+  Pagination,
+} from './pagination.interface.js';
 
 /**
  * Pure builders for pagination. No DI, no database, no HTTP.
  */
 
-export function buildOffsetPagination(total: number, page: number, limit: number): OffsetPagination {
+export function buildOffsetPagination(
+  total: number,
+  page: number,
+  limit: number,
+): OffsetPagination {
   const safeLimit = Math.max(1, limit);
   const totalPages = Math.max(1, Math.ceil(total / safeLimit));
 
@@ -39,6 +48,9 @@ export function buildCursorPagination(limit: number, nextCursor: string | null):
  * `Paginated<Lead, OffsetPagination>` and `pagination.total` is reachable
  * without narrowing.
  */
-export function paginate<T, P extends Pagination>(items: readonly T[], pagination: P): Paginated<T, P> {
+export function paginate<T, P extends Pagination>(
+  items: readonly T[],
+  pagination: P,
+): Paginated<T, P> {
   return { items, pagination };
 }

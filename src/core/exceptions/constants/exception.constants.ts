@@ -99,3 +99,13 @@ export const UNKNOWN_EXCEPTION_NAME = 'UnknownException';
 export const ERROR_RESPONSE_SUCCESS = false as const;
 
 export const EXCEPTION_HANDLERS = Symbol('EXCEPTION_HANDLERS');
+
+/** Below this the client is at fault; at or above it, this service is. */
+export const SERVER_ERROR_STATUS = 500;
+
+/**
+ * Enough failed fields to identify the problem; beyond that it is a client
+ * sending nothing useful, and the full list belongs in the response it already
+ * received rather than in the log.
+ */
+export const LOGGED_INVALID_FIELD_LIMIT = 10;

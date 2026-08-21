@@ -42,7 +42,8 @@ export const booleanEnv = (defaultValue: 'true' | 'false') =>
 /**
  * A positive integer with a default, used for ports, pool sizes and timeouts.
  */
-export const positiveIntEnv = (defaultValue: number) => z.coerce.number().int().positive().default(defaultValue);
+export const positiveIntEnv = (defaultValue: number) =>
+  z.coerce.number().int().positive().default(defaultValue);
 
 /**
  * A non-negative integer with a default.
@@ -50,7 +51,8 @@ export const positiveIntEnv = (defaultValue: number) => z.coerce.number().int().
  * Distinct from `positiveIntEnv` because some settings use `0` as a meaningful
  * sentinel — "unlimited", "disabled" — which a positive-only schema rejects.
  */
-export const nonNegativeIntEnv = (defaultValue: number) => z.coerce.number().int().min(0).default(defaultValue);
+export const nonNegativeIntEnv = (defaultValue: number) =>
+  z.coerce.number().int().min(0).default(defaultValue);
 
 /**
  * A PEM key delivered base64-encoded, decoded back to PEM for the config layer.
@@ -92,7 +94,10 @@ export const base64PemEnv = (header: string) =>
 /**
  * A comma-separated list constrained to a fixed set of allowed values.
  */
-export const enumListEnv = <const T extends readonly [string, ...string[]]>(values: T, defaultValue: string) =>
+export const enumListEnv = <const T extends readonly [string, ...string[]]>(
+  values: T,
+  defaultValue: string,
+) =>
   z
     .string()
     .default(defaultValue)

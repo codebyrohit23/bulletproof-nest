@@ -19,5 +19,6 @@ export const BEARER_SECURITY_SCHEME: SecuritySchemeObject = {
 
   bearerFormat: 'JWT',
 
-  description: 'Access token issued by the authentication endpoints. Expires 15 minutes after it is issued.',
+  description:
+    'Access token issued by the authentication endpoints. Expires 15 minutes after it is issued.',
 };

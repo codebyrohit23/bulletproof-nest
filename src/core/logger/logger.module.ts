@@ -3,8 +3,10 @@ import { LoggerModule as NestjsPinoModule, type Params } from 'nestjs-pino';
 
 import { AppConfigService } from '#/config/app/index.js';
 import { AppConfigModule } from '#/config/index.js';
+import { RequestContextService } from '#/core/context/index.js';
 
 import { createLoggerConfig } from './logger.config.js';
+import { createPinoHttpOptions } from './logger.factory.js';
 import { AppLoggerService } from './logger.service.js';
 
 @Global()
@@ -12,36 +14,20 @@ import { AppLoggerService } from './logger.service.js';
   imports: [
     NestjsPinoModule.forRootAsync({
       imports: [AppConfigModule],
-      inject: [AppConfigService],
-      useFactory: (appConfigService: AppConfigService): Params => {
-        const loggerConfig = createLoggerConfig(appConfigService);
 
-        const pinoHttp: NonNullable<Params['pinoHttp']> = {
-          level: loggerConfig.level,
+      /*
+       * `RequestContextService` needs no import here — `ContextModule` is
+       * `@Global()` — but it must be listed so the factory can lift the
+       * correlation ids out of the ambient context onto every line.
+       */
+      inject: [AppConfigService, RequestContextService],
 
-          redact: [...loggerConfig.redact],
-
-          autoLogging: true,
-
-          ...(appConfigService.isProduction
-            ? {}
-            : {
-                transport: {
-                  target: 'pino-pretty',
-                  options: {
-                    colorize: true,
-                    translateTime: 'SYS:standard',
-                    singleLine: false,
-                    ignore: 'pid,hostname',
-                  },
-                },
-              }),
-        };
-
-        return {
-          pinoHttp,
-        };
-      },
+      useFactory: (
+        appConfigService: AppConfigService,
+        requestContext: RequestContextService,
+      ): Params => ({
+        pinoHttp: createPinoHttpOptions(createLoggerConfig(appConfigService), requestContext),
+      }),
     }),
   ],
 

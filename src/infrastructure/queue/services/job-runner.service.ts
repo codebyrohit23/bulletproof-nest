@@ -54,7 +54,12 @@ export class JobRunner {
         this.logger.info(`Completed ${job.name}`, {
           context: QUEUE_LOG_CONTEXT,
           operation: 'run',
-          metadata: { queue, jobName: job.name, jobId: meta.jobId, durationMs: Date.now() - startedAt },
+          metadata: {
+            queue,
+            jobName: job.name,
+            jobId: meta.jobId,
+            durationMs: Date.now() - startedAt,
+          },
         });
       } catch (error) {
         const isFinalAttempt = meta.attempt >= meta.maxAttempts;

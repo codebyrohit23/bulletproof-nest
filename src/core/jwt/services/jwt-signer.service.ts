@@ -5,8 +5,17 @@ import { SignJWT } from 'jose';
 
 import { JwtConfigService } from '#/config/jwt/index.js';
 
-import { JWT_ALGORITHM, JWT_AUDIENCE, JWT_TOKEN_TYPE, TOKEN_TTL_SECONDS } from '../constants/jwt.constants.js';
-import type { AccessAudience, AccessTokenClaims, VerificationTokenClaims } from '../types/jwt-payload.type.js';
+import {
+  JWT_ALGORITHM,
+  JWT_AUDIENCE,
+  JWT_TOKEN_TYPE,
+  TOKEN_TTL_SECONDS,
+} from '../constants/jwt.constants.js';
+import type {
+  AccessAudience,
+  AccessTokenClaims,
+  VerificationTokenClaims,
+} from '../types/jwt-payload.type.js';
 
 import { KeyStoreService } from './key-store.service.js';
 
@@ -29,7 +38,11 @@ export class JwtSignerService {
     );
   }
 
-  private async sign(payload: Record<string, unknown>, audience: string, ttlSeconds: number): Promise<string> {
+  private async sign(
+    payload: Record<string, unknown>,
+    audience: string,
+    ttlSeconds: number,
+  ): Promise<string> {
     return new SignJWT(payload)
       .setProtectedHeader({ alg: JWT_ALGORITHM, kid: this.keyStore.signingKid })
       .setIssuer(this.config.issuer)

@@ -30,7 +30,10 @@ export interface PrismaExtensionDependencies {
  * raw SQL, seeds and imports alike. An extension would only have covered the
  * first of those.
  */
-export function applyPrismaExtensions(client: BasePrismaClient, dependencies: PrismaExtensionDependencies) {
+export function applyPrismaExtensions(
+  client: BasePrismaClient,
+  dependencies: PrismaExtensionDependencies,
+) {
   return client
     .$extends(createQueryLoggingExtension(dependencies.logger, dependencies.slowQueryThresholdMs))
     .$extends(createSoftDeleteExtension());

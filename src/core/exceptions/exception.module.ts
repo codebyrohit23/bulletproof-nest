@@ -40,7 +40,12 @@ import type { ExceptionHandler } from './interfaces/index.js';
         httpExceptionHandler,
         unknownExceptionHandler,
       ],
-      inject: [HttpExceptionHandler, PrismaExceptionHandler, ZodExceptionHandler, UnknownExceptionHandler],
+      inject: [
+        HttpExceptionHandler,
+        PrismaExceptionHandler,
+        ZodExceptionHandler,
+        UnknownExceptionHandler,
+      ],
     },
 
     GlobalExceptionFilter,

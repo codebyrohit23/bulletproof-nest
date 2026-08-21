@@ -9,8 +9,13 @@
     /*
      * Without an explicit rootDir, `prisma.config.ts` at the repository root
      * widens the inferred root to the project directory, so output lands in
-     * `dist/src/main.js` and `start:prod` cannot find it. `tsc-alias` also
-     * refuses to run when rootDir is implicit.
+     * `dist/src/main.js` and `start:prod` cannot find it.
+     *
+     * This previously also mattered for `tsc-alias`, which refuses to run when
+     * rootDir is implicit. That package has since been removed: the `#/*`
+     * specifiers resolve natively through the `imports` field in package.json,
+     * so no post-build path rewriting is needed. The rootDir reason above
+     * stands on its own.
      */
     "rootDir": "./src",
 

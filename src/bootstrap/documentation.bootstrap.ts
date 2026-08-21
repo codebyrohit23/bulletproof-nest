@@ -1,7 +1,11 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
 import { AppConfigService } from '#/config/app/index.js';
-import { DOCUMENTATION_LOG_CONTEXT, buildApiDocuments, mountScalarReference } from '#/core/documentation/index.js';
+import {
+  DOCUMENTATION_LOG_CONTEXT,
+  buildApiDocuments,
+  mountScalarReference,
+} from '#/core/documentation/index.js';
 import { AppLoggerService } from '#/core/logger/index.js';
 
 /**
@@ -17,18 +21,27 @@ export function configureDocumentation(app: NestFastifyApplication): void {
   const logger = app.get(AppLoggerService);
 
   /*
-   * Never in production, and this is the whole access control.
+   * `DOCS_ENABLED` decides this, and it is the whole access control.
    *
    * An open admin reference publishes the entire administrative surface — every
    * route, every payload shape, every field name — to anyone who guesses the
    * URL. A hard-to-guess path is not a substitute. When these pages are wanted
    * in a deployed environment, the answer is authentication in front of them,
    * not a longer path.
+   *
+   * This was previously derived from `NODE_ENV`, which made the decision
+   * unstatable: a staging deployment that wanted docs had to claim to be
+   * `development` and inherit every other development behaviour with it. The
+   * flag defaults to `false`, so an operator who says nothing still gets the
+   * safe answer.
    */
-  if (appConfig.isProduction) {
-    logger.info('API documentation disabled in production', {
+  if (!appConfig.docsEnabled) {
+    logger.info('API documentation disabled', {
       context: DOCUMENTATION_LOG_CONTEXT,
       operation: 'configureDocumentation',
+      metadata: {
+        reason: 'DOCS_ENABLED is false',
+      },
     });
 
     return;

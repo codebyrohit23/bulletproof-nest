@@ -14,13 +14,23 @@ import { PAGINATION_DEFAULTS, SORT_ORDER } from './pagination.constants.js';
 export const offsetPaginationSchema = z.object({
   page: z.coerce.number().int().positive().default(PAGINATION_DEFAULTS.PAGE),
 
-  limit: z.coerce.number().int().positive().max(PAGINATION_DEFAULTS.MAX_LIMIT).default(PAGINATION_DEFAULTS.LIMIT),
+  limit: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(PAGINATION_DEFAULTS.MAX_LIMIT)
+    .default(PAGINATION_DEFAULTS.LIMIT),
 });
 
 export const cursorPaginationSchema = z.object({
   cursor: z.string().min(1).optional(),
 
-  limit: z.coerce.number().int().positive().max(PAGINATION_DEFAULTS.MAX_LIMIT).default(PAGINATION_DEFAULTS.LIMIT),
+  limit: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(PAGINATION_DEFAULTS.MAX_LIMIT)
+    .default(PAGINATION_DEFAULTS.LIMIT),
 });
 
 /**

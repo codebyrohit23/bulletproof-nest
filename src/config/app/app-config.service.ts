@@ -28,6 +28,14 @@ export class AppConfigService {
     return this.app.logLevel;
   }
 
+  get logFormat() {
+    return this.app.logFormat;
+  }
+
+  get docsEnabled() {
+    return this.app.docsEnabled;
+  }
+
   get requestTimeoutMs() {
     return this.app.requestTimeoutMs;
   }

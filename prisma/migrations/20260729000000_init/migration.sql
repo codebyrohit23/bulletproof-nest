@@ -6,10 +6,14 @@ CREATE SCHEMA IF NOT EXISTS "public";
 -- ============================================================
 --
 -- Every table defaults its primary key to uuidv7(). Postgres 18 ships this
--- function natively; on 17 and below it does not exist, so it is defined here.
--- Creating it in the "public" schema works on both versions: an unqualified
--- uuidv7() call resolves to this one, and once you are on PG 18 you may drop
--- it and inherit the built-in without touching schema.prisma.
+-- function natively, so on 18 and above nothing is created here and the
+-- built-in pg_catalog.uuidv7() answers the unqualified call. On 17 and below
+-- it does not exist, so a shim is defined in "public", which resolves ahead of
+-- pg_catalog on the default search_path. Either way schema.prisma is unchanged.
+--
+-- The shim needs gen_random_bytes(), which lives in pgcrypto -- hence the
+-- CREATE EXTENSION. It is inside the version guard because PG 18 has no need
+-- for the extension, and a managed instance may not grant the privilege.
 --
 -- v7 is time-ordered, so inserts land at the right edge of the primary key
 -- index instead of scattering across it the way v4 does.
@@ -17,13 +21,22 @@ CREATE SCHEMA IF NOT EXISTS "public";
 -- Note: a v7 UUID encodes its creation time. Never use one as a secret --
 -- tokens, verification codes and API keys must stay cryptographically random.
 
-CREATE OR REPLACE FUNCTION public.uuidv7() RETURNS uuid AS $$
-  SELECT encode(
-    substring(int8send(floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint) FROM 3)
-      || substring(gen_random_bytes(10) FROM 1 FOR 10),
-    'hex'
-  )::uuid;
-$$ LANGUAGE sql VOLATILE;
+DO $$
+BEGIN
+  IF current_setting('server_version_num')::int < 180000 THEN
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+    EXECUTE $fn$
+      CREATE OR REPLACE FUNCTION public.uuidv7() RETURNS uuid AS $body$
+        SELECT encode(
+          substring(int8send(floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint) FROM 3)
+            || substring(gen_random_bytes(10) FROM 1 FOR 10),
+          'hex'
+        )::uuid;
+      $body$ LANGUAGE sql VOLATILE;
+    $fn$;
+  END IF;
+END $$;
 
 -- CreateEnum
 CREATE TYPE "UserState" AS ENUM ('PENDING', 'ACTIVE', 'SUSPENDED');

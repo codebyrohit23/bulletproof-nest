@@ -2,7 +2,11 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
-import { DEFAULT_CORS_OPTIONS, HELMET_OPTIONS, SecurityConfigService } from '#/config/security/index.js';
+import {
+  DEFAULT_CORS_OPTIONS,
+  HELMET_OPTIONS,
+  SecurityConfigService,
+} from '#/config/security/index.js';
 
 /**
  * Registers application security middleware.

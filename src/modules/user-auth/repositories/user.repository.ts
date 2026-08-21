@@ -42,6 +42,25 @@ export class UserRepository {
   }
 
   /**
+   * Rewrites the profile of an account that has not been verified yet.
+   *
+   * Guarded on `PENDING` for the same reason `activate` is: without it, this is
+   * "change any user's name given their id", reachable from an unauthenticated
+   * registration endpoint. Someone re-registering an address that belongs to an
+   * active user could rename them.
+   *
+   * `updateMany` because matching nothing is a legitimate outcome — the account
+   * was verified between the caller's check and this write — and the caller
+   * treats it as such rather than as an error.
+   */
+  async updatePendingProfile(id: string, input: CreateUserInput): Promise<void> {
+    await this.prisma.db.user.updateMany({
+      where: { id, state: UserState.PENDING },
+      data: input,
+    });
+  }
+
+  /**
    * Promotes a pending account once an identity has been proven.
    *
    * Guarded on `PENDING`, and that guard is load-bearing. The obvious

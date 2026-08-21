@@ -27,10 +27,19 @@ enum IdentifierType {
 }
 
 enum VerificationPurpose {
+  REGISTER
+  LOGIN
   EMAIL_VERIFICATION
   PHONE_VERIFICATION
   PASSWORD_RESET
-  LOGIN
+}
+
+enum VerificationCodeStatus {
+  ACTIVE
+  CONSUMED
+  SUPERSEDED
+  BLOCKED
+  EXPIRED
 }
 
 enum UserAuthProvider {
@@ -335,15 +344,30 @@ model VerificationCode {
 
   purpose VerificationPurpose
 
-  codeHash String @map("code_hash") @db.VarChar(64)
+  /// Null once the row leaves ACTIVE. The hash is an unsalted digest of six
+  /// digits — a rainbow table reverses it instantly — so retaining it after the
+  /// code is spent would turn this history into a record of every code ever
+  /// sent. Cleared on resolve; nothing after that point needs it.
+  codeHash String? @map("code_hash") @db.VarChar(64)
 
   attempts Int @default(0)
+
+  status VerificationCodeStatus @default(ACTIVE)
+
+  /// When the row left ACTIVE. Null while it is the live code.
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
 
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@unique([identifierValue, identifierType, purpose])
-  @@index([expiresAt])
+  /// History reads: every code issued to one identifier for one purpose,
+  /// newest first.
+  ///
+  /// The live-code read is served by `verification_codes_active_key` instead —
+  /// a partial unique index (`WHERE status = 'ACTIVE'`) that Prisma's schema
+  /// language cannot express, so the migration owns it. It is what guarantees
+  /// at most one ACTIVE code per identifier + purpose.
+  @@index([identifierValue, identifierType, purpose, createdAt(sort: Desc)], map: "verification_codes_lookup_idx")
   @@map("verification_codes")
 }

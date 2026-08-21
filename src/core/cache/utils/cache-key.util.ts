@@ -50,7 +50,11 @@ export function buildTenantCachePrefix(workspaceId: string): string {
  * Prefix covering every cached entry for one resource within a tenant, at a
  * given version — what a module's `invalidate*` method deletes.
  */
-export function buildTenantResourcePrefix(workspaceId: string, resource: string, version: number): string {
+export function buildTenantResourcePrefix(
+  workspaceId: string,
+  resource: string,
+  version: number,
+): string {
   return `${join([
     CACHE_DOMAIN,
     CACHE_SCOPE.TENANT,
@@ -65,7 +69,11 @@ export function buildGlobalResourcePrefix(resource: string, version: number): st
 }
 
 function versionedResource(descriptor: CacheKeyDescriptor): string[] {
-  return [formatVersion(descriptor.version), descriptor.resource, ...descriptor.segments.map(String)];
+  return [
+    formatVersion(descriptor.version),
+    descriptor.resource,
+    ...descriptor.segments.map(String),
+  ];
 }
 
 function formatVersion(version: number): string {

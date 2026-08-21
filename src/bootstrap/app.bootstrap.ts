@@ -8,9 +8,6 @@ import { configureDocumentation } from './documentation.bootstrap.js';
 import { configureFastify } from './fastify.bootstrap.js';
 import { configureHooks } from './hooks.bootstrap.js';
 import { configureSecurity } from './security.bootstrap.js';
-// Retired in favour of `configureDocumentation`. Kept until Scalar has been
-// exercised in practice; `bootstrap/swagger/` goes with it.
-// import { configureSwagger } from './swagger/swagger.bootstrap.js';
 
 export async function bootstrapApplication(app: NestFastifyApplication): Promise<void> {
   /**

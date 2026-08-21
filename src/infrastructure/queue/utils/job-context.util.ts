@@ -19,7 +19,9 @@ import type { JobContextSnapshot } from '../interfaces/index.js';
  * gets a `requestId`, so its logs are traceable as a unit of work even though
  * no request created it.
  */
-export function captureJobContext(context: Readonly<RequestContext> | undefined): JobContextSnapshot {
+export function captureJobContext(
+  context: Readonly<RequestContext> | undefined,
+): JobContextSnapshot {
   if (context === undefined) {
     const requestId = uuidv7();
 

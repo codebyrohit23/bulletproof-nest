@@ -4,10 +4,21 @@ import type { ZodType } from 'zod';
 
 import { JwtConfigService } from '#/config/jwt/index.js';
 
-import { JWT_ALGORITHM, JWT_AUDIENCE, JWT_CLOCK_TOLERANCE_SECONDS } from '../constants/jwt.constants.js';
+import {
+  JWT_ALGORITHM,
+  JWT_AUDIENCE,
+  JWT_CLOCK_TOLERANCE_SECONDS,
+} from '../constants/jwt.constants.js';
 import { TokenExpiredError, TokenInvalidError } from '../errors/jwt.errors.js';
-import { accessTokenPayloadSchema, verificationTokenPayloadSchema } from '../schemas/jwt-payload.schema.js';
-import type { AccessAudience, AccessTokenPayload, VerificationTokenPayload } from '../types/jwt-payload.type.js';
+import {
+  accessTokenPayloadSchema,
+  verificationTokenPayloadSchema,
+} from '../schemas/jwt-payload.schema.js';
+import type {
+  AccessAudience,
+  AccessTokenPayload,
+  VerificationTokenPayload,
+} from '../types/jwt-payload.type.js';
 
 import { KeyStoreService } from './key-store.service.js';
 
@@ -26,7 +37,11 @@ export class JwtVerifierService {
     return this.verify(token, JWT_AUDIENCE.VERIFICATION, verificationTokenPayloadSchema);
   }
 
-  private async verify<T>(token: string, audience: string, schema: ZodType<T, JWTPayload>): Promise<T> {
+  private async verify<T>(
+    token: string,
+    audience: string,
+    schema: ZodType<T, JWTPayload>,
+  ): Promise<T> {
     const key = this.keyStore.getVerificationKey(this.readKid(token));
 
     if (key === undefined) {

@@ -14,8 +14,13 @@ import { IdentifierType } from '@prisma/client';
  * twice is harmless; applying it in only one place is how a code path that
  * skips DTO validation writes an unnormalised row.
  */
-export function normalizeIdentifier(identifierType: IdentifierType, identifierValue: string): string {
-  return identifierType === IdentifierType.EMAIL ? normalizeEmail(identifierValue) : normalizePhone(identifierValue);
+export function normalizeIdentifier(
+  identifierType: IdentifierType,
+  identifierValue: string,
+): string {
+  return identifierType === IdentifierType.EMAIL
+    ? normalizeEmail(identifierValue)
+    : normalizePhone(identifierValue);
 }
 
 /**

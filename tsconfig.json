@@ -52,10 +52,7 @@
 
     /* Misc */
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-
-    /* Temporary — remove once TS 6.0 lands and the deprecated flags are dropped */
-    "ignoreDeprecations": "5.0"
+    "forceConsistentCasingInFileNames": true
   },
 
   /*
@@ -64,7 +61,14 @@
    * reports it as "not found in any project" instead of linting it.
    * `tsconfig.build.json` narrows this back down to `src` for compilation.
    */
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts", "scripts/**/*.ts", "prisma/**/*.ts", "prisma.config.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "test/**/*.ts",
+    "scripts/**/*.ts",
+    "prisma/**/*.ts",
+    "prisma.config.ts"
+  ],
 
   "exclude": ["dist", "node_modules"]
 }

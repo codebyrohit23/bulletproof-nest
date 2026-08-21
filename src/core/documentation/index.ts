@@ -1,4 +1,8 @@
-export { ApiAuthErrorResponses, ApiErrorResponses } from './openapi/openapi.responses.js';
+export {
+  ApiAuthErrorResponses,
+  ApiErrorResponses,
+  ApiSuccessResponse,
+} from './openapi/openapi.responses.js';
 
 export { API_AUDIENCES } from './openapi/openapi.config.js';
 
@@ -15,11 +19,17 @@ export { mountScalarReference } from './renderers/scalar.renderer.js';
 
 export type { ApiAudience, ApiTag } from './documentation.types.js';
 
-export type { DocumentedErrorStatus } from './openapi/openapi.responses.js';
+export type {
+  ApiSuccessResponseOptions,
+  DocumentedErrorStatus,
+  ResponseDto,
+} from './openapi/openapi.responses.js';
 
 /*
  * What a feature module needs from here is small and stable:
  *
+ *   - `ApiSuccessResponse` on every handler — it documents the response *and*
+ *     enforces it at runtime, so the two cannot drift
  *   - `ApiErrorResponses` / `ApiAuthErrorResponses` on its controllers
  *   - `SECURITY_SCHEME.USER` or `.ADMIN` for `@ApiBearerAuth(...)`
  *   - an `ApiTag` of its own, exported from its own constants and registered

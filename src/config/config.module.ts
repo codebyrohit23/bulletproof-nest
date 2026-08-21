@@ -17,7 +17,19 @@ import { SecurityConfigService, securityConfig } from './security/index.js';
       load: [appConfig, databaseConfig, jwtConfig, redisConfig, securityConfig],
     }),
   ],
-  providers: [AppConfigService, DatabaseConfigService, JwtConfigService, RedisConfigService, SecurityConfigService],
-  exports: [AppConfigService, DatabaseConfigService, JwtConfigService, RedisConfigService, SecurityConfigService],
+  providers: [
+    AppConfigService,
+    DatabaseConfigService,
+    JwtConfigService,
+    RedisConfigService,
+    SecurityConfigService,
+  ],
+  exports: [
+    AppConfigService,
+    DatabaseConfigService,
+    JwtConfigService,
+    RedisConfigService,
+    SecurityConfigService,
+  ],
 })
 export class AppConfigModule {}

@@ -1,4 +1,9 @@
-#!/usr/bin/env sh
-
-echo "🔍 Running  check..."
-pnpm check || exit 1
+# Fast gate only. `pnpm check` — which also runs the unit suite, the e2e suite
+# and a full build — belongs in CI (.github/workflows/ci.yml), where it can run
+# on a matrix and in parallel without blocking the push.
+#
+# A hook that takes minutes gets bypassed with `--no-verify`, and a gate people
+# routinely skip is not a gate. Lint plus typecheck catches the overwhelming
+# majority of what would fail CI, in seconds rather than minutes.
+echo "→ lint + typecheck (full suite runs in CI)"
+pnpm check:quick

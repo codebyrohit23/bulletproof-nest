@@ -1,5 +1,12 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { CompactSign, calculateJwkThumbprint, compactVerify, exportJWK, importPKCS8, importSPKI } from 'jose';
+import {
+  CompactSign,
+  calculateJwkThumbprint,
+  compactVerify,
+  exportJWK,
+  importPKCS8,
+  importSPKI,
+} from 'jose';
 import type { CryptoKey } from 'jose';
 
 import { JwtConfigService } from '#/config/jwt/index.js';
@@ -91,7 +98,9 @@ export class KeyStoreService implements OnModuleInit {
 
     this.verificationKeys.set(previousKid, previousKey);
 
-    this.logger.log(`Accepting tokens from the previous key (kid ${previousKid}) until they expire`);
+    this.logger.log(
+      `Accepting tokens from the previous key (kid ${previousKid}) until they expire`,
+    );
   }
 
   private async assertKeysArePaired(privateKey: CryptoKey, publicKey: CryptoKey): Promise<void> {
@@ -102,9 +111,12 @@ export class KeyStoreService implements OnModuleInit {
 
       await compactVerify(probe, publicKey);
     } catch (error) {
-      throw new Error('JWT_PUBLIC_KEY does not belong to JWT_PRIVATE_KEY — tokens signed now could never be verified', {
-        cause: error,
-      });
+      throw new Error(
+        'JWT_PUBLIC_KEY does not belong to JWT_PRIVATE_KEY — tokens signed now could never be verified',
+        {
+          cause: error,
+        },
+      );
     }
   }
 

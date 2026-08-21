@@ -1,29 +1,50 @@
 // @ts-check
 
 import js from '@eslint/js';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import importPlugin from 'eslint-plugin-import';
-import prettierRecommended from 'eslint-plugin-prettier/recommended';
+import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-export default tseslint.config(
-  {
-    ignores: [
-      'dist/**',
-      'coverage/**',
-      'node_modules/**',
-      'generated/**',
-      '.nestjs/**',
-      'eslint.config.mjs',
-      '**/*.d.ts',
-    ],
-  },
+/*
+ * ===========================================================================
+ * ESLint reports code problems. Prettier owns formatting. They never overlap.
+ * ===========================================================================
+ *
+ * `eslint-plugin-prettier` is deliberately NOT used here. It runs Prettier as
+ * an ESLint *rule*, which turns every formatting difference — a missing
+ * trailing comma, one extra blank line — into a red error you have to go and
+ * fix by hand. Prettier's own documentation recommends against it, and on this
+ * repository it made `eslint --fix` take over two minutes for a single file,
+ * because every lint pass re-ran a full Prettier parse and diff.
+ *
+ * The split used instead is the current standard:
+ *
+ *   - Prettier formats, silently, on save and in `lint-staged`.
+ *   - `eslint-config-prettier` (imported last, below) switches OFF every
+ *     ESLint rule that could disagree with Prettier, so the two can never
+ *     produce conflicting fixes.
+ *   - ESLint reports only real code problems and never formatting.
+ *
+ * Practical consequence: formatting is no longer something ESLint can fix. If
+ * a file looks unformatted, Prettier is not running — check that the editor's
+ * formatter is installed rather than looking for a lint rule.
+ */
+export default defineConfig(
+  globalIgnores([
+    'dist/**',
+    'coverage/**',
+    'node_modules/**',
+    'generated/**',
+    '.nestjs/**',
+    'eslint.config.mjs',
+    '**/*.d.ts',
+  ]),
 
   js.configs.recommended,
 
-  ...tseslint.configs.recommendedTypeChecked,
-
-  prettierRecommended,
+  tseslint.configs.recommendedTypeChecked,
 
   /*
    * -------------------------------------------------------
@@ -115,6 +136,12 @@ export default tseslint.config(
        * -------------------------------------------------------
        * Imports
        * -------------------------------------------------------
+       *
+       * `import/order` is the single owner of import ordering. The editor's
+       * `source.organizeImports` code action is deliberately not enabled in
+       * `.vscode/settings.json`, because it sorts by different rules and
+       * collapses the blank lines `newlines-between` requires — the two
+       * undo each other on every save.
        */
 
       'import/order': [
@@ -155,14 +182,6 @@ export default tseslint.config(
       ],
 
       'no-debugger': 'error',
-
-      /*
-       * -------------------------------------------------------
-       * Prettier
-       * -------------------------------------------------------
-       */
-
-      'prettier/prettier': 'error',
     },
   },
 
@@ -220,4 +239,15 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
+
+  /*
+   * -------------------------------------------------------
+   * Prettier — must stay last
+   * -------------------------------------------------------
+   *
+   * Switches off every stylistic rule enabled above that Prettier also has an
+   * opinion about. Last position matters: anything added after this could
+   * re-enable a rule that fights the formatter.
+   */
+  eslintConfigPrettier,
 );

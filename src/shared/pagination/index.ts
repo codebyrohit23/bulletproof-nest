@@ -8,7 +8,12 @@
 
 export { PAGINATION_DEFAULTS, SORT_ORDER, type SortOrder } from './pagination.constants.js';
 
-export type { CursorPagination, OffsetPagination, Paginated, Pagination } from './pagination.interface.js';
+export type {
+  CursorPagination,
+  OffsetPagination,
+  Paginated,
+  Pagination,
+} from './pagination.interface.js';
 
 export {
   cursorPaginationSchema,

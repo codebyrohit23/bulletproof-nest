@@ -14,7 +14,12 @@ import {
 } from '../constants/context.constants.js';
 import type { RequestContext } from '../interfaces/index.js';
 import { RequestContextService } from '../services/request-context.service.js'; // value import — required for DI metadata
-import { readHeader, resolveClientIp, resolveLocale, sanitizeIdentifier } from '../utils/context.util.js';
+import {
+  readHeader,
+  resolveClientIp,
+  resolveLocale,
+  sanitizeIdentifier,
+} from '../utils/context.util.js';
 
 /**
  * Establishes the request context for every inbound request.
@@ -57,7 +62,8 @@ export class RequestContextMiddleware implements NestMiddleware {
      * When the caller supplies none this request is the origin, so the two ids
      * are the same — which keeps every downstream log queryable by one value.
      */
-    const correlationId = sanitizeIdentifier(readHeader(headers, CORRELATION_ID_HEADER)) ?? requestId;
+    const correlationId =
+      sanitizeIdentifier(readHeader(headers, CORRELATION_ID_HEADER)) ?? requestId;
 
     const ip = resolveClientIp(headers, request.socket.remoteAddress);
     const userAgent = readHeader(headers, USER_AGENT_HEADER);

@@ -2,7 +2,11 @@ import { z } from 'zod';
 
 import { booleanEnv, enumListEnv, positiveIntEnv } from '../shared/schema.helpers.js';
 
-import { POSTGRES_POOL_DEFAULTS, POSTGRES_SLOW_QUERY_THRESHOLD_MS, PRISMA_LOG_LEVELS } from './database.constants.js';
+import {
+  POSTGRES_POOL_DEFAULTS,
+  POSTGRES_SLOW_QUERY_THRESHOLD_MS,
+  PRISMA_LOG_LEVELS,
+} from './database.constants.js';
 
 export const databaseSchema = z.object({
   POSTGRES_DATABASE_URL: z.url(),

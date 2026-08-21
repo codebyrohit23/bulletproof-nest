@@ -15,5 +15,9 @@ export const appConfig = registerAs('app', (): AppConfig => ({
 
   logLevel: env.LOG_LEVEL,
 
+  logFormat: env.LOG_FORMAT,
+
+  docsEnabled: env.DOCS_ENABLED,
+
   requestTimeoutMs: env.REQUEST_TIMEOUT_MS,
 }));

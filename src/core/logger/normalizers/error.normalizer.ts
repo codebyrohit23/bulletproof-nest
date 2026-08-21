@@ -1,15 +1,21 @@
 import type { ErrorPayload } from '../interfaces/error-payload.interface.js';
 
 /**
- * Normalizes any thrown value into a structured error payload.
+ * Turns a thrown value that is *not* an `Error` into pino's error shape.
  *
- * The returned object is transport-agnostic and can be safely consumed by
- * Pino, Sentry, Loki, OpenTelemetry, or any future logging backend.
+ * Real `Error` instances are left to pino's own serializer, which handles
+ * aggregate errors and cause chains properly; this covers what that serializer
+ * passes straight through — a thrown string, a rejected plain object, an
+ * `undefined` from a badly written library.
+ *
+ * The result deliberately carries no `stack`. Without one it is not
+ * "error-like" to pino, so it reaches the output untouched rather than being
+ * re-serialized into `type: "Object"`.
  */
 export function normalizeError(error: unknown): ErrorPayload {
   if (error instanceof Error) {
     const payload: ErrorPayload = {
-      name: error.name,
+      type: error.name,
       message: error.message,
     };
 
@@ -32,14 +38,14 @@ export function normalizeError(error: unknown): ErrorPayload {
 
   if (typeof error === 'object' && error !== null) {
     return {
-      name: 'UnknownError',
+      type: 'UnknownError',
       message: 'An unknown error occurred.',
       cause: error,
     };
   }
 
   return {
-    name: 'UnknownError',
+    type: 'UnknownError',
     message: String(error),
   };
 }

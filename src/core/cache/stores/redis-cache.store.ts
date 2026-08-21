@@ -44,7 +44,9 @@ export class RedisCacheStore implements CacheStore {
      * than failing the whole batch — one bad key must not deny the caller the
      * other nineteen.
      */
-    return replies.map(([error, value]) => (error !== null || typeof value !== 'string' ? null : value));
+    return replies.map(([error, value]) =>
+      error !== null || typeof value !== 'string' ? null : value,
+    );
   }
 
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
@@ -98,12 +100,20 @@ export class RedisCacheStore implements CacheStore {
     let removed = 0;
 
     do {
-      const [nextCursor, keys] = await client.scan(cursor, 'MATCH', match, 'COUNT', CACHE_SCAN_COUNT);
+      const [nextCursor, keys] = await client.scan(
+        cursor,
+        'MATCH',
+        match,
+        'COUNT',
+        CACHE_SCAN_COUNT,
+      );
 
       cursor = nextCursor;
 
       if (keys.length > 0) {
-        const unprefixed = keys.map((key) => (keyPrefix.length > 0 ? key.slice(keyPrefix.length) : key));
+        const unprefixed = keys.map((key) =>
+          keyPrefix.length > 0 ? key.slice(keyPrefix.length) : key,
+        );
 
         await client.unlink(...unprefixed);
 

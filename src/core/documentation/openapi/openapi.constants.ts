@@ -39,4 +39,10 @@ export const SECURITY_SCHEME = {
   ADMIN: 'admin-access-token',
 } as const;
 
+/**
+ * Where OpenAPI keeps named schemas, and therefore the prefix every `$ref` to
+ * one carries. Reachability analysis strips it to recover the schema name.
+ */
+export const SCHEMA_REF_PREFIX = '#/components/schemas/';
+
 export const DOCUMENTATION_LOG_CONTEXT = 'Documentation';

@@ -7,13 +7,6 @@ import { PrismaHealthIndicator } from './indicators/prisma-health.indicator.js';
 import { PrismaService } from './prisma.service.js';
 import { TransactionContextService, TransactionService } from './services/index.js';
 
-/**
- * Wiring only. Everything this module does lives in the services, providers and
- * extensions it registers.
- *
- * `@Global()` because the database is genuinely needed everywhere — feature
- * modules should not have to import it to declare a repository.
- */
 @Global()
 @Module({
   imports: [AppConfigModule, TerminusModule],
