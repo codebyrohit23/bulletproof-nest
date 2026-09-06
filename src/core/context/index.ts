@@ -2,7 +2,7 @@
  * Request context — ambient identity for the current unit of work.
  *
  * Carries: requestId, correlationId, locale, timezone, ip, userAgent, clientId,
- * and once authentication has run, userId / workspaceId / sessionId.
+ * deviceId, and once authentication has run, userId / workspaceId / sessionId.
  *
  * Does NOT do: logging, validation, caching, database access, authorisation.
  * It only holds values other layers put in and read out.
@@ -57,6 +57,7 @@ export { RequestContextService } from './services/request-context.service.js';
 export {
   CorrelationId,
   CurrentContext,
+  CurrentDeviceId,
   CurrentWorkspaceId,
   CurrentUserId,
   Locale,
@@ -64,8 +65,11 @@ export {
 } from './decorators/index.js';
 
 export {
+  ACCEPT_CH_HEADER,
+  ACCEPT_CH_VALUE,
   CORRELATION_ID_HEADER,
   DEFAULT_LOCALE,
+  DEVICE_ID_HEADER,
   REQUEST_ID_HEADER,
   RESPONSE_REQUEST_ID_HEADER,
 } from './constants/context.constants.js';
@@ -77,4 +81,9 @@ export {
  */
 export { resolveRequestId } from './utils/request-id.util.js';
 
-export type { RequestContext, RequestIdentityPatch } from './interfaces/index.js';
+export type {
+  ClientHints,
+  RequestContext,
+  RequestGeo,
+  RequestIdentityPatch,
+} from './interfaces/index.js';

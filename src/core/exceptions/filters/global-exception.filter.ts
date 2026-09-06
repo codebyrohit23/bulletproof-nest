@@ -5,8 +5,13 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AppLoggerService } from '#/core/logger/index.js';
 
 import { ErrorResponseBuilder } from '../builders/error-response.builder.js';
-import { LOGGED_INVALID_FIELD_LIMIT, SERVER_ERROR_STATUS } from '../constants/index.js';
+import {
+  LOGGED_INVALID_FIELD_LIMIT,
+  RETRY_AFTER_HEADER,
+  SERVER_ERROR_STATUS,
+} from '../constants/index.js';
 import { ExceptionMapperService } from '../exception-mapper.service.js';
+import { TooManyRequestsException } from '../exceptions/too-many-requests.exception.js';
 import type { ExceptionDetails } from '../interfaces/index.js';
 
 @Catch()
@@ -38,6 +43,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       exception: details,
       path: request.url,
     });
+
+    /*
+     * The wait goes in the header rather than the message, so a client can back
+     * off without parsing prose. Set before the reply, which ends the response.
+     */
+    if (exception instanceof TooManyRequestsException) {
+      void response.header(RETRY_AFTER_HEADER, exception.retryAfterSeconds);
+    }
 
     httpAdapter.reply(response, body, details.statusCode);
   }

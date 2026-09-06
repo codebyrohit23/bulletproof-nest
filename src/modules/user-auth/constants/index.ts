@@ -1,16 +1,3 @@
-export {
-  IDENTIFIER_MAX_LENGTH,
-  LAST_ACTIVE_THROTTLE_MS,
-  PASSWORD_LOWERCASE_PATTERN,
-  PASSWORD_MIN_LENGTH,
-  PASSWORD_SPECIAL_PATTERN,
-  PASSWORD_UPPERCASE_PATTERN,
-  PHONE_E164_PATTERN,
-  USER_AUTH_API_TAG,
-  USER_AUTH_LOG_CONTEXT,
-  VERIFICATION_CODE_MAX_ATTEMPTS,
-  VERIFICATION_CODE_PATTERN,
-  VERIFICATION_CODE_TTL_MS,
-} from './user-auth.constants.js';
+export * from './user-auth.constants.js';
 
-export { USER_AUTH_ERROR_MESSAGE } from './user-auth.errors.js';
+export * from './user-auth.errors.js';

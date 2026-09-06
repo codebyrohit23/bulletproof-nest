@@ -9,7 +9,7 @@ import type {
   ExceptionHandler,
   ValidationError,
 } from '../interfaces/index.js';
-import { ExceptionCodeMapper } from '../mappers/exception-code.mapper.js';
+import { toExceptionCode } from '../mappers/exception-code.mapper.js';
 
 @Injectable()
 export class ZodExceptionHandler implements ExceptionHandler {
@@ -41,7 +41,7 @@ export class ZodExceptionHandler implements ExceptionHandler {
    */
   private buildApiError(statusCode: HttpStatus, exception: ZodError): ApiError {
     return {
-      code: ExceptionCodeMapper.map(statusCode),
+      code: toExceptionCode(statusCode),
       name: exception.name,
       ...(exception.message && {
         details: exception.message,

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config'; // value import — required for DI metadata
+import { ConfigService } from '@nestjs/config';
 
 import type { JwtConfig } from './jwt.interface.js';
 

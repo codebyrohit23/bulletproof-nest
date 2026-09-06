@@ -2,11 +2,18 @@ import { randomUUID } from 'node:crypto';
 
 import { Injectable } from '@nestjs/common';
 
-import { AppLoggerService } from '#/core/logger/index.js'; // value import — required for DI metadata
+import { AppLoggerService } from '#/core/logger/index.js';
 
+import { REDIS_DOMAIN } from '../constants/redis-key.constants.js';
 import { REDIS_LOCK_RELEASE_SCRIPT, REDIS_LOG_CONTEXT } from '../constants/redis.constants.js';
-import type { RedisLockHandle } from '../interfaces/index.js';
-import { RedisService } from '../redis.service.js'; // value import — required for DI metadata
+import {
+  LOCK_OUTCOME,
+  type LockAcquisition,
+  type LockedRun,
+  type RedisLockHandle,
+} from '../interfaces/index.js';
+import { RedisService } from '../redis.service.js';
+import { buildRedisKey } from '../utils/redis-key.util.js';
 
 /**
  * Best-effort mutual exclusion across processes.
@@ -20,6 +27,15 @@ import { RedisService } from '../redis.service.js'; // value import — required
  * Not in `core/cache`: a lock is a Redis primitive with no knowledge of TTL
  * policy or tenants, and a cron job must be able to take one without importing
  * the cache module.
+ *
+ * ---------------------------------------------------------------------------
+ * CALLERS NAME A SUBJECT, NOT A KEY
+ * ---------------------------------------------------------------------------
+ * The `lock:` namespace is applied here rather than by whoever is calling. A
+ * caller that builds its own key can forget the prefix, and a lock filed under
+ * `cache:` is one an operator clearing the cache will delete out from under the
+ * process holding it. The subject is what is being locked — usually the key of
+ * the thing being loaded — and this turns it into `lock:<subject>`.
  */
 @Injectable()
 export class RedisLockService {
@@ -30,33 +46,43 @@ export class RedisLockService {
   ) {}
 
   /**
-   * Returns a handle on success, `null` when someone else holds the lock.
+   * Takes the lock, or says why it could not.
    *
    * The TTL is a deadlock guard: if the holder crashes mid-work the lock
    * expires rather than blocking every other process forever. Set it above the
    * expected work duration — a lock that expires while the holder is still
    * running defeats the purpose.
+   *
+   * ---------------------------------------------------------------------------
+   * WHY THE REFUSALS ARE NAMED
+   * ---------------------------------------------------------------------------
+   * This used to answer `null` for both "somebody else holds it" and "Redis is
+   * unreachable", and the two are opposites. Against a live holder, waiting
+   * works — they will finish. Against an unreachable Redis, nobody holds
+   * anything and waiting is time spent on a result that cannot arrive.
+   *
+   * Deciding between them is the caller's, not this service's: a cache is happy
+   * to do the work unguarded, a cron job may prefer to skip the tick entirely.
+   * So the reason is reported and no policy is applied here.
    */
-  async acquire(key: string, ttlSeconds: number): Promise<RedisLockHandle | null> {
+  async acquire(subject: string, ttlSeconds: number): Promise<LockAcquisition> {
+    const key = this.keyFor(subject);
     const token = randomUUID();
 
     try {
       const result = await this.redis.client.set(key, token, 'EX', ttlSeconds, 'NX');
 
-      return result === 'OK' ? { key, token } : null;
+      return result === 'OK'
+        ? { outcome: LOCK_OUTCOME.ACQUIRED, handle: { key, token } }
+        : { outcome: LOCK_OUTCOME.HELD };
     } catch (error) {
-      /*
-       * A lock is an optimisation here, so an unreachable Redis must not fail
-       * the caller — it degrades to "nobody holds a lock", and the work is
-       * simply done unguarded.
-       */
-      this.logger.warn('Lock acquisition failed — proceeding without a lock', {
+      this.logger.warn('Lock could not be reached — reporting it as unavailable', {
         context: REDIS_LOG_CONTEXT,
         operation: 'acquire',
         metadata: { key, reason: error instanceof Error ? error.message : 'unknown' },
       });
 
-      return null;
+      return { outcome: LOCK_OUTCOME.UNAVAILABLE };
     }
   }
 
@@ -90,24 +116,31 @@ export class RedisLockService {
   }
 
   /**
-   * Runs `operation` while holding the lock, or returns `null` if it is held
-   * elsewhere. The caller decides what to do when it loses.
+   * Runs `operation` while holding the lock.
+   *
+   * `ran` distinguishes work that was skipped from work that ran and returned
+   * nothing — the previous `T | null` could not, so a caller whose operation
+   * legitimately returned `null` read it as a lost turn.
    */
   async withLock<T>(
-    key: string,
+    subject: string,
     ttlSeconds: number,
     operation: () => Promise<T>,
-  ): Promise<T | null> {
-    const handle = await this.acquire(key, ttlSeconds);
+  ): Promise<LockedRun<T>> {
+    const acquisition = await this.acquire(subject, ttlSeconds);
 
-    if (handle === null) {
-      return null;
+    if (acquisition.outcome !== LOCK_OUTCOME.ACQUIRED) {
+      return { ran: false, reason: acquisition.outcome };
     }
 
     try {
-      return await operation();
+      return { ran: true, value: await operation() };
     } finally {
-      await this.release(handle);
+      await this.release(acquisition.handle);
     }
+  }
+
+  private keyFor(subject: string): string {
+    return buildRedisKey(REDIS_DOMAIN.LOCK, [subject]);
   }
 }

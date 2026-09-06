@@ -1,1 +1,6 @@
-export type { RequestContext, RequestIdentityPatch } from './request-context.interface.js';
+export type {
+  ClientHints,
+  RequestContext,
+  RequestGeo,
+  RequestIdentityPatch,
+} from './request-context.interface.js';

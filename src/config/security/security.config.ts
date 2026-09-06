@@ -1,5 +1,7 @@
 import { registerAs } from '@nestjs/config';
 
+import { ENVIRONMENTS } from '#/config/app/index.js';
+
 import { env } from '../shared/env.js';
 
 import type { SecurityConfig } from './security.interface.js';
@@ -7,6 +9,8 @@ import type { SecurityConfig } from './security.interface.js';
 export const securityConfig = registerAs('security', (): SecurityConfig => ({
   cookie: {
     secret: env.COOKIE_SECRET,
+    secure: env.NODE_ENV === ENVIRONMENTS.PRODUCTION,
+    sameSite: 'lax',
   },
 
   cors: {

@@ -1,7 +1,7 @@
 import { HEALTH_API_TAG } from '#/modules/health/index.js';
 import { USER_AUTH_API_TAG } from '#/modules/user-auth/constants/index.js';
 
-import type { ApiTag } from '../documentation.types.js';
+import type { ApiTag } from '../interfaces/index.js';
 
 /**
  * Sidebar ordering, per surface.

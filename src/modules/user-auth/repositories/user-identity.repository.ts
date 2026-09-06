@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import type { IdentifierType, UserIdentity } from '@prisma/client';
 
-import { PrismaService } from '#/infrastructure/database/prisma/index.js'; // value import — required for DI metadata
+import { PrismaService } from '#/infrastructure/database/prisma/index.js';
+import { normalizeIdentifier } from '#/shared/utils/identifier.util.js';
 
 import type {
   CreateIdentityInput,
   UserIdentityWithUser,
   UserIdentityWithUserAndCredential,
 } from '../interfaces/index.js';
-import { normalizeIdentifier } from '../utils/index.js';
 
 @Injectable()
 export class UserIdentityRepository {
@@ -28,12 +28,13 @@ export class UserIdentityRepository {
       select: {
         id: true,
         userId: true,
-        user: { select: { state: true } },
+        verifiedAt: true,
+        user: { select: { status: true } },
       },
     });
   }
 
-  public findIdentityWithUserAndCredential(
+  findIdentityWithUserAndCredential(
     identifierType: IdentifierType,
     identifierValue: string,
   ): Promise<UserIdentityWithUserAndCredential | null> {
@@ -54,7 +55,7 @@ export class UserIdentityRepository {
         user: {
           select: {
             id: true,
-            state: true,
+            status: true,
 
             credential: {
               select: {

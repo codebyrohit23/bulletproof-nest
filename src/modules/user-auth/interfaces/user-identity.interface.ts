@@ -1,12 +1,13 @@
-import type { IdentifierType, UserState } from '@prisma/client';
+import type { IdentifierType, UserStatus } from '@prisma/client';
 
 export interface UserIdentityWithUser {
   readonly id: string;
 
   readonly userId: string;
 
+  readonly verifiedAt: Date | null;
   readonly user: {
-    readonly state: UserState;
+    readonly status: UserStatus;
   };
 }
 
@@ -19,7 +20,7 @@ export interface UserIdentityWithUserAndCredential {
 
   readonly user: {
     readonly id: string;
-    readonly state: UserState;
+    readonly status: UserStatus;
 
     readonly credential: {
       readonly passwordHash: string;

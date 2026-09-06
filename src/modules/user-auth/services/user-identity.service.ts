@@ -12,25 +12,25 @@ import { UserIdentityRepository } from '../repositories/index.js';
 export class UserIdentityService {
   constructor(private identityRepo: UserIdentityRepository) {}
 
-  public async findIdentityWithUser(
+  async findIdentityWithUser(
     identifierType: IdentifierType,
     identifierValue: string,
   ): Promise<UserIdentityWithUser | null> {
     return this.identityRepo.findIdentityWithUser(identifierType, identifierValue);
   }
 
-  public async findIdentityWithUserAndCredential(
+  async findIdentityWithUserAndCredential(
     identifierType: IdentifierType,
     identifierValue: string,
   ): Promise<UserIdentityWithUserAndCredential | null> {
     return this.identityRepo.findIdentityWithUserAndCredential(identifierType, identifierValue);
   }
 
-  public async createIdentity(input: CreateIdentityInput): Promise<UserIdentity> {
+  async createIdentity(input: CreateIdentityInput): Promise<UserIdentity> {
     return this.identityRepo.create(input);
   }
 
-  public async markVerified(id: string): Promise<void> {
+  async markVerified(id: string): Promise<void> {
     await this.identityRepo.markVerified(id);
   }
 }

@@ -4,7 +4,7 @@ import type { Job } from 'bullmq';
 
 import { QUEUE, QUEUE_SETTINGS } from '../constants/queue.constants.js';
 import type { JobEnvelope } from '../interfaces/index.js';
-import { JobRunner } from '../services/job-runner.service.js'; // value import — required for DI metadata
+import { JobRunner } from '../services/job-runner.service.js';
 
 /**
  * One worker per queue. Each delegates straight to `JobRunner`, which restores

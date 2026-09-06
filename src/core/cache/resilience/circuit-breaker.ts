@@ -1,63 +1,75 @@
-import { CACHE_CIRCUIT } from '../constants/cache.constants.js';
+import { CACHE_CIRCUIT, CIRCUIT_STATE, type CircuitState } from '../constants/cache.constants.js';
 
-/**
- * Stops calling a store that is failing.
- *
- * Without it, every request pays the full command timeout and its retries while
- * Redis is down — twelve seconds each, on an operation whose entire purpose is
- * to be faster than the database. After a few consecutive failures the circuit
- * opens and calls return immediately; one probe is allowed through after the
- * cooldown to find out whether it has recovered.
- *
- * Deliberately not an `@Injectable()`: it is a plain object with no
- * dependencies, so it stays unit-testable without a Nest container.
- */
 export class CircuitBreaker {
+  private current: CircuitState = CIRCUIT_STATE.CLOSED;
+
   private consecutiveFailures = 0;
 
-  private openedAt: number | null = null;
+  private openedAt = 0;
+
+  private probeStartedAt = 0;
 
   constructor(
     private readonly failureThreshold: number = CACHE_CIRCUIT.FAILURE_THRESHOLD,
 
     private readonly openDurationMs: number = CACHE_CIRCUIT.OPEN_DURATION_MS,
+
+    private readonly probeTimeoutMs: number = CACHE_CIRCUIT.PROBE_TIMEOUT_MS,
   ) {}
 
-  /**
-   * Whether calls should be skipped right now.
-   *
-   * Closes the circuit itself once the cooldown has elapsed, so the next call
-   * becomes the probe. That keeps recovery automatic rather than depending on
-   * some other component noticing.
-   */
-  get isOpen(): boolean {
-    if (this.openedAt === null) {
-      return false;
+  shouldAllow(): boolean {
+    if (this.current === CIRCUIT_STATE.CLOSED) {
+      return true;
     }
 
-    if (Date.now() - this.openedAt >= this.openDurationMs) {
-      this.reset();
+    const now = Date.now();
 
-      return false;
+    if (this.current === CIRCUIT_STATE.OPEN) {
+      if (now - this.openedAt < this.openDurationMs) {
+        return false;
+      }
+
+      this.current = CIRCUIT_STATE.HALF_OPEN;
+      this.probeStartedAt = now;
+
+      return true;
     }
 
-    return true;
+    if (now - this.probeStartedAt >= this.probeTimeoutMs) {
+      this.probeStartedAt = now;
+
+      return true;
+    }
+
+    return false;
   }
 
   recordSuccess(): void {
-    this.reset();
+    this.current = CIRCUIT_STATE.CLOSED;
+    this.consecutiveFailures = 0;
   }
 
   recordFailure(): void {
+    if (this.current === CIRCUIT_STATE.HALF_OPEN) {
+      this.open();
+
+      return;
+    }
+
     this.consecutiveFailures += 1;
 
-    if (this.consecutiveFailures >= this.failureThreshold && this.openedAt === null) {
-      this.openedAt = Date.now();
+    if (this.consecutiveFailures >= this.failureThreshold) {
+      this.open();
     }
   }
 
-  private reset(): void {
+  get state(): CircuitState {
+    return this.current;
+  }
+
+  private open(): void {
+    this.current = CIRCUIT_STATE.OPEN;
+    this.openedAt = Date.now();
     this.consecutiveFailures = 0;
-    this.openedAt = null;
   }
 }

@@ -3,9 +3,16 @@ export const USER_AUTH_ERROR_MESSAGE = {
 
   PHONE_ALREADY_REGISTERED: 'An account already exists for that phone number.',
 
-  INVALID_OR_EXPIRED_CODE: 'That verification code is invalid or has expired. Request a new one.',
-
-  TOO_MANY_CODE_ATTEMPTS: 'Too many incorrect attempts for this code. Request a new one.',
-
   INVALID_CREDENTIALS: 'The email or password you entered is incorrect. Please try again.',
+
+  INVALID_REFRESH_TOKEN: 'Your session has expired. Please sign in again.',
+
+  SIGN_IN_CONFLICT: 'Sign-in could not be completed. Please try again.',
+
+  ACCOUNT_SUSPENDED: 'Your account has been suspended. Please contact support.',
+
+  ACCOUNT_DEACTIVATED:
+    'Your account has been deactivated. Please contact support to restore access.',
+
+  INVALID_OR_EXPIRED_RESET_TOKEN: 'The password reset token is invalid or has expired.',
 } as const;

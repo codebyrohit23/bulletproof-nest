@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { type HealthIndicatorResult, HealthIndicatorService } from '@nestjs/terminus';
 
 import { REDIS_HEALTH_KEY } from '../constants/redis.constants.js';
-import { RedisService } from '../redis.service.js'; // value import — required for DI metadata
+import { RedisService } from '../redis.service.js';
 
 @Injectable()
 export class RedisHealthIndicator {

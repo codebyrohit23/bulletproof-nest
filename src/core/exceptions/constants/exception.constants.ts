@@ -98,6 +98,9 @@ export const UNKNOWN_EXCEPTION_NAME = 'UnknownException';
 
 export const ERROR_RESPONSE_SUCCESS = false as const;
 
+/** Seconds a client should wait before retrying. RFC 9110 §10.2.3. */
+export const RETRY_AFTER_HEADER = 'retry-after';
+
 export const EXCEPTION_HANDLERS = Symbol('EXCEPTION_HANDLERS');
 
 /** Below this the client is at fault; at or above it, this service is. */

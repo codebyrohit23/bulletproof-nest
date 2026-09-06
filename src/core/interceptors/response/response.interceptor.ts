@@ -12,14 +12,14 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { RequestContextService } from '#/core/context/index.js'; // value import — required for DI metadata
+import { RequestContextService } from '#/core/context/index.js';
 
 import {
   NO_CONTENT_STATUS_CODE,
   RAW_RESPONSE_KEY,
   RESPONSE_MESSAGE_KEY,
 } from './response.constants.js';
-import { SuccessResponseBuilder } from './success-response.builder.js'; // value import — required for DI metadata
+import { SuccessResponseBuilder } from './success-response.builder.js';
 
 /**
  * Wraps every successful handler return value in the API envelope.

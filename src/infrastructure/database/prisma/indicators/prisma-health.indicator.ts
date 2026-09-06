@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { type HealthIndicatorResult, HealthIndicatorService } from '@nestjs/terminus';
 
 import { HEALTH_CHECK_TIMEOUT_MS, PRISMA_HEALTH_KEY } from '../constants/prisma.constants.js';
-import { PrismaService } from '../prisma.service.js'; // value import — required for DI metadata
+import { PrismaService } from '../prisma.service.js';
 
 @Injectable()
 export class PrismaHealthIndicator {

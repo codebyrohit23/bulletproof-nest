@@ -2,12 +2,6 @@ import { HttpStatus } from '@nestjs/common';
 
 import { EXCEPTION_CODE, type ExceptionCode } from '../constants/exception.constants.js';
 
-/**
- * Maps NestJS HTTP status codes
- * to application error codes.
- *
- * Single source of truth.
- */
 const HTTP_STATUS_TO_ERROR_CODE = new Map<HttpStatus, ExceptionCode>([
   [HttpStatus.BAD_REQUEST, EXCEPTION_CODE.BAD_REQUEST],
   [HttpStatus.UNAUTHORIZED, EXCEPTION_CODE.UNAUTHORIZED],
@@ -28,8 +22,7 @@ const HTTP_STATUS_TO_ERROR_CODE = new Map<HttpStatus, ExceptionCode>([
   [HttpStatus.SERVICE_UNAVAILABLE, EXCEPTION_CODE.SERVICE_UNAVAILABLE],
   [HttpStatus.GATEWAY_TIMEOUT, EXCEPTION_CODE.GATEWAY_TIMEOUT],
 ]);
-export abstract class ExceptionCodeMapper {
-  static map(status: HttpStatus): ExceptionCode {
-    return HTTP_STATUS_TO_ERROR_CODE.get(status) ?? EXCEPTION_CODE.INTERNAL_SERVER_ERROR;
-  }
+
+export function toExceptionCode(status: HttpStatus): ExceptionCode {
+  return HTTP_STATUS_TO_ERROR_CODE.get(status) ?? EXCEPTION_CODE.INTERNAL_SERVER_ERROR;
 }

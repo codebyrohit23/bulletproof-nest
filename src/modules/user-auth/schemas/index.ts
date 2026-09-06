@@ -1,9 +1,5 @@
-export {
-  emailIdentifierSchema,
-  identifierSchema,
-  phoneIdentifierSchema,
-} from './identifier.schema.js';
+export { DECLARED_DEVICE_DESCRIPTION, declaredDeviceSchema } from './declared-device.schema.js';
 
-export type { IdentifierInput } from './identifier.schema.js';
+export { authTokensSchema } from './auth-tokens.schema.js';
 
-export { passwordCredentialSchema, passwordSchema } from './password.schema.js';
+export { authUserSchema, type AuthUser } from './auth-user.schema.js';

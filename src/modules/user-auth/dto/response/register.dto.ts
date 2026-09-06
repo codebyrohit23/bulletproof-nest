@@ -1,16 +1,16 @@
-// import { createZodDto } from 'nestjs-zod';
-// import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
+import { z } from 'zod';
 
-// import { identifierSchema } from '../../schemas/identifier.schema.js';
+import { identifierSchema } from '#/shared/schemas/index.js';
 
-// const registerResponseSchema = z.object({
-//   userId: z.uuid(),
+const registerResponseSchema = z.object({
+  userId: z.uuid(),
 
-//   identifier: identifierSchema,
+  identifier: identifierSchema,
 
-//   verificationRequired: z.literal(true),
-// });
+  verificationRequired: z.literal(true),
+});
 
-// export class RegisterResponseDto extends createZodDto(registerResponseSchema) {}
+export class RegisterResponseDto extends createZodDto(registerResponseSchema) {}
 
-// export type RegisterResponse = z.infer<typeof registerResponseSchema>;
+export type RegisterResponse = z.infer<typeof registerResponseSchema>;

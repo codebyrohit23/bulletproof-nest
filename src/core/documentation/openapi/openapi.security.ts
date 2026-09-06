@@ -1,4 +1,4 @@
-import type { SecuritySchemeObject } from '../documentation.types.js';
+import type { SecuritySchemeObject } from '../interfaces/index.js';
 
 /**
  * The bearer scheme, shared by every audience.

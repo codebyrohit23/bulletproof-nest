@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
-import { REDIS_KEY_SEPARATOR } from '#/config/redis/index.js';
-import { RequestContextService } from '#/core/context/index.js'; // value import — required for DI metadata
-import { AppLoggerService } from '#/core/logger/index.js'; // value import — required for DI metadata
-import { RedisLockService } from '#/infrastructure/redis/index.js'; // value import — required for DI metadata
+import { RequestContextService } from '#/core/context/index.js';
+import { AppLoggerService } from '#/core/logger/index.js';
+import { CacheStore } from '#/infrastructure/cache/index.js';
+import { LOCK_OUTCOME, RedisLockService } from '#/infrastructure/redis/index.js';
 import { delay } from '#/shared/utils/async.util.js';
 
 import { CACHE_LOCK, CACHE_LOG_CONTEXT } from './constants/cache.constants.js';
@@ -13,10 +13,9 @@ import type {
   CacheSetOptions,
   CacheStats,
 } from './interfaces/index.js';
-import { CacheMetricsService } from './metrics/cache-metrics.service.js'; // value import — required for DI metadata
+import { CacheMetricsService } from './metrics/cache-metrics.service.js';
 import { CircuitBreaker } from './resilience/circuit-breaker.js';
 import { SingleFlight } from './resilience/single-flight.js';
-import { RedisCacheStore } from './stores/redis-cache.store.js'; // value import — required for DI metadata
 import {
   buildGlobalCacheKey,
   buildGlobalResourcePrefix,
@@ -24,60 +23,30 @@ import {
   buildTenantCachePrefix,
   buildTenantResourcePrefix,
 } from './utils/cache-key.util.js';
-import { applyTtlJitter, deserialize, serialize } from './utils/serialization.util.js';
+import {
+  applyTtlJitter,
+  deserialize,
+  serialize,
+  type CacheEnvelope,
+} from './utils/serialization.util.js';
 
-/**
- * Cache-aside operations over a backing store.
- *
- * ---------------------------------------------------------------------------
- * THE CONTRACT: NOTHING HERE THROWS ON A STORE FAILURE
- * ---------------------------------------------------------------------------
- * A cache is an optimisation. If Redis is unreachable every request must still
- * succeed — slower, not broken. So store errors are logged, counted, and
- * treated as a miss, and writes never block the caller.
- *
- * The one exception is a *programming* error: asking for a tenant-scoped key
- * with no workspace in context. That is not a degraded cache, it is a
- * request about to read another tenant's data, and it fails loudly.
- *
- * Modules do not call this directly. Each owns a small cache service — see
- * `modules/<name>/cache/` — which holds its own key builders, TTLs and schema
- * version, and exposes typed methods rather than string keys.
- */
 @Injectable()
 export class CacheService {
   private readonly circuit = new CircuitBreaker();
-
   private readonly singleFlight = new SingleFlight();
 
   constructor(
-    private readonly store: RedisCacheStore,
-
+    private readonly store: CacheStore,
     private readonly requestContext: RequestContextService,
-
     private readonly lock: RedisLockService,
-
     private readonly metrics: CacheMetricsService,
-
     private readonly logger: AppLoggerService,
   ) {}
 
-  /**
-   * Builds a key scoped to the active workspace.
-   *
-   * Throws when there is no workspace in context — see the class note.
-   */
   key(descriptor: CacheKeyDescriptor): string {
     return buildTenantCacheKey(this.requireWorkspaceId(), descriptor);
   }
 
-  /**
-   * Builds a key for something that genuinely spans tenants — a user identity,
-   * a verification code, an IP rate-limit counter.
-   *
-   * A separate method rather than an option so that opting out of tenant
-   * isolation is visible at the call site during review.
-   */
   globalKey(descriptor: CacheKeyDescriptor): string {
     return buildGlobalCacheKey(descriptor);
   }
@@ -95,7 +64,13 @@ export class CacheService {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    if (this.circuit.isOpen) {
+    const entry = await this.read<T>(key);
+
+    return entry === null ? null : entry.v;
+  }
+
+  private async read<T>(key: string): Promise<CacheEnvelope<T> | null> {
+    if (!this.circuit.shouldAllow()) {
       this.metrics.recordSkip();
 
       return null;
@@ -106,7 +81,9 @@ export class CacheService {
 
       this.circuit.recordSuccess();
 
-      if (payload === null) {
+      const entry = payload === null ? null : deserialize<T>(payload);
+
+      if (entry === null) {
         this.metrics.recordMiss();
 
         return null;
@@ -114,7 +91,7 @@ export class CacheService {
 
       this.metrics.recordHit();
 
-      return deserialize<T>(payload);
+      return entry;
     } catch (error) {
       this.handleFailure(error, 'get', key);
 
@@ -122,18 +99,12 @@ export class CacheService {
     }
   }
 
-  /**
-   * Reads several keys in one round trip.
-   *
-   * Positional: index `i` is the value for `keys[i]`, `null` for a miss. Twenty
-   * leads for a list view cost one round trip instead of twenty.
-   */
   async getMany<T>(keys: readonly string[]): Promise<(T | null)[]> {
     if (keys.length === 0) {
       return [];
     }
 
-    if (this.circuit.isOpen) {
+    if (!this.circuit.shouldAllow()) {
       this.metrics.recordSkip();
 
       return keys.map(() => null);
@@ -145,7 +116,9 @@ export class CacheService {
       this.circuit.recordSuccess();
 
       return payloads.map((payload) => {
-        if (payload === null) {
+        const entry = payload === null ? null : deserialize<T>(payload);
+
+        if (entry === null) {
           this.metrics.recordMiss();
 
           return null;
@@ -153,7 +126,7 @@ export class CacheService {
 
         this.metrics.recordHit();
 
-        return deserialize<T>(payload);
+        return entry.v;
       });
     } catch (error) {
       this.handleFailure(error, 'getMany', `${keys.length} keys`);
@@ -165,7 +138,7 @@ export class CacheService {
   async setMany<T>(
     entries: readonly { key: string; value: T; ttlSeconds: number }[],
   ): Promise<void> {
-    if (entries.length === 0 || this.circuit.isOpen) {
+    if (entries.length === 0 || !this.circuit.shouldAllow()) {
       return;
     }
 
@@ -185,7 +158,7 @@ export class CacheService {
   }
 
   async set<T>(key: string, value: T, options: CacheSetOptions): Promise<void> {
-    if (this.circuit.isOpen) {
+    if (!this.circuit.shouldAllow()) {
       this.metrics.recordSkip();
 
       return;
@@ -203,7 +176,7 @@ export class CacheService {
   async delete(key: string | readonly string[]): Promise<void> {
     const keys = typeof key === 'string' ? [key] : key;
 
-    if (keys.length === 0 || this.circuit.isOpen) {
+    if (keys.length === 0 || !this.circuit.shouldAllow()) {
       return;
     }
 
@@ -216,15 +189,8 @@ export class CacheService {
     }
   }
 
-  /**
-   * Removes every key under a prefix.
-   *
-   * Scans, so it costs more than a version bump. Prefer bumping a resource's
-   * schema version for wholesale invalidation; use this for the narrow case of
-   * one entity's several cached views.
-   */
   async deleteByPrefix(prefix: string): Promise<number> {
-    if (this.circuit.isOpen) {
+    if (!this.circuit.shouldAllow()) {
       return 0;
     }
 
@@ -241,26 +207,15 @@ export class CacheService {
     }
   }
 
-  /**
-   * Cache-aside: return the cached value, otherwise load, store and return it.
-   *
-   * Concurrent callers for the same key share one loader invocation, so an
-   * expiring hot key produces a single database query rather than one per
-   * in-flight request.
-   *
-   * `null` from the loader is only cached when `negativeTtlSeconds` is given.
-   * Without it, repeated lookups of a non-existent id reach the database every
-   * time — trivially triggered when the id comes from a URL.
-   */
   async remember<T>(
     key: string,
     loader: () => Promise<T>,
     options: CacheRememberOptions,
   ): Promise<T> {
-    const cached = await this.get<T>(key);
+    const cached = await this.read<T>(key);
 
     if (cached !== null) {
-      return cached;
+      return cached.v;
     }
 
     return this.singleFlight.run(key, async () =>
@@ -270,37 +225,32 @@ export class CacheService {
     );
   }
 
-  /**
-   * One replica loads, the rest wait for its result.
-   *
-   * The loser polls the cache rather than the lock: what it needs is the value,
-   * and the winner writes it the moment it has it. Giving up after the wait
-   * budget and loading unguarded is deliberate — a crashed or very slow winner
-   * must not stall every other request until the lock's TTL expires.
-   */
   private async loadWithLock<T>(
     key: string,
     loader: () => Promise<T>,
     options: CacheRememberOptions,
   ): Promise<T> {
-    const lockKey = `${key}${REDIS_KEY_SEPARATOR}${CACHE_LOCK.KEY_SUFFIX}`;
-    const handle = await this.lock.acquire(lockKey, CACHE_LOCK.TTL_SECONDS);
+    const acquisition = await this.lock.acquire(key, CACHE_LOCK.TTL_SECONDS);
 
-    if (handle !== null) {
+    if (acquisition.outcome === LOCK_OUTCOME.ACQUIRED) {
       try {
         return await this.loadAndStore(key, loader, options);
       } finally {
-        await this.lock.release(handle);
+        await this.lock.release(acquisition.handle);
       }
+    }
+
+    if (acquisition.outcome === LOCK_OUTCOME.UNAVAILABLE) {
+      return this.loadAndStore(key, loader, options);
     }
 
     for (let attempt = 0; attempt < CACHE_LOCK.MAX_WAITS; attempt += 1) {
       await delay(CACHE_LOCK.WAIT_MS);
 
-      const cached = await this.get<T>(key);
+      const cached = await this.read<T>(key);
 
       if (cached !== null) {
-        return cached;
+        return cached.v;
       }
     }
 
@@ -360,7 +310,7 @@ export class CacheService {
       metadata: {
         key,
         reason: error instanceof Error ? error.message : 'unknown',
-        circuitOpen: this.circuit.isOpen,
+        circuit: this.circuit.state,
       },
     });
   }

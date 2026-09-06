@@ -8,10 +8,4 @@ export { JwtError, TokenExpiredError, TokenInvalidError } from './errors/jwt.err
 
 export { JWT_AUDIENCE, JWT_TOKEN_TYPE, TOKEN_TTL_SECONDS } from './constants/jwt.constants.js';
 
-export type {
-  AccessAudience,
-  AccessTokenClaims,
-  AccessTokenPayload,
-  VerificationTokenClaims,
-  VerificationTokenPayload,
-} from './types/jwt-payload.type.js';
+export type { AccessTokenClaims, AccessTokenPayload } from './types/jwt-payload.type.js';

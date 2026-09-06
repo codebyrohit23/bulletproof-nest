@@ -56,6 +56,21 @@ export class RequestContextService {
     return requestContextStorage.getStore()?.sessionId;
   }
 
+  get deviceId(): string | undefined {
+    return requestContextStorage.getStore()?.deviceId;
+  }
+
+  /**
+   * The client address as the middleware resolved it — forwarding headers
+   * considered, not the raw socket.
+   *
+   * Read it from here rather than from `request.ip` so that everything keying
+   * on an address agrees about which one it is.
+   */
+  get ip(): string | undefined {
+    return requestContextStorage.getStore()?.ip;
+  }
+
   get locale(): string | undefined {
     return requestContextStorage.getStore()?.locale;
   }

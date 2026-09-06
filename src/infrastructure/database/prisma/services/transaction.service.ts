@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { AppLoggerService } from '#/core/logger/index.js'; // value import — required for DI metadata
+import { AppLoggerService } from '#/core/logger/index.js';
 
 import {
   PRISMA_TRANSACTION_LOG_CONTEXT,
@@ -11,9 +11,9 @@ import type {
   TransactionCallback,
   TransactionOptions,
 } from '../interfaces/index.js';
-import { PrismaService } from '../prisma.service.js'; // value import — required for DI metadata
+import { PrismaService } from '../prisma.service.js';
 
-import { TransactionContextService } from './transaction-context.service.js'; // value import — required for DI metadata
+import { TransactionContextService } from './transaction-context.service.js';
 
 @Injectable()
 export class TransactionService {

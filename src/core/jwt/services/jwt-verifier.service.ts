@@ -10,15 +10,8 @@ import {
   JWT_CLOCK_TOLERANCE_SECONDS,
 } from '../constants/jwt.constants.js';
 import { TokenExpiredError, TokenInvalidError } from '../errors/jwt.errors.js';
-import {
-  accessTokenPayloadSchema,
-  verificationTokenPayloadSchema,
-} from '../schemas/jwt-payload.schema.js';
-import type {
-  AccessAudience,
-  AccessTokenPayload,
-  VerificationTokenPayload,
-} from '../types/jwt-payload.type.js';
+import { accessTokenPayloadSchema } from '../schemas/jwt-payload.schema.js';
+import type { AccessTokenPayload } from '../types/jwt-payload.type.js';
 
 import { KeyStoreService } from './key-store.service.js';
 
@@ -29,19 +22,11 @@ export class JwtVerifierService {
     private readonly config: JwtConfigService,
   ) {}
 
-  async verifyAccessToken(token: string, audience: AccessAudience): Promise<AccessTokenPayload> {
-    return this.verify(token, audience, accessTokenPayloadSchema);
+  async verifyAccessToken(token: string): Promise<AccessTokenPayload> {
+    return this.verify(token, accessTokenPayloadSchema);
   }
 
-  async verifyVerificationToken(token: string): Promise<VerificationTokenPayload> {
-    return this.verify(token, JWT_AUDIENCE.VERIFICATION, verificationTokenPayloadSchema);
-  }
-
-  private async verify<T>(
-    token: string,
-    audience: string,
-    schema: ZodType<T, JWTPayload>,
-  ): Promise<T> {
+  private async verify<T>(token: string, schema: ZodType<T, JWTPayload>): Promise<T> {
     const key = this.keyStore.getVerificationKey(this.readKid(token));
 
     if (key === undefined) {
@@ -54,7 +39,7 @@ export class JwtVerifierService {
       ({ payload } = await jwtVerify(token, key, {
         algorithms: [JWT_ALGORITHM],
         issuer: this.config.issuer,
-        audience,
+        audience: JWT_AUDIENCE,
         clockTolerance: JWT_CLOCK_TOLERANCE_SECONDS,
       }));
     } catch (error) {

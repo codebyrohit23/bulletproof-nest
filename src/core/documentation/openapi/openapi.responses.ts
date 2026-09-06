@@ -1,7 +1,14 @@
-import { HttpStatus, type Type, applyDecorators } from '@nestjs/common';
+import { HttpStatus, applyDecorators } from '@nestjs/common';
 import { ApiExtraModels, ApiResponse, getSchemaPath } from '@nestjs/swagger';
-import { type ZodDto, ZodSerializerDto } from 'nestjs-zod';
+import { ZodSerializerDto } from 'nestjs-zod';
 
+import type {
+  ApiSuccessResponseOptions,
+  DocumentedErrorStatus,
+  ResponseDto,
+} from '../interfaces/index.js';
+
+import { ERROR_DESCRIPTION } from './openapi.constants.js';
 import { ERROR_RESPONSE_SCHEMA, SUCCESS_RESPONSE_SCHEMA } from './openapi.schemas.js';
 
 /**
@@ -12,36 +19,6 @@ import { ERROR_RESPONSE_SCHEMA, SUCCESS_RESPONSE_SCHEMA } from './openapi.schema
  * reference stops being something a client developer can trust — which is worse
  * than having no reference, because now they trust it and are wrong.
  */
-
-/**
- * A response DTO: a `createZodDto` class.
- *
- * The intersection is not redundant. `ZodSerializerDto` needs the `ZodDto`
- * half — the schema it parses against — while `getSchemaPath` and
- * `ApiExtraModels` need the `Type` half, because `@nestjs/swagger` identifies a
- * model by its constructor. A class produced by `createZodDto` satisfies both,
- * and requiring both here is what stops a bare Zod schema or a plain class from
- * being passed to a decorator that would silently document nothing.
- */
-export type ResponseDto = ZodDto & Type<unknown>;
-
-export interface ApiSuccessResponseOptions {
-  /**
-   * Must match the status the handler actually returns — `201` for a `@Post`
-   * that creates, `200` for one that does not.
-   *
-   * Required rather than defaulted, because a default is silently wrong exactly
-   * where it matters: a `@Post` documented as `200` looks correct in review and
-   * sends every client to the wrong branch.
-   */
-  readonly status: HttpStatus;
-
-  /** What this response means for *this* endpoint. "Account created.", not "Success." */
-  readonly description: string;
-
-  /** The handler returns a collection rather than a single resource. */
-  readonly isArray?: boolean;
-}
 
 /**
  * Documents an endpoint's success response **and enforces it at runtime**.
@@ -104,20 +81,57 @@ export function ApiSuccessResponse(
   );
 }
 
-const ERROR_DESCRIPTION = {
-  [HttpStatus.BAD_REQUEST]: 'The request was malformed.',
-  [HttpStatus.UNAUTHORIZED]: 'No access token was supplied, or it was expired or invalid.',
-  [HttpStatus.FORBIDDEN]: 'Authenticated, but not permitted to perform this action.',
-  [HttpStatus.NOT_FOUND]: 'No such resource, or it is not visible to this workspace.',
-  [HttpStatus.CONFLICT]: 'The request conflicts with the current state of the resource.',
-  [HttpStatus.UNPROCESSABLE_ENTITY]: 'The request body failed validation. See `validationErrors`.',
-  [HttpStatus.TOO_MANY_REQUESTS]:
-    'Too many attempts. Wait, or start the flow again, before retrying.',
-  [HttpStatus.INTERNAL_SERVER_ERROR]:
-    'An unexpected error occurred. Quote `meta.requestId` when reporting it.',
-} as const;
+/**
+ * Documents a success that carries a message and no payload.
+ *
+ * For endpoints whose whole answer is the sentence — a resend, a sign-out, a
+ * "we have emailed you if that address exists". The envelope is returned in
+ * full, so a client reads `success`, `message` and `meta` exactly as it does
+ * everywhere else; only `data` is `null`.
+ *
+ * Not `ApiSuccessResponse` with an empty DTO: that documents `data` as `{}`
+ * while the wire carries `null`, which is a reference that is confidently wrong
+ * — worse than one that says nothing — and attaches a serializer with nothing
+ * to serialise.
+ *
+ * **The handler must return `null`, not `void`.** `ResponseInterceptor` passes
+ * an `undefined` payload through untouched, so a `void` handler produces an
+ * empty body with no envelope and no message, and the `@ResponseMessage` above
+ * it silently does nothing.
+ *
+ * @example
+ * ```ts
+ * @Post('verification/resend')
+ * @ApiSuccessMessageResponse({ status: HttpStatus.OK, description: 'Code sent if required.' })
+ * @ResponseMessage('If the account requires verification, a new code has been sent.')
+ * resend(@Body() payload: ResendDto): Promise<null> {}
+ * ```
+ */
+export function ApiSuccessMessageResponse(
+  options: Omit<ApiSuccessResponseOptions, 'isArray'>,
+): MethodDecorator {
+  const { status, description } = options;
 
-export type DocumentedErrorStatus = keyof typeof ERROR_DESCRIPTION;
+  return ApiResponse({
+    status,
+    description,
+    schema: {
+      allOf: [
+        SUCCESS_RESPONSE_SCHEMA,
+        {
+          type: 'object',
+          required: ['data'],
+          properties: {
+            data: {
+              type: 'null',
+              description: 'Always null. This endpoint answers with its message alone.',
+            },
+          },
+        },
+      ],
+    },
+  });
+}
 
 /**
  * Documents the given failures on an endpoint, plus `500`.

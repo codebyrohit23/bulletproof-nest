@@ -1,5 +1,3 @@
-// @ts-check
-
 import js from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import importPlugin from 'eslint-plugin-import';
@@ -7,30 +5,6 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-/*
- * ===========================================================================
- * ESLint reports code problems. Prettier owns formatting. They never overlap.
- * ===========================================================================
- *
- * `eslint-plugin-prettier` is deliberately NOT used here. It runs Prettier as
- * an ESLint *rule*, which turns every formatting difference — a missing
- * trailing comma, one extra blank line — into a red error you have to go and
- * fix by hand. Prettier's own documentation recommends against it, and on this
- * repository it made `eslint --fix` take over two minutes for a single file,
- * because every lint pass re-ran a full Prettier parse and diff.
- *
- * The split used instead is the current standard:
- *
- *   - Prettier formats, silently, on save and in `lint-staged`.
- *   - `eslint-config-prettier` (imported last, below) switches OFF every
- *     ESLint rule that could disagree with Prettier, so the two can never
- *     produce conflicting fixes.
- *   - ESLint reports only real code problems and never formatting.
- *
- * Practical consequence: formatting is no longer something ESLint can fix. If
- * a file looks unformatted, Prettier is not running — check that the editor's
- * formatter is installed rather than looking for a lint rule.
- */
 export default defineConfig(
   globalIgnores([
     'dist/**',
@@ -46,26 +20,6 @@ export default defineConfig(
 
   tseslint.configs.recommendedTypeChecked,
 
-  /*
-   * -------------------------------------------------------
-   * Type-aware program resolution — TypeScript files only
-   * -------------------------------------------------------
-   *
-   * `projectService` replaces the older `project: ['./tsconfig.json']`.
-   *
-   * `project` builds one TypeScript program and caches it for the lifetime of
-   * the ESLint process. In an editor that process is long-lived, so a type
-   * changed in a file you do not have open is never re-read: the cached program
-   * still holds the old shape, the type resolves to TypeScript's internal
-   * `error` type, and rules like `no-unsafe-assignment` fire on code that is
-   * perfectly valid. The CLI passes, the editor does not, and the only cure is
-   * restarting the ESLint server.
-   *
-   * `projectService` uses the same incremental project service the TypeScript
-   * language server uses, so it tracks edits across the whole project and stays
-   * in sync. It also discovers `tsconfig.spec.json` and any future project
-   * config on its own, instead of needing each one listed here.
-   */
   {
     files: ['**/*.ts'],
 
@@ -129,6 +83,13 @@ export default defineConfig(
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
           caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+
+      '@typescript-eslint/explicit-member-accessibility': [
+        'error',
+        {
+          accessibility: 'no-public',
         },
       ],
 

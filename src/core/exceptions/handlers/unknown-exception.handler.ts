@@ -4,7 +4,7 @@ import { EXCEPTION_MESSAGE } from '../constants/exception.constants.js';
 import type { ApiError } from '../interfaces/api-error.interface.js';
 import type { ExceptionDetails } from '../interfaces/exception-details.interface.js';
 import type { ExceptionHandler } from '../interfaces/exception-handler.interface.js';
-import { ExceptionCodeMapper } from '../mappers/exception-code.mapper.js';
+import { toExceptionCode } from '../mappers/exception-code.mapper.js';
 
 @Injectable()
 export class UnknownExceptionHandler implements ExceptionHandler {
@@ -27,7 +27,7 @@ export class UnknownExceptionHandler implements ExceptionHandler {
   private buildApiError(statusCode: HttpStatus, exception: unknown): ApiError {
     if (exception instanceof Error) {
       return {
-        code: ExceptionCodeMapper.map(statusCode),
+        code: toExceptionCode(statusCode),
 
         name: exception.name,
 
@@ -42,7 +42,7 @@ export class UnknownExceptionHandler implements ExceptionHandler {
     }
 
     return {
-      code: ExceptionCodeMapper.map(statusCode),
+      code: toExceptionCode(statusCode),
 
       ...(exception !== undefined && {
         details: exception,

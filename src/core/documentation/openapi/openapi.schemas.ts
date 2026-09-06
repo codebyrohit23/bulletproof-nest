@@ -1,4 +1,4 @@
-import type { SchemaObject } from '../documentation.types.js';
+import type { SchemaObject } from '../interfaces/index.js';
 
 /**
  * The response envelope, described once per half.

@@ -4,7 +4,7 @@ import { EXCEPTION_MESSAGE } from '../constants/exception.constants.js';
 import type { ExceptionDetails } from '../interfaces/exception-details.interface.js';
 import type { ExceptionHandler } from '../interfaces/exception-handler.interface.js';
 import type { ValidationError } from '../interfaces/validation-error.interface.js';
-import { ExceptionCodeMapper } from '../mappers/exception-code.mapper.js';
+import { toExceptionCode } from '../mappers/exception-code.mapper.js';
 
 @Injectable()
 export class HttpExceptionHandler implements ExceptionHandler {
@@ -27,7 +27,7 @@ export class HttpExceptionHandler implements ExceptionHandler {
       message: this.extractMessage(response),
 
       error: {
-        code: ExceptionCodeMapper.map(statusCode),
+        code: toExceptionCode(statusCode),
 
         ...(httpException.name && {
           name: httpException.name,

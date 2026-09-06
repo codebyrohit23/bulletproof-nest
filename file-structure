@@ -428,3 +428,51 @@ When the client sends the token — five triggers
 3. On every app cold start     ← cheap, self-healing
 4. When permission is granted later (Settings → Allow)
 5. On logout / permission revoked  → DELETE, not POST
+
+
+# TODO
+1. in login sucees want to return user firt name last name email and phone too if avale avatar (done)
+2. whn auth/verifucation/vaerfy sucess want to return same response
+3. want to save refresh tokn in response coolie if platform is we dont return rfesrh token in response in ios and androud eturn
+4. in register want to add skip with log inside 30s response sucess
+5. in verification resned resnd email if send afyer one minutelike regietr skip slinelty or throug error here bit not error in regsisterhere choose
+6. refsreh token for web from cookie and for ioad and android body or header
+7. get me api with auth gaurd retun same response like login just we donot return token user as it is
+
+
+
+core/rate-limit/
+│
+├── interface/
+│   ├── rate-limit-store.interface.ts
+│   └── rate-limit.interface.ts
+│
+├── decorators/
+│   └── rate-limit.decorator.ts
+│
+├── guards/
+│   └── rate-limit.guard.ts
+│
+├── services/
+│   └── rate-limit.service.ts
+│
+├── strategies/
+│   ├── fixed-window.strategy.ts
+│   ├── sliding-window.strategy.ts
+│   └── token-bucket.strategy.ts
+│
+├── constants/
+│   └── rate-limit.constants.ts
+│
+├── rate-limit.module.ts
+└── index.ts
+
+├── infra/
+│   │
+│   ├── redis/
+│   │   ├── redis.module.ts
+│   │   ├── redis.client.ts
+│   │   └── ...
+│   │
+│   ├── rate-limit/
+│   │   └── redis-rate-limit.store.ts

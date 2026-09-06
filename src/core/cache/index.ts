@@ -5,8 +5,9 @@
  * serialization rules, negative caching, stampede protection, the circuit
  * breaker, and hit/miss metrics.
  *
- * Does NOT own: connections, reconnection, TLS — those are
- * `infrastructure/redis`. Nothing here knows what ioredis is.
+ * Does NOT own: reads, writes, pipelines and `SCAN` — those sit behind
+ * `CacheStore` in `infrastructure/cache`; nor connections, reconnection and TLS
+ * — those are `infrastructure/redis`. Nothing here knows what ioredis is.
  *
  * ---------------------------------------------------------------------------
  * HOW MODULES USE THIS
@@ -55,13 +56,6 @@
  * ---------------------------------------------------------------------------
  * PLANNED — deliberately not built yet
  * ---------------------------------------------------------------------------
- *   stores/memory-cache.store.ts           ONLY as an L1 tier, never a fallback
- *     Redis is always available by decision, so a memory fallback has no use.
- *     An in-process L1 in front of Redis for keys read on every single request
- *     — permissions, feature flags, org settings — is a different thing and
- *     saves a round trip. It slots in over `CacheStore` without touching
- *     `CacheService`.
- *
  *   tenant-version invalidation            WITH org plan / settings flows
  *     A counter per tenant included in the key, so bumping it orphans every
  *     entry in O(1) with no scan. Costs one extra read per lookup unless the

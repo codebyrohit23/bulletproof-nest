@@ -1,19 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
 import type { CacheStats } from '../interfaces/index.js';
-
-/**
- * Counts what the cache actually does.
- *
- * Most production caches have a hit rate nobody has ever measured, which makes
- * "is this worth the complexity?" unanswerable — and often enough the honest
- * answer is no. These counters are read by `/metrics` once observability lands;
- * until then they are still reachable for a health or debug endpoint.
- *
- * In-process and unlabelled by design. Per-key labels would produce unbounded
- * cardinality, which is how a metrics backend gets taken down by the thing
- * meant to observe it.
- */
 @Injectable()
 export class CacheMetricsService {
   private hits = 0;
@@ -36,7 +23,6 @@ export class CacheMetricsService {
     this.errors += 1;
   }
 
-  /** A read short-circuited because the circuit breaker was open. */
   recordSkip(): void {
     this.skipped += 1;
   }

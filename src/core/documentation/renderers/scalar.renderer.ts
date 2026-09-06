@@ -5,7 +5,7 @@ import type { OpenAPIObject } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import type { FastifyRequest } from 'fastify';
 
-import type { ApiAudience } from '../documentation.types.js';
+import type { ApiAudience } from '../interfaces/index.js';
 
 import { SCALAR_CDN, SCALAR_CSP, SCALAR_THEME } from './scalar.constants.js';
 

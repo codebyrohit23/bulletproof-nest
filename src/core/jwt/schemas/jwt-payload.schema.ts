@@ -1,4 +1,3 @@
-import { VerificationPurpose } from '@prisma/client';
 import { z } from 'zod';
 
 import { JWT_TOKEN_TYPE } from '../constants/jwt.constants.js';
@@ -19,14 +18,4 @@ export const accessTokenPayloadSchema = z.object({
   sub: z.uuid(),
 
   sid: z.uuid(),
-});
-
-export const verificationTokenPayloadSchema = z.object({
-  ...baseClaimsShape,
-
-  typ: z.literal(JWT_TOKEN_TYPE.VERIFICATION),
-
-  sub: z.string().min(1),
-
-  purpose: z.enum(VerificationPurpose),
 });

@@ -9,7 +9,7 @@ import {
 
 import { EXCEPTION_MESSAGE } from '../constants/index.js';
 import type { ApiError, ExceptionDetails, ExceptionHandler } from '../interfaces/index.js';
-import { ExceptionCodeMapper } from '../mappers/exception-code.mapper.js';
+import { toExceptionCode } from '../mappers/exception-code.mapper.js';
 
 @Injectable()
 export class PrismaExceptionHandler implements ExceptionHandler {
@@ -154,7 +154,7 @@ export class PrismaExceptionHandler implements ExceptionHandler {
       message: EXCEPTION_MESSAGE.INTERNAL_SERVER_ERROR,
 
       error: {
-        code: ExceptionCodeMapper.map(statusCode),
+        code: toExceptionCode(statusCode),
 
         ...(exception instanceof Error && {
           name: exception.name,
@@ -219,7 +219,7 @@ export class PrismaExceptionHandler implements ExceptionHandler {
 
   private buildApiError(statusCode: HttpStatus, exception: Error): ApiError {
     return {
-      code: ExceptionCodeMapper.map(statusCode),
+      code: toExceptionCode(statusCode),
 
       ...(exception.name && {
         name: exception.name,

@@ -41,4 +41,16 @@ export {
   type RedisClientName,
 } from './constants/redis.constants.js';
 
-export type { RedisLockHandle } from './interfaces/index.js';
+export { REDIS_DOMAIN, type RedisDomain } from './constants/redis-key.constants.js';
+
+export { buildRedisKey } from './utils/redis-key.util.js';
+
+export { LOCK_OUTCOME } from './interfaces/index.js';
+
+export type {
+  LockAcquisition,
+  LockOutcome,
+  LockRefusal,
+  LockedRun,
+  RedisLockHandle,
+} from './interfaces/index.js';

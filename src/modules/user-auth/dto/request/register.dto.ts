@@ -2,7 +2,8 @@ import { IdentifierType } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-import { identifierSchema, passwordSchema } from '../../schemas/index.js';
+import { identifierSchema } from '#/shared/schemas/index.js';
+import { passwordSchema } from '#/shared/schemas/index.js';
 
 const registerSchema = z
   .object({
