@@ -476,3 +476,27 @@ core/rate-limit/
 │   │
 │   ├── rate-limit/
 │   │   └── redis-rate-limit.store.ts
+
+
+core/
+  auth/                               ← AUTHENTICATION (abhi Option 3 me banega)
+    decorators/public.decorator.ts
+    decorators/admin-route.decorator.ts          (admin ke time)
+    guards/user-auth.guard.ts                    global, @Public / @AdminRoute par skip
+    guards/admin-auth.guard.ts                   (admin ke time)
+    ports/session-validator.port.ts              pehle se hai
+    ports/admin-session-validator.port.ts        (admin ke time)
+
+  authorization/                      ← AUTHORIZATION (workspaces module ke saath)
+    decorators/require-permissions.decorator.ts
+    guards/workspace.guard.ts
+    guards/permission.guard.ts
+    ports/workspace-access.port.ts               "is user ka is workspace me role/permissions kya hai?"
+
+modules/
+  workspaces/                         ← workspaces, members, invitations, roles
+    implements WorkspaceAccess port   (bilkul UserSessionService → SessionValidator jaisa)
+    cache/workspace-access.cache.ts   membership + permissions cache
+  leads/                              ← apni permissions khud own karega
+    constants/lead.permissions.ts     LEAD_PERMISSION = { CREATE: 'leads:create', ... }
+  admin-auth/                         ← admin login/sessions (alag tables)

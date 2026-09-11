@@ -1,7 +1,5 @@
 import { API_PREFIX, API_VERSION_PREFIX, ApiVersion } from '#/shared/constants/index.js';
 
-export const LAST_ACTIVE_THROTTLE_MS = 5 * 60 * 1000;
-
 export const USER_AUTH_LOG_CONTEXT = 'UserAuth';
 
 export const USER_AUTH_API_TAG = {

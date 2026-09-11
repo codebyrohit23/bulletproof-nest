@@ -50,4 +50,6 @@ export type AuthFailureReason = (typeof AUTH_FAILURE_REASON)[keyof typeof AUTH_F
 
 export const BEARER_SCHEME = 'Bearer';
 
+export const AUTH_PUBLIC_METADATA = 'auth:public';
+
 export const AUTH_LOG_CONTEXT = 'Auth';

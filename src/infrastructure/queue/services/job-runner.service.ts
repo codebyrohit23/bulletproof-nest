@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Job } from 'bullmq';
+import { UnrecoverableError, type Job } from 'bullmq';
 
 import { RequestContextService } from '#/core/context/index.js';
 import { AppLoggerService } from '#/core/logger/index.js';
@@ -8,6 +8,7 @@ import { QUEUE_LOG_CONTEXT, QUEUE_SETTINGS, type QueueName } from '../constants/
 import type { JobEnvelope, JobMeta } from '../interfaces/index.js';
 import { JobHandlerRegistry } from '../registry/job-handler.registry.js';
 import { restoreJobContext } from '../utils/job-context.util.js';
+import { isNonRetryable } from '../utils/job-error.util.js';
 
 /**
  * Runs one job: restores its context, finds its handler, invokes it, logs.
@@ -62,7 +63,14 @@ export class JobRunner {
           },
         });
       } catch (error) {
-        const isFinalAttempt = meta.attempt >= meta.maxAttempts;
+        /*
+         * A handler that reports its failure as non-retryable is final on the
+         * first attempt. Reading `attempt >= maxAttempts` alone would log "will
+         * retry" about a job that is about to stop, and bury the real reason
+         * under four more identical warnings.
+         */
+        const nonRetryable = isNonRetryable(error);
+        const isFinalAttempt = nonRetryable || meta.attempt >= meta.maxAttempts;
 
         /*
          * Logged at `error` only on the final attempt. A transient failure that
@@ -73,7 +81,13 @@ export class JobRunner {
           this.logger.error(error, `Job ${job.name} failed permanently`, {
             context: QUEUE_LOG_CONTEXT,
             operation: 'run',
-            metadata: { queue, jobName: job.name, jobId: meta.jobId, attempts: meta.attempt },
+            metadata: {
+              queue,
+              jobName: job.name,
+              jobId: meta.jobId,
+              attempts: meta.attempt,
+              retryable: !nonRetryable,
+            },
           });
         } else {
           this.logger.warn(`Job ${job.name} failed — will retry`, {
@@ -88,6 +102,20 @@ export class JobRunner {
               reason: error instanceof Error ? error.message : 'unknown',
             },
           });
+        }
+
+        /*
+         * BullMQ decides whether to retry by looking at the error type, so this
+         * is the only way to say "do not". Retrying a malformed payload or a
+         * rejected recipient cannot succeed — it just spends five attempts and
+         * two minutes of backoff arriving at the same answer, with the useful
+         * error buried under four retry warnings.
+         *
+         * The original error was logged in full immediately above, so nothing is
+         * lost by replacing it with its own message here.
+         */
+        if (nonRetryable) {
+          throw new UnrecoverableError(error instanceof Error ? error.message : String(error));
         }
 
         throw error;

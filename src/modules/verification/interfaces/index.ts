@@ -1,1 +1,4 @@
-export type { IssueVerificationCodeInput } from './verification.interface.js';
+export type {
+  IssuedVerificationCode,
+  IssueVerificationCodeInput,
+} from './verification.interface.js';

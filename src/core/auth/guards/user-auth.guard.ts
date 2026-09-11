@@ -4,6 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
 
 import { RequestContextService } from '#/core/context/index.js';
@@ -14,6 +15,7 @@ import {
   AUTH_ERROR_MESSAGE,
   AUTH_FAILURE_REASON,
   AUTH_LOG_CONTEXT,
+  AUTH_PUBLIC_METADATA,
   BEARER_SCHEME,
   type AuthFailureReason,
 } from '../constants/auth.constants.js';
@@ -26,9 +28,14 @@ export class UserAuthGuard implements CanActivate {
     private readonly sessionValidator: SessionValidator,
     private readonly requestContext: RequestContextService,
     private readonly logger: AppLoggerService,
+    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (this.isPublic(context)) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<FastifyRequest>();
     const token = this.readBearerToken(request);
 
@@ -58,6 +65,15 @@ export class UserAuthGuard implements CanActivate {
     });
 
     return true;
+  }
+
+  private isPublic(context: ExecutionContext): boolean {
+    return (
+      this.reflector.getAllAndOverride<boolean>(AUTH_PUBLIC_METADATA, [
+        context.getHandler(),
+        context.getClass(),
+      ]) === true
+    );
   }
 
   private async verify(token: string) {

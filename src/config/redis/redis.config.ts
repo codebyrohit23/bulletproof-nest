@@ -7,11 +7,6 @@ import type { RedisConfig } from './redis.interface.js';
 export const redisConfig = registerAs('redis', (): RedisConfig => ({
   url: env.REDIS_URL,
 
-  /*
-   * Conditional rather than `tls: undefined`, because `exactOptionalPropertyTypes`
-   * treats an explicitly-undefined optional property as a type error — and
-   * because ioredis checks for the key's presence, not its value.
-   */
   ...(env.REDIS_TLS ? { tls: {} } : {}),
 
   keyPrefix: env.REDIS_KEY_PREFIX,

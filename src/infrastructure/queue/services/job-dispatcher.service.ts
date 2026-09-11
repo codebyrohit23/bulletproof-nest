@@ -36,7 +36,7 @@ export class JobDispatcher {
   private readonly queues: Readonly<Record<QueueName, Queue>>;
 
   constructor(
-    @InjectQueue(QUEUE.MAIL) mail: Queue,
+    @InjectQueue(QUEUE.EMAIL) email: Queue,
     @InjectQueue(QUEUE.WEBHOOKS) webhooks: Queue,
     @InjectQueue(QUEUE.IMPORTS) imports: Queue,
     @InjectQueue(QUEUE.DEFAULT) fallback: Queue,
@@ -48,7 +48,7 @@ export class JobDispatcher {
     private readonly logger: AppLoggerService,
   ) {
     this.queues = {
-      [QUEUE.MAIL]: mail,
+      [QUEUE.EMAIL]: email,
       [QUEUE.WEBHOOKS]: webhooks,
       [QUEUE.IMPORTS]: imports,
       [QUEUE.DEFAULT]: fallback,

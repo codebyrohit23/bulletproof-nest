@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { booleanEnv, enumListEnv, positiveIntEnv } from '../shared/schema.helpers.js';
+import { booleanEnv, enumListEnv, positiveIntEnv } from '../shared/index.js';
 
 import {
   POSTGRES_POOL_DEFAULTS,

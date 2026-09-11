@@ -8,9 +8,12 @@
 
 export {
   VERIFICATION_CODE_PATTERN,
+  VERIFICATION_CODE_TTL_MINUTES,
   VERIFICATION_ERROR_MESSAGE,
   VERIFICATION_LOG_CONTEXT,
 } from './constants/index.js';
+
+export type { IssuedVerificationCode } from './interfaces/index.js';
 
 export { VerificationCodeService } from './services/verification-code.service.js';
 

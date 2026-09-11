@@ -1,6 +1,6 @@
 export { AuthModule } from './auth.module.js';
 
-export { UserAuthGuard } from './guards/user-auth.guard.js';
+export { Public } from './decorators/public.decorator.js';
 
 export { SessionValidator } from './ports/session-validator.port.js';
 

@@ -4,7 +4,6 @@ import { Injectable, type NestMiddleware } from '@nestjs/common';
 import { uuidv7 } from 'uuidv7';
 
 import {
-  CLIENT_ID_HEADER,
   CORRELATION_ID_HEADER,
   DEVICE_ID_HEADER,
   DEVICE_ID_MAX_LENGTH,
@@ -50,20 +49,12 @@ export class RequestContextMiddleware implements NestMiddleware {
     const ip = resolveClientIp(headers, request.socket.remoteAddress);
     const userAgent = readHeader(headers, USER_AGENT_HEADER);
     const timezone = sanitizeIdentifier(readHeader(headers, TIMEZONE_HEADER), 64);
-    const clientId = sanitizeIdentifier(readHeader(headers, CLIENT_ID_HEADER));
 
     const deviceId = sanitizeIdentifier(
       readHeader(headers, DEVICE_ID_HEADER),
       DEVICE_ID_MAX_LENGTH,
     );
 
-    /*
-     * Resolved for every request, not only for login, because both are
-     * transport facts about *this* request and the middleware is the one place
-     * that reads headers. Sessions are the first consumer; an audit trail and
-     * a risk signal are the obvious next two, and neither should have to add a
-     * second pass over the same headers to get them.
-     */
     const geo = resolveGeo(headers);
     const clientHints = resolveClientHints(headers);
 
@@ -74,7 +65,6 @@ export class RequestContextMiddleware implements NestMiddleware {
       ...(ip !== undefined ? { ip } : {}),
       ...(userAgent !== undefined ? { userAgent } : {}),
       ...(timezone !== undefined ? { timezone } : {}),
-      ...(clientId !== undefined ? { clientId } : {}),
       ...(deviceId !== undefined ? { deviceId } : {}),
       ...(geo !== undefined ? { geo } : {}),
       ...(clientHints !== undefined ? { clientHints } : {}),

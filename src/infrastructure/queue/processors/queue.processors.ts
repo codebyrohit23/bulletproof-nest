@@ -21,14 +21,14 @@ import { JobRunner } from '../services/job-runner.service.js';
  */
 
 @Injectable()
-@Processor(QUEUE.MAIL, { concurrency: QUEUE_SETTINGS[QUEUE.MAIL].concurrency })
-export class MailQueueProcessor extends WorkerHost {
+@Processor(QUEUE.EMAIL, { concurrency: QUEUE_SETTINGS[QUEUE.EMAIL].concurrency })
+export class EmailQueueProcessor extends WorkerHost {
   constructor(private readonly runner: JobRunner) {
     super();
   }
 
   async process(job: Job<JobEnvelope<unknown>>): Promise<void> {
-    await this.runner.run(QUEUE.MAIL, job);
+    await this.runner.run(QUEUE.EMAIL, job);
   }
 }
 

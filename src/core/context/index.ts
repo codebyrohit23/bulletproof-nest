@@ -1,8 +1,9 @@
 /**
  * Request context — ambient identity for the current unit of work.
  *
- * Carries: requestId, correlationId, locale, timezone, ip, userAgent, clientId,
- * deviceId, and once authentication has run, userId / workspaceId / sessionId.
+ * Carries: requestId, correlationId, locale, timezone, ip, userAgent, deviceId,
+ * geo, clientHints, and once authentication has run, userId / workspaceId /
+ * sessionId.
  *
  * Does NOT do: logging, validation, caching, database access, authorisation.
  * It only holds values other layers put in and read out.

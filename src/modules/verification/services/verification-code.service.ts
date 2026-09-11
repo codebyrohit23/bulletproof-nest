@@ -10,6 +10,7 @@ import {
   VERIFICATION_CODE_MIN_RESEND_INTERVAL_MS,
   VERIFICATION_ERROR_MESSAGE,
 } from '../constants/index.js';
+import type { IssuedVerificationCode } from '../interfaces/index.js';
 import { VerificationCodeRepository } from '../repositories/index.js';
 
 @Injectable()
@@ -20,39 +21,10 @@ export class VerificationCodeService {
     private readonly transaction: TransactionService,
   ) {}
 
-  /**
-   * Issues a code unless the one already out there is still fresh.
-   *
-   * Returns `null` for the fresh case, and that is not a failure: the code the
-   * caller is asking for is in the user's inbox and still valid, so nothing is
-   * sent and the caller carries on as if it had been.
-   *
-   * ---------------------------------------------------------------------------
-   * WHY THIS IS NOT A RATE LIMIT
-   * ---------------------------------------------------------------------------
-   * How *often* an identifier may be sent a code is a quota, it is enforced at
-   * the route by `RateLimitGuard`, and being over it earns a `429`. This is a
-   * different question with a different answer.
-   *
-   * `issue` supersedes whatever code is currently live before writing the new
-   * one. Mail is slow, so a user who taps "resend" eight seconds after the first
-   * tap kills the code that is still in flight and receives a replacement that
-   * invalidates the one they are about to read. The quota does not stop that —
-   * two sends inside three seconds are comfortably inside any sane budget — and
-   * a `429` would be the wrong answer anyway, because nothing was over a limit
-   * and nothing went wrong.
-   *
-   * So the question here is only "is the live code still fresh", the state that
-   * answers it is the live code's own `createdAt`, and no counter is involved.
-   *
-   * The interval is deliberately shorter than the client's resend timer. If the
-   * two matched, clock skew would make a legitimate resend arrive a moment early
-   * and be answered with silence — no new mail and no explanation.
-   */
   async issueIfDue(
     identifier: IdentifierInput,
     purpose: VerificationPurpose,
-  ): Promise<string | null> {
+  ): Promise<IssuedVerificationCode | null> {
     const live = await this.verificationCodeRepo.findActive(
       identifier.type,
       identifier.value,
@@ -66,13 +38,16 @@ export class VerificationCodeService {
     return this.issue(identifier, purpose);
   }
 
-  private async issue(identifier: IdentifierInput, purpose: VerificationPurpose): Promise<string> {
+  private async issue(
+    identifier: IdentifierInput,
+    purpose: VerificationPurpose,
+  ): Promise<IssuedVerificationCode> {
     const code = this.tokenService.generateNumericCode();
 
-    await this.transaction.run(async () => {
+    const record = await this.transaction.run(async () => {
       await this.verificationCodeRepo.retireActive(identifier.type, identifier.value, purpose);
 
-      await this.verificationCodeRepo.create({
+      return this.verificationCodeRepo.create({
         identifierType: identifier.type,
         identifierValue: identifier.value,
         purpose,
@@ -80,7 +55,7 @@ export class VerificationCodeService {
       });
     });
 
-    return code;
+    return { id: record.id, code };
   }
 
   async verify(

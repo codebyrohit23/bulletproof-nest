@@ -29,8 +29,6 @@ export interface RequestContext {
 
   timezone?: string;
 
-  clientId?: string;
-
   deviceId?: string;
 
   geo?: RequestGeo;

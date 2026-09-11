@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import { SessionValidator } from '#/core/auth/index.js';
+import { EmailModule } from '#/core/communication/email/index.js';
+import { UsersModule } from '#/modules/users/index.js';
 import { VerificationModule } from '#/modules/verification/index.js';
 
 import { UserSessionCacheService } from './cache/user-session.cache.js';
@@ -10,7 +12,6 @@ import {
   UserIdentityRepository,
   UserPasswordResetTokenRepository,
   UserRefreshTokenRepository,
-  UserRepository,
   UserSessionRepository,
 } from './repositories/index.js';
 import { AuthTokenDeliveryService } from './services/auth-token-delivery.service.js';
@@ -20,14 +21,18 @@ import { UserIdentityService } from './services/user-identity.service.js';
 import { UserPasswordResetTokenService } from './services/user-password-reset-token.service.js';
 import { UserRefreshTokenService } from './services/user-refresh-token.service.js';
 import { UserSessionService } from './services/user-session.service.js';
-import { UserService } from './services/user.service.js';
 
 /**
  * Authentication for end users of the product.
  *
- * Not `@Global()`. Nothing outside this module should reach into the user
- * tables directly — the guard and the principal every feature module needs come
- * from `core/auth` instead.
+ * Not `@Global()`. Nothing outside this module should reach into the
+ * authentication tables directly — the guard and the principal every feature
+ * module needs come from `core/auth` instead.
+ *
+ * The `users` table itself belongs to `UsersModule`, which this module imports:
+ * signing in needs a user, but a user does not need to know how it signs in.
+ * What stays here are the tables that exist only for authentication —
+ * identities, credentials, sessions, refresh and reset tokens.
  *
  * `UserAuthService` orchestrates; the other services each own one table. The
  * controller depends only on the orchestrator, so a flow that grows a step does
@@ -55,10 +60,9 @@ import { UserService } from './services/user.service.js';
  * dependency arrow keeps pointing at `core`. See `AuthModule.forRoot`.
  */
 @Module({
-  imports: [VerificationModule],
+  imports: [UsersModule, VerificationModule, EmailModule],
   controllers: [UserAuthController],
   providers: [
-    UserRepository,
     UserIdentityRepository,
     UserCredentialRepository,
     UserRefreshTokenRepository,
@@ -67,7 +71,6 @@ import { UserService } from './services/user.service.js';
 
     UserSessionCacheService,
 
-    UserService,
     UserIdentityService,
     UserCredentialService,
     UserRefreshTokenService,

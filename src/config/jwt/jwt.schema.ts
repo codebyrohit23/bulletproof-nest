@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { base64PemEnv, optionalEnv } from '../shared/schema.helpers.js';
+import { base64PemEnv, optionalEnv } from '../shared/index.js';
 
 import { PEM_PRIVATE_KEY_HEADER, PEM_PUBLIC_KEY_HEADER } from './jwt.constants.js';
 

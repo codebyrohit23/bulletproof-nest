@@ -4,6 +4,15 @@ export const VERIFICATION_CODE_PATTERN = /^\d{6}$/;
 
 export const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
 
+/**
+ * The same TTL, in the unit a message says out loud.
+ *
+ * Derived rather than written twice: an email promising ten minutes while the
+ * row expires in five is the kind of drift nobody notices until a user is
+ * staring at a code that stopped working early.
+ */
+export const VERIFICATION_CODE_TTL_MINUTES = VERIFICATION_CODE_TTL_MS / 60_000;
+
 export const VERIFICATION_CODE_MAX_ATTEMPTS = 5;
 
 /**

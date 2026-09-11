@@ -23,28 +23,20 @@ export class UserCredentialService {
     return this.credentialRepo.create(userId, passwordHash);
   }
 
-  /**
-   * Sets a password whether or not one is already stored.
-   *
-   * Separate from `createCredential`, which inserts and fails on a second call.
-   * The distinction is not cosmetic: registration must never silently overwrite
-   * an existing password, and a reset must never fail because one is already
-   * there.
-   *
-   * No caller yet. It is what password reset will use, and it is kept rather
-   * than deleted because rediscovering "insert versus upsert is a security
-   * decision, not a convenience" is exactly the kind of thing that gets rewritten
-   * as a blind `create` the second time around.
-   */
   async setCredential(userId: string, password: string): Promise<UserCredential> {
     const passwordHash = await this.passwordService.hash(password);
 
     return this.credentialRepo.upsert(userId, passwordHash);
   }
 
-  async verifyPassword(userId: string, password: string, passwordHash: string) {
+  async verifyPassword(
+    userId: string,
+    password: string,
+    passwordHash: string,
+    failureMessage: string = USER_AUTH_ERROR_MESSAGE.INVALID_CREDENTIALS,
+  ) {
     if (!(await this.passwordService.verify(passwordHash, password))) {
-      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_CREDENTIALS);
+      throw new BadRequestException(failureMessage);
     }
 
     await this.upgradeHashIfNeeded(userId, password, passwordHash);

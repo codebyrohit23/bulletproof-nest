@@ -12,7 +12,7 @@
  * Modules add *jobs* to these queues. They do not add queues.
  */
 export const QUEUE = {
-  MAIL: 'mail',
+  EMAIL: 'email',
   WEBHOOKS: 'webhooks',
   IMPORTS: 'imports',
   DEFAULT: 'default',
@@ -32,7 +32,7 @@ export const QUEUE_NAMES: readonly QueueName[] = Object.values(QUEUE);
  * many at once on one worker is how a pod gets OOM-killed mid-job.
  */
 export const QUEUE_SETTINGS: Readonly<Record<QueueName, QueueWorkerSettings>> = {
-  [QUEUE.MAIL]: { concurrency: 10, attempts: 5 },
+  [QUEUE.EMAIL]: { concurrency: 10, attempts: 5 },
   [QUEUE.WEBHOOKS]: { concurrency: 5, attempts: 8 },
   [QUEUE.IMPORTS]: { concurrency: 2, attempts: 3 },
   [QUEUE.DEFAULT]: { concurrency: 5, attempts: 3 },

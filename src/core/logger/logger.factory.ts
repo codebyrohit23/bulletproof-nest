@@ -148,7 +148,6 @@ function buildCorrelationProps(
 
     ...(context?.userId !== undefined ? { userId: context.userId } : {}),
     ...(context?.workspaceId !== undefined ? { workspaceId: context.workspaceId } : {}),
-    ...(context?.clientId !== undefined ? { clientId: context.clientId } : {}),
   };
 }
 

@@ -19,7 +19,7 @@
  *       export class UserJobProducer {
  *         constructor(private readonly jobs: JobDispatcher) {}
  *         sendWelcomeEmail(userId: string) {
- *           return this.jobs.dispatch(QUEUE.MAIL, USER_WELCOME_EMAIL, { userId }, {
+ *           return this.jobs.dispatch(QUEUE.EMAIL, USER_WELCOME_EMAIL, { userId }, {
  *             jobId: `welcome:${userId}`,
  *           });
  *         }

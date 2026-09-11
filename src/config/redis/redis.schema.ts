@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { booleanEnv, nonNegativeIntEnv, positiveIntEnv } from '../shared/schema.helpers.js';
+import { booleanEnv, nonNegativeIntEnv, positiveIntEnv } from '../shared/index.js';
 
 import {
   REDIS_DEFAULTS,

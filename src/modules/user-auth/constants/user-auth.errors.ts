@@ -5,6 +5,8 @@ export const USER_AUTH_ERROR_MESSAGE = {
 
   INVALID_CREDENTIALS: 'The email or password you entered is incorrect. Please try again.',
 
+  INVALID_CURRENT_PASSWORD: 'The current password you entered is incorrect. Please try again.',
+
   INVALID_REFRESH_TOKEN: 'Your session has expired. Please sign in again.',
 
   SIGN_IN_CONFLICT: 'Sign-in could not be completed. Please try again.',

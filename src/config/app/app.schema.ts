@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ENVIRONMENTS } from '#/config/app/app.constants.js';
 import { LOG_FORMAT, LOG_LEVEL } from '#/core/logger/logger.constants.js';
 
-import { booleanEnv } from '../shared/schema.helpers.js';
+import { booleanEnv } from '../shared/index.js';
 
 export const appSchema = z.object({
   NODE_ENV: z.enum(ENVIRONMENTS),

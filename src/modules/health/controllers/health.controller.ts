@@ -2,6 +2,7 @@ import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, type HealthCheckResult } from '@nestjs/terminus';
 
+import { Public } from '#/core/auth/index.js';
 import { RawResponse } from '#/core/interceptors/index.js';
 import { SkipRateLimit } from '#/core/rate-limit/index.js';
 import { PrismaHealthIndicator } from '#/infrastructure/database/prisma/index.js';
@@ -17,7 +18,10 @@ import type { LivenessResult } from '../interfaces/index.js';
  * refused probe reads as an unhealthy instance, so a limit here would take
  * replicas out of the load balancer for being polled exactly as intended — the
  * limiter causing the outage it exists to prevent.
+ *
+ * Public for the same reason: an orchestrator holds no access token.
  */
+@Public()
 @SkipRateLimit()
 @ApiTags(HEALTH_API_TAG.name)
 @Controller({ path: 'health', version: VERSION_NEUTRAL })

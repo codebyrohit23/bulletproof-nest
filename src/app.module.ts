@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AppConfigModule } from '#/config/index.js';
 import { AuthModule } from '#/core/auth/index.js';
 import { CacheModule } from '#/core/cache/index.js';
+import { EmailModule } from '#/core/communication/email/index.js';
 import { ContextModule } from '#/core/context/index.js';
 import { ExceptionModule } from '#/core/exceptions/index.js';
 import { InterceptorModule } from '#/core/interceptors/index.js';
@@ -16,6 +17,7 @@ import { QueueModule, QueueWorkerModule } from '#/infrastructure/queue/index.js'
 import { RedisModule } from '#/infrastructure/redis/index.js';
 import { HealthModule } from '#/modules/health/index.js';
 import { UserAuthModule } from '#/modules/user-auth/index.js';
+import { UsersModule } from '#/modules/users/index.js';
 
 @Module({
   imports: [
@@ -33,8 +35,10 @@ import { UserAuthModule } from '#/modules/user-auth/index.js';
     ValidationModule,
     SecurityModule,
     JwtModule,
+    EmailModule,
 
     HealthModule,
+    UsersModule,
     UserAuthModule,
 
     AuthModule.forRoot({ imports: [UserAuthModule] }),

@@ -2,9 +2,21 @@ export const REQUEST_ID_HEADER = 'x-request-id';
 
 export const CORRELATION_ID_HEADER = 'x-correlation-id';
 
-export const CLIENT_ID_HEADER = 'x-client-id';
-
 export const DEVICE_ID_HEADER = 'x-device-id';
+
+/**
+ * The workspace a request is acting in.
+ *
+ * Read by nothing yet — the workspace guard that consumes it lands with
+ * `modules/workspaces`. It is declared here now because CORS has to permit the
+ * header before any client can send it, and a name defined in two places is a
+ * name that eventually disagrees with itself.
+ *
+ * **A hint, never proof.** Whoever can send a bearer token can send this header
+ * naming any workspace at all. The guard must resolve it against the caller's
+ * membership and refuse otherwise; see `RequestContext.workspaceId`.
+ */
+export const WORKSPACE_ID_HEADER = 'x-workspace-id';
 
 export const TIMEZONE_HEADER = 'x-timezone';
 

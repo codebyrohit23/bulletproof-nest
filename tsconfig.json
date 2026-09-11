@@ -1,10 +1,18 @@
 {
   "compilerOptions": {
-    /*Language */
+    /* Language */
     "target": "ES2022",
     "lib": ["ES2023"],
 
-    /*Modules */
+    /*
+     * JSX for react-email templates.
+     *
+     * `react-jsx` uses the automatic runtime, so a `.tsx` template compiles
+     * without importing React itself — the compiler injects `react/jsx-runtime`.
+     */
+    "jsx": "react-jsx",
+
+    /* Modules */
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "verbatimModuleSyntax": true,
@@ -13,7 +21,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
 
-    /*Modules */
+    /* Decorators */
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
 
@@ -63,6 +71,7 @@
    */
   "include": [
     "src/**/*.ts",
+    "src/**/*.tsx",
     "src/**/*.d.ts",
     "test/**/*.ts",
     "scripts/**/*.ts",

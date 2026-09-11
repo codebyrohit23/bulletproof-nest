@@ -1,5 +1,6 @@
 import { HEALTH_API_TAG } from '#/modules/health/index.js';
 import { USER_AUTH_API_TAG } from '#/modules/user-auth/constants/index.js';
+import { USER_PROFILE_API_TAG } from '#/modules/users/index.js';
 
 import type { ApiTag } from '../interfaces/index.js';
 
@@ -15,6 +16,10 @@ import type { ApiTag } from '../interfaces/index.js';
  * harmless: its routes still appear, grouped under an untitled tag at the end —
  * visibly wrong rather than silently missing.
  */
-export const USER_API_TAGS: readonly ApiTag[] = [HEALTH_API_TAG, USER_AUTH_API_TAG];
+export const USER_API_TAGS: readonly ApiTag[] = [
+  HEALTH_API_TAG,
+  USER_AUTH_API_TAG,
+  USER_PROFILE_API_TAG,
+];
 
 export const ADMIN_API_TAGS: readonly ApiTag[] = [];

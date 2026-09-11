@@ -4,7 +4,7 @@ import { DiscoveryModule } from '@nestjs/core';
 import {
   DefaultQueueProcessor,
   ImportsQueueProcessor,
-  MailQueueProcessor,
+  EmailQueueProcessor,
   WebhooksQueueProcessor,
 } from './processors/queue.processors.js';
 import { JobHandlerRegistry } from './registry/job-handler.registry.js';
@@ -35,7 +35,7 @@ import { JobRunner } from './services/job-runner.service.js';
     JobHandlerRegistry,
     JobRunner,
 
-    MailQueueProcessor,
+    EmailQueueProcessor,
     WebhooksQueueProcessor,
     ImportsQueueProcessor,
     DefaultQueueProcessor,

@@ -1,8 +1,8 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import { UserAuthGuard } from '#/core/auth/guards/user-auth.guard.js';
+import { Public } from '#/core/auth/index.js';
 import {
   ApiDeviceIdHeader,
   ApiErrorResponses,
@@ -51,6 +51,7 @@ export class UserAuthController {
    * Register User
    */
   @Post('register')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.REGISTER)
   @ApiOperation({
     summary: 'Register a new user',
@@ -78,6 +79,7 @@ export class UserAuthController {
    * Verify your identity
    */
   @Post('verification/verify')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.VERIFY_REGISTRATION)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -113,6 +115,7 @@ export class UserAuthController {
    * Resend Verification
    */
   @Post('verification/resend')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.RESEND_VERIFICATION)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -137,6 +140,7 @@ export class UserAuthController {
    * Login User
    */
   @Post('login')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.LOGIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -172,6 +176,7 @@ export class UserAuthController {
    * OTP Request For Login
    */
   @Post('otp/request')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.REQUEST_LOGIN_OTP)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -196,6 +201,7 @@ export class UserAuthController {
    * Login With OTP
    */
   @Post('otp/verify')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.VERIFY_LOGIN_OTP)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -231,6 +237,7 @@ export class UserAuthController {
    * Refresh
    */
   @Post('refresh')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.REFRESH)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -276,6 +283,7 @@ export class UserAuthController {
    * Password Reset Request
    */
   @Post('password-reset/request')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.REQUEST_PASSWORD_RESET)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -300,6 +308,7 @@ export class UserAuthController {
    * Verify Reset Code
    */
   @Post('password-reset/verify-otp')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.VERIFY_RESET_OTP)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -328,6 +337,7 @@ export class UserAuthController {
    * Reset Password
    */
   @Post('password-reset')
+  @Public()
   @RateLimit(...AUTH_RATE_LIMIT.RESET_PASSWORD)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -355,7 +365,7 @@ export class UserAuthController {
   /**
    * Change Password
    */
-  @Post('password/change')
+  @Post('password-change')
   @RateLimit(...AUTH_RATE_LIMIT.CHANGE_PASSWORD)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -378,7 +388,6 @@ export class UserAuthController {
   )
   @ResponseMessage('Password changed successfully')
   @ApiDeviceIdHeader()
-  @UseGuards(UserAuthGuard)
   changePassword(@Body() body: ChangePasswordDto): Promise<null> {
     return this.userAuthService.changePassword(body);
   }
@@ -399,7 +408,6 @@ export class UserAuthController {
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
   @ResponseMessage('Logged out successfully')
   @ApiDeviceIdHeader()
-  @UseGuards(UserAuthGuard)
   async logout(@Res({ passthrough: true }) reply: FastifyReply): Promise<null> {
     await this.userAuthService.logout();
     this.delivery.clear(reply);
