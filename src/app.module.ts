@@ -5,6 +5,7 @@ import { AuthModule } from '#/core/auth/index.js';
 import { CacheModule } from '#/core/cache/index.js';
 import { EmailModule } from '#/core/communication/email/index.js';
 import { ContextModule } from '#/core/context/index.js';
+import { CsrfModule } from '#/core/csrf/index.js';
 import { ExceptionModule } from '#/core/exceptions/index.js';
 import { InterceptorModule } from '#/core/interceptors/index.js';
 import { JwtModule } from '#/core/jwt/index.js';
@@ -27,6 +28,13 @@ import { UsersModule } from '#/modules/users/index.js';
     PrismaModule,
     RedisModule,
     CacheModule,
+
+    /*
+     * Before `RateLimitModule`: global guards run in registration order, and a
+     * cross-site request should cost two header reads rather than a Redis round
+     * trip it was never entitled to.
+     */
+    CsrfModule,
     RateLimitModule,
     QueueModule,
     QueueWorkerModule,
