@@ -5,3 +5,5 @@ export const ENVIRONMENTS = {
 } as const;
 
 export type Environment = (typeof ENVIRONMENTS)[keyof typeof ENVIRONMENTS];
+
+export const BODY_LIMIT_BYTES = 1_048_576;

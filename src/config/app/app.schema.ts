@@ -1,9 +1,20 @@
 import { z } from 'zod';
 
-import { ENVIRONMENTS } from '#/config/app/app.constants.js';
-import { LOG_FORMAT, LOG_LEVEL } from '#/core/logger/index.js';
+import { BODY_LIMIT_BYTES, ENVIRONMENTS } from '#/config/app/app.constants.js';
+/*
+ * Direct import, never the `core/logger` barrel.
+ *
+ * That barrel exports `AppLoggerModule`, which imports `AppConfigModule`, which
+ * loads this file again — a startup cycle that fails at boot with
+ * "Cannot access 'LOG_LEVEL' before initialization". TypeScript resolves types
+ * straight through it, so `typecheck` and `lint` both stay green and the only
+ * symptom is a process that will not start.
+ *
+ * The constants file imports nothing, so this direction stays acyclic.
+ */
+import { LOG_FORMAT, LOG_LEVEL } from '#/core/logger/constants/logger.constants.js';
 
-import { booleanEnv } from '../shared/index.js';
+import { booleanEnv, positiveIntEnv } from '../shared/index.js';
 
 export const appSchema = z.object({
   NODE_ENV: z.enum(ENVIRONMENTS),
@@ -21,4 +32,10 @@ export const appSchema = z.object({
   DOCS_ENABLED: booleanEnv('false'),
 
   REQUEST_TIMEOUT_MS: z.coerce.number(),
+
+  /**
+   * Read by `main.ts` only — it is a `FastifyAdapter` option, and the adapter
+   * is built before the DI container exists, so it never reaches `AppConfig`.
+   */
+  BODY_LIMIT_BYTES: positiveIntEnv(BODY_LIMIT_BYTES),
 });

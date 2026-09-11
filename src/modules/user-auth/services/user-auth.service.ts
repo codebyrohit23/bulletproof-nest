@@ -191,8 +191,10 @@ export class UserAuthService {
       email,
     );
 
+    // Hashes before refusing: a plain throw here would return in ~1ms and make
+    // login timeable to discover which addresses have accounts.
     if (!existing || !existing.user.credential) {
-      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_CREDENTIALS);
+      throw await this.userCredentialService.invalidCredentialsError(password);
     }
 
     await this.userCredentialService.verifyPassword(

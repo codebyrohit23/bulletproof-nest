@@ -29,6 +29,20 @@ export class UserCredentialService {
     return this.credentialRepo.upsert(userId, passwordHash);
   }
 
+  /**
+   * Hashes against a dummy before refusing, so an unknown address costs the
+   * same as a wrong password and login cannot be timed to enumerate accounts.
+   * Returned rather than thrown so the caller keeps its type narrowing.
+   */
+  async invalidCredentialsError(
+    password: string,
+    failureMessage: string = USER_AUTH_ERROR_MESSAGE.INVALID_CREDENTIALS,
+  ): Promise<BadRequestException> {
+    await this.passwordService.verify(null, password);
+
+    return new BadRequestException(failureMessage);
+  }
+
   async verifyPassword(
     userId: string,
     password: string,

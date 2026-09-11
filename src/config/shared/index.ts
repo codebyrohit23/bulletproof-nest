@@ -7,6 +7,5 @@ export {
   nonNegativeIntEnv,
   optionalEnv,
   positiveIntEnv,
+  trustProxyEnv,
 } from './schema.helpers.js';
-
-export { env } from './env.js';
