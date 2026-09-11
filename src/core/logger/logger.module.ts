@@ -15,11 +15,6 @@ import { AppLoggerService } from './logger.service.js';
     NestjsPinoModule.forRootAsync({
       imports: [AppConfigModule],
 
-      /*
-       * `RequestContextService` needs no import here — `ContextModule` is
-       * `@Global()` — but it must be listed so the factory can lift the
-       * correlation ids out of the ambient context onto every line.
-       */
       inject: [AppConfigService, RequestContextService],
 
       useFactory: (

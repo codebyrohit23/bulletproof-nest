@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { ENVIRONMENTS } from '#/config/app/app.constants.js';
-import { LOG_FORMAT, LOG_LEVEL } from '#/core/logger/logger.constants.js';
+import { LOG_FORMAT, LOG_LEVEL } from '#/core/logger/index.js';
 
 import { booleanEnv } from '../shared/index.js';
 

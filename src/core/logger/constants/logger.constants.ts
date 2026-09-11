@@ -22,33 +22,39 @@ export const LOGGER_SERVICE_NAME = 'leadflow-backend-service';
 
 export const LOGGER_SILENT_LEVEL = 'silent';
 
-export const LOGGER_REDACT_PATHS = [
+const SENSITIVE_FIELD_NAMES = [
+  /* Credentials. */
+  'password',
+  'currentPassword',
+  'newPassword',
+  'confirmPassword',
+  'passwordHash',
+
+  /* One-time codes. `code` is the name in use; `otp` is kept for safety. */
+  'code',
+  'codeHash',
+  'otp',
+
+  /* Bearer and opaque tokens, and the digests they are stored as. */
+  'token',
+  'tokenHash',
+  'accessToken',
+  'refreshToken',
+  'resetToken',
+
+  /* Anything a provider issued to us. */
+  'secret',
+  'apiKey',
+] as const;
+
+export const LOGGER_REDACT_PATHS: readonly string[] = [
   'req.headers.authorization',
   'req.headers.cookie',
   'res.headers["set-cookie"]',
 
-  'password',
-  'confirmPassword',
-  'currentPassword',
-  'newPassword',
-  'token',
-  'accessToken',
-  'refreshToken',
-  'secret',
-  'apiKey',
-  'otp',
-
-  '*.password',
-  '*.confirmPassword',
-  '*.currentPassword',
-  '*.newPassword',
-  '*.token',
-  '*.accessToken',
-  '*.refreshToken',
-  '*.secret',
-  '*.apiKey',
-  '*.otp',
-] as const;
+  ...SENSITIVE_FIELD_NAMES,
+  ...SENSITIVE_FIELD_NAMES.map((field) => `*.${field}`),
+];
 
 export const LOGGER_QUIET_ROUTE_PATTERN =
   /^\/(?:health(?:\/(?:live|ready))?|metrics|favicon\.ico)$/;
