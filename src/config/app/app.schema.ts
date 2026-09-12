@@ -12,7 +12,7 @@ import { BODY_LIMIT_BYTES, ENVIRONMENTS } from '#/config/app/app.constants.js';
  *
  * The constants file imports nothing, so this direction stays acyclic.
  */
-import { LOG_FORMAT, LOG_LEVEL } from '#/core/logger/constants/logger.constants.js';
+import { LOG_FORMAT, LOG_LEVEL } from '#/shared/constants/index.js';
 
 import { booleanEnv, positiveIntEnv } from '../shared/index.js';
 

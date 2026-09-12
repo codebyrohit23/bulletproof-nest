@@ -65,15 +65,13 @@ export {
   RequestId,
 } from './decorators/index.js';
 
-export {
-  ACCEPT_CH_HEADER,
-  ACCEPT_CH_VALUE,
-  CORRELATION_ID_HEADER,
-  DEFAULT_LOCALE,
-  DEVICE_ID_HEADER,
-  REQUEST_ID_HEADER,
-  RESPONSE_REQUEST_ID_HEADER,
-} from './constants/context.constants.js';
+/*
+ * Header *names* are not re-exported here. They are protocol vocabulary and
+ * live in `shared/constants/headers.constants.ts`, so that `config/` — which
+ * needs them for CORS and may import only from `shared/` — can reach them
+ * without a route back into `core`.
+ */
+export { DEFAULT_LOCALE } from './constants/context.constants.js';
 
 /**
  * Exported for the composition root only: it is wired into the Fastify

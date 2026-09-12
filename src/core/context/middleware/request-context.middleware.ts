@@ -6,13 +6,14 @@ import { uuidv7 } from 'uuidv7';
 import {
   CORRELATION_ID_HEADER,
   DEVICE_ID_HEADER,
-  DEVICE_ID_MAX_LENGTH,
   LOCALE_HEADER,
   REQUEST_ID_HEADER,
   RESPONSE_REQUEST_ID_HEADER,
   TIMEZONE_HEADER,
   USER_AGENT_HEADER,
-} from '../constants/context.constants.js';
+} from '#/shared/constants/index.js';
+
+import { DEVICE_ID_MAX_LENGTH } from '../constants/context.constants.js';
 import type { RequestContext } from '../interfaces/index.js';
 import { RequestContextService } from '../services/request-context.service.js';
 import {

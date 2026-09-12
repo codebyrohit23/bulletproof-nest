@@ -7,14 +7,16 @@ import type { FastifyCorsOptions } from '@fastify/cors';
  * constants files import nothing, so this direction stays acyclic.
  */
 import {
+  CONTENT_DISPOSITION_HEADER,
   CORRELATION_ID_HEADER,
   DEVICE_ID_HEADER,
+  RATE_LIMIT_HEADER,
   REQUEST_ID_HEADER,
   RESPONSE_REQUEST_ID_HEADER,
+  RETRY_AFTER_HEADER,
   TIMEZONE_HEADER,
   WORKSPACE_ID_HEADER,
-} from '#/core/context/constants/context.constants.js';
-import { RATE_LIMIT_HEADER } from '#/core/rate-limit/constants/rate-limit.constants.js';
+} from '#/shared/constants/index.js';
 
 /**
  * How long a browser may cache a preflight result.
@@ -96,10 +98,10 @@ const EXPOSED_RESPONSE_HEADERS = [
   RATE_LIMIT_HEADER.LIMIT,
   RATE_LIMIT_HEADER.REMAINING,
   RATE_LIMIT_HEADER.RESET,
-  'retry-after',
+  RETRY_AFTER_HEADER,
 
   /** File downloads — the filename lives here, not in the body. */
-  'content-disposition',
+  CONTENT_DISPOSITION_HEADER,
 ];
 
 export const DEFAULT_CORS_OPTIONS: Pick<

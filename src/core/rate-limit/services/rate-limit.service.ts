@@ -8,7 +8,7 @@ import {
   RATE_LIMIT_LOG_CONTEXT,
   RATE_LIMIT_MS_PER_SECOND,
   RATE_LIMIT_STORE_FAILURE,
-} from '../constants/rate-limit.constants.js';
+} from '../constants/index.js';
 import type {
   RateLimitCheck,
   RateLimitKeyDescriptor,

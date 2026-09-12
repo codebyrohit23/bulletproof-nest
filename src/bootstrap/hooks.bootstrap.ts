@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import { ACCEPT_CH_HEADER, ACCEPT_CH_VALUE } from '#/core/context/index.js';
+import { ACCEPT_CH_HEADER, ACCEPT_CH_VALUE } from '#/shared/constants/index.js';
 
 const RAW_BODY_PATH_PREFIXES = ['/webhooks/'];
 

@@ -1,4 +1,4 @@
-import type { RateLimitSubject } from '../constants/rate-limit.constants.js';
+import type { RateLimitSubject } from '../constants/index.js';
 
 import type { RateLimitRule } from './rate-limit-rule.interface.js';
 

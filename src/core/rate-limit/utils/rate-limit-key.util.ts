@@ -1,6 +1,6 @@
 import { REDIS_DOMAIN, buildRedisKey } from '#/infrastructure/redis/index.js';
 
-import { RATE_LIMIT_SCOPE, RATE_LIMIT_VERSION_PREFIX } from '../constants/rate-limit.constants.js';
+import { RATE_LIMIT_SCOPE, RATE_LIMIT_VERSION_PREFIX } from '../constants/index.js';
 import type { RateLimitKeyDescriptor } from '../interfaces/index.js';
 
 /**

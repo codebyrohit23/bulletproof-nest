@@ -3,13 +3,16 @@ import { isIP } from 'node:net';
 
 import {
   CLIENT_HINT_HEADER,
-  DEFAULT_LOCALE,
   FORWARDED_FOR_HEADER,
   GEO_CITY_HEADER,
-  GEO_COUNTRY_CODE_LENGTH,
   GEO_COUNTRY_HEADER,
-  GEO_NAME_MAX_LENGTH,
   GEO_REGION_HEADER,
+} from '#/shared/constants/index.js';
+
+import {
+  DEFAULT_LOCALE,
+  GEO_COUNTRY_CODE_LENGTH,
+  GEO_NAME_MAX_LENGTH,
   GEO_UNKNOWN_COUNTRY_CODES,
 } from '../constants/context.constants.js';
 import type { ClientHints, RequestGeo } from '../interfaces/index.js';

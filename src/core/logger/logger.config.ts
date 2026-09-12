@@ -1,7 +1,7 @@
 import type { AppConfigService } from '#/config/app/index.js';
-import { CORRELATION_ID_HEADER, REQUEST_ID_HEADER } from '#/core/context/index.js';
+import { CORRELATION_ID_HEADER, LOG_FORMAT, REQUEST_ID_HEADER } from '#/shared/constants/index.js';
 
-import { LOG_FORMAT, LOGGER_REDACT_PATHS, LOGGER_SERVICE_NAME } from './constants/index.js';
+import { LOGGER_REDACT_PATHS, LOGGER_SERVICE_NAME } from './constants/index.js';
 import type { LoggerConfig } from './interfaces/index.js';
 
 export function createLoggerConfig(appConfigService: AppConfigService): LoggerConfig {

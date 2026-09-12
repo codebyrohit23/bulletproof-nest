@@ -6,9 +6,9 @@ import type { LevelWithSilent } from 'pino';
 import type { Options } from 'pino-http';
 
 import { type RequestContextService, resolveRequestId } from '#/core/context/index.js';
+import { LOG_LEVEL } from '#/shared/constants/index.js';
 
 import {
-  LOG_LEVEL,
   LOGGER_CLIENT_ERROR_STATUS,
   LOGGER_SERVER_ERROR_STATUS,
   LOGGER_SILENT_LEVEL,

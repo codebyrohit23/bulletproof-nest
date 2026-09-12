@@ -3,7 +3,7 @@ import type { Http2ServerRequest } from 'node:http2';
 
 import { uuidv7 } from 'uuidv7';
 
-import { REQUEST_ID_HEADER } from '../constants/context.constants.js';
+import { REQUEST_ID_HEADER } from '#/shared/constants/index.js';
 
 import { readHeader, sanitizeIdentifier } from './context.util.js';
 

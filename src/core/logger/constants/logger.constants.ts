@@ -1,20 +1,9 @@
-export const LOG_LEVEL = {
-  TRACE: 'trace',
-  DEBUG: 'debug',
-  INFO: 'info',
-  WARN: 'warn',
-  ERROR: 'error',
-  FATAL: 'fatal',
-} as const;
-
-export type LogLevel = (typeof LOG_LEVEL)[keyof typeof LOG_LEVEL];
-
-export const LOG_FORMAT = {
-  JSON: 'json',
-  PRETTY: 'pretty',
-} as const;
-
-export type LogFormat = (typeof LOG_FORMAT)[keyof typeof LOG_FORMAT];
+/*
+ * `LOG_LEVEL` and `LOG_FORMAT` are in `shared/constants/log.constants.ts`.
+ * `config/app` validates them from the environment and this module acts on
+ * them, so neither can own the list — and `config/` may import only from
+ * `shared/`.
+ */
 
 export const LOGGER_CONTEXT = 'Application';
 

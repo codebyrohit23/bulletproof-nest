@@ -168,7 +168,13 @@ export default defineConfig(
         {
           patterns: [
             {
-              regex: '^#/(core|infrastructure|modules|config)/',
+              /*
+               * Deny by default rather than naming the four layers that exist
+               * today: a fifth top-level directory would otherwise be reachable
+               * from here the moment someone creates it, and the rule would
+               * stay silent about the one import it was written to prevent.
+               */
+              regex: '^#/(?!shared/)',
               message:
                 'shared/ is the leaf: everything may depend on it, so it depends on nothing. ' +
                 'One upward import ends that guarantee and opens a cycle back through core. ' +
@@ -211,8 +217,13 @@ export default defineConfig(
         {
           patterns: [
             {
-              regex: '^#/modules/',
-              message: 'config/ is read during bootstrap, before any feature module exists.',
+              regex: '^#/(?!shared/|config/)',
+              message:
+                'config/ may import from #/shared/ and its own tree, nothing else. It is evaluated during ' +
+                'bootstrap, before the container exists, so every reach into core/ can close a ' +
+                'startup cycle — this repository has hit that twice, both times with typecheck, ' +
+                'lint and build green and only the running process refusing to start. A constant ' +
+                'config needs belongs in shared/constants/.',
             },
             {
               /*

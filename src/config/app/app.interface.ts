@@ -5,7 +5,7 @@ import type { Environment } from '#/config/app/app.constants.js';
  * but it is kept on the same path so the two never disagree about where these
  * constants live.
  */
-import type { LogFormat, LogLevel } from '#/core/logger/constants/logger.constants.js';
+import type { LogFormat, LogLevel } from '#/shared/constants/index.js';
 
 export interface AppConfig {
   readonly env: Environment;

@@ -1,4 +1,4 @@
-import type { RateLimitStoreFailurePolicy } from '../constants/rate-limit.constants.js';
+import type { RateLimitStoreFailurePolicy } from '../constants/index.js';
 
 /**
  * One budget: how many, over how long.

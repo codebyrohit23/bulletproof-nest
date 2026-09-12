@@ -93,7 +93,7 @@ export {
   RATE_LIMIT_SUBJECT,
   type RateLimitStoreFailurePolicy,
   type RateLimitSubject,
-} from './constants/rate-limit.constants.js';
+} from './constants/index.js';
 
 export type {
   RateLimitBodyField,

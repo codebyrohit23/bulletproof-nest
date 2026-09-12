@@ -4,58 +4,22 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { SecurityConfigService } from '#/config/security/index.js';
 import { TooManyRequestsException } from '#/core/exceptions/index.js';
+import { RATE_LIMIT_HEADER } from '#/shared/constants/index.js';
 
 import {
   RATE_LIMIT_DEFAULT_VERSION,
   RATE_LIMIT_ERROR_MESSAGE,
   RATE_LIMIT_FLOOR,
-  RATE_LIMIT_HEADER,
   RATE_LIMIT_METADATA,
   RATE_LIMIT_MS_PER_SECOND,
   RATE_LIMIT_SKIP_METADATA,
   RATE_LIMIT_SUBJECT,
-} from '../constants/rate-limit.constants.js';
+} from '../constants/index.js';
 import type { RateLimitCheck, RateLimitDefinition, RateLimitOutcome } from '../interfaces/index.js';
 import { RateLimitSubjectResolver } from '../resolvers/rate-limit-subject.resolver.js';
 import { RateLimitService } from '../services/rate-limit.service.js';
 
 const HTTP_CONTEXT = 'http';
-
-/**
- * The HTTP half of rate limiting: which budgets a route carries, who they are
- * counted against, and what a caller is told when one is spent.
- *
- * ---------------------------------------------------------------------------
- * WHY EVERY ROUTE CARRIES A FLOOR
- * ---------------------------------------------------------------------------
- * A limiter that only guards the routes somebody remembered to decorate leaves
- * the newest endpoint — the one nobody has thought about yet — as the open one.
- * So the floor applies whether or not a route says anything, and `@RateLimit`
- * adds tighter budgets on top rather than replacing it.
- *
- * The floor is checked first. It is the coarsest gate, and a caller hammering
- * the API as a whole should be told that rather than told about whichever
- * endpoint they happened to land on.
- *
- * ---------------------------------------------------------------------------
- * WHY THE HEADERS ARE WRITTEN BEFORE THE REFUSAL IS THROWN
- * ---------------------------------------------------------------------------
- * A client told only "429" retries immediately and keeps hammering. `Retry-After`
- * comes from `TooManyRequestsException` via the exception filter; the
- * `RateLimit-*` fields are written here, onto the same reply, so they survive
- * onto the error response as well as onto a successful one.
- *
- * ---------------------------------------------------------------------------
- * WHAT THIS COSTS
- * ---------------------------------------------------------------------------
- * One Redis round trip per budget per request — two for a decorated route, one
- * for everything else. That is the price of a limit that holds across pods, and
- * it is why `RATE_LIMIT_ENABLED` exists: load tests and local development can
- * switch the whole layer off without any route changing shape.
- *
- * A store that cannot be reached does not take the API down with it. Each rule
- * decides that for itself, in `RateLimitService`, and the default is to allow.
- */
 @Injectable()
 export class RateLimitGuard implements CanActivate {
   constructor(
@@ -104,12 +68,6 @@ export class RateLimitGuard implements CanActivate {
     );
   }
 
-  /**
-   * The floor, then whatever the route declared.
-   *
-   * A method-level declaration overrides a class-level one rather than adding
-   * to it, so the budgets a route carries are readable in one place.
-   */
   private definitionsFor(context: ExecutionContext): readonly RateLimitDefinition[] {
     const declared =
       this.reflector.getAllAndOverride<readonly RateLimitDefinition[]>(RATE_LIMIT_METADATA, [

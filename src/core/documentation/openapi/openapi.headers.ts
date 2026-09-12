@@ -1,7 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiHeader } from '@nestjs/swagger';
 
-import { DEVICE_ID_HEADER } from '#/core/context/index.js';
+import { DEVICE_ID_HEADER } from '#/shared/constants/index.js';
 
 export function ApiDeviceIdHeader(): MethodDecorator {
   return applyDecorators(

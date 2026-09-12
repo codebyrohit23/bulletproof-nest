@@ -1,4 +1,4 @@
-import type { LogLevel } from '../constants/index.js';
+import type { LogLevel } from '#/shared/constants/index.js';
 
 export interface LoggerConfig {
   readonly level: LogLevel;
