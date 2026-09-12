@@ -1,7 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
-import { VERIFICATION_CODE_PATTERN } from '#/modules/verification/constants/index.js';
+import { VERIFICATION_CODE_PATTERN } from '#/modules/verification/index.js';
 import { IDENTIFIER_MAX_LENGTH } from '#/shared/constants/index.js';
 
 const verifyResetOtpSchema = z

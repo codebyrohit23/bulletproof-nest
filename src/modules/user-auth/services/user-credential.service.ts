@@ -2,8 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import type { UserCredential } from '@prisma/client';
 
 import { PasswordService } from '#/core/security/index.js';
-import { USER_AUTH_ERROR_MESSAGE } from '#/modules/user-auth/constants/user-auth.errors.js';
 
+import { USER_AUTH_ERROR_MESSAGE } from '../constants/index.js';
 import { UserCredentialRepository } from '../repositories/index.js';
 
 @Injectable()
@@ -29,11 +29,6 @@ export class UserCredentialService {
     return this.credentialRepo.upsert(userId, passwordHash);
   }
 
-  /**
-   * Hashes against a dummy before refusing, so an unknown address costs the
-   * same as a wrong password and login cannot be timed to enumerate accounts.
-   * Returned rather than thrown so the caller keeps its type narrowing.
-   */
   async invalidCredentialsError(
     password: string,
     failureMessage: string = USER_AUTH_ERROR_MESSAGE.INVALID_CREDENTIALS,
