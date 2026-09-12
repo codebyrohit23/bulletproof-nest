@@ -253,6 +253,29 @@ device-binding concurrency, `PasswordService.verify`'s null branch.
 
 ---
 
+## Planned — deliberately not built
+
+These had empty directories reserving their names. An empty folder reads as
+abandoned rather than intended, and it cannot say _why_ it is empty or _when_ to
+fill it, so the folders were removed and the intent recorded here. Create the
+directory when you write the first file in it, not before.
+
+| Area                                | Build it when                                                       | Notes                                                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `core/events/`                      | a second consumer needs to react to something a module already does | `@nestjs/event-emitter` is not a dependency yet. `TransactionService.runAfterCommit` already covers "do X after this write commits", which is what most of the demand looks like — reach for events when one write needs _several_ independent reactions. Domain events are modelled in `docs/phase-2-domain-model/06-domain-events.md`.                                                       |
+| `core/permissions/`                 | with the workspace/membership schema                                | RBAC per ADR-002. Needs `permissions`, `organization_roles` and `role_permissions` tables first; a permission guard with nothing to resolve against is not testable. Resolution should cache through `CacheService`.                                                                                                                                                                           |
+| `infrastructure/communication/sms/` | phone verification ships                                            | Mirrors `infrastructure/communication/email/`: an `SmsTransport` abstract class, a provider adapter, and a log adapter for local development. The schema already supports it (`IdentifierType.PHONE`, `VerificationPurpose.PHONE_VERIFICATION`) but no flow sends a code by SMS. Note the queue is named `email`, not `mail` — a separate SMS queue is a workload-class decision to make then. |
+| `modules/user-auth/mappers/`        | a row shape stops matching its DTO                                  | Today the services narrow rows by hand, explicitly, which is safer than a mapper while the shapes are small — see `buildAuthUser`. Add mappers when the same narrowing appears in three places, not before.                                                                                                                                                                                    |
+| `shared/decorators/`                | a decorator is needed by two layers                                 | Nothing is shared yet. Context decorators live in `core/context/decorators/`, rate limiting in `core/rate-limit/decorators/`, CSRF in `core/csrf/decorators/` — each with the subsystem that gives it meaning, which is where they should stay unless a genuinely generic one appears.                                                                                                         |
+
+Two folders are intentionally kept with an `export {}` barrel rather than
+deleted, because the barrel documents a plan precise enough to follow:
+`shared/pipes/` (a `parse-uuid.pipe.ts` for the first `:id` route) and
+`shared/validators/` (id, contact and text schema primitives). `core/context/index.ts`
+carries the same kind of note for fields that arrive with RBAC and OpenTelemetry.
+
+---
+
 ## Decisions
 
 Architecture decisions are recorded in `docs/adr/`:
