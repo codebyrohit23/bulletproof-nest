@@ -148,6 +148,116 @@ export default defineConfig(
 
   /*
    * -------------------------------------------------------
+   * Layer boundaries
+   * -------------------------------------------------------
+   *
+   * The dependency direction this tree is arranged around:
+   *
+   *     modules  ──→  core / infrastructure  ──→  shared
+   *     config   ──→  core (constants only)
+   *
+   * Arrows point down and never back up. These rules are that sentence, made
+   * checkable.
+   */
+  {
+    files: ['src/shared/**/*.ts'],
+
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^#/(core|infrastructure|modules|config)/',
+              message:
+                'shared/ is the leaf: everything may depend on it, so it depends on nothing. ' +
+                'One upward import ends that guarantee and opens a cycle back through core. ' +
+                'Move the value into shared/ and have the other layer import it from here.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: ['src/core/**/*.ts', 'src/infrastructure/**/*.ts'],
+
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^#/modules/',
+              message:
+                'core/ and infrastructure/ are what feature modules are built from. Importing a ' +
+                'module here inverts the layering, so neither can be reasoned about or extracted ' +
+                'without dragging a feature behind it. Move the shared value to shared/, or have ' +
+                'the module satisfy a port declared here — see core/auth/ports.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: ['src/config/**/*.ts'],
+
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^#/modules/',
+              message: 'config/ is read during bootstrap, before any feature module exists.',
+            },
+            {
+              /*
+               * The cycle this repository has hit twice. A `core/*` barrel
+               * exports that subsystem's Module, the Module imports
+               * AppConfigModule, and AppConfigModule loads this file again —
+               * "Cannot access 'X' before initialization" at boot, with every
+               * static check green.
+               */
+              regex: '^#/core/[^/]+(/index\\.js)?$',
+              message:
+                'Import the constants file directly (#/core/<area>/constants/<name>.constants.js), ' +
+                "never the barrel. A core barrel exports that area's Module, which imports " +
+                'AppConfigModule, which loads config again — a startup cycle that typecheck and ' +
+                'lint both pass and only the running process reveals.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: ['src/modules/**/*.ts'],
+
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^#/modules/[^/]+/(?!index\\.js$)',
+              message:
+                "A module's public API is its index.ts. Reaching past it couples you to internals " +
+                'its owner is free to change. Import the barrel instead — and within your own ' +
+                'module, use a relative path.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  /*
+   * -------------------------------------------------------
    * Tooling configs
    * -------------------------------------------------------
    *

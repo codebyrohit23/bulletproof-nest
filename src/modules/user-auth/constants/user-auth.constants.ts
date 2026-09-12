@@ -2,11 +2,6 @@ import { API_PREFIX, API_VERSION_PREFIX, ApiVersion } from '#/shared/constants/i
 
 export const USER_AUTH_LOG_CONTEXT = 'UserAuth';
 
-export const USER_AUTH_API_TAG = {
-  name: 'User Authentication',
-  description: 'Endpoints for user authentication and management.',
-} as const;
-
 export const AUTH_RESULT_STATUS = {
   AUTHENTICATED: 'AUTHENTICATED',
 
@@ -39,11 +34,6 @@ export type TokenDelivery = (typeof TOKEN_DELIVERY)[keyof typeof TOKEN_DELIVERY]
 
 export const PASSWORD_RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
 
-/**
- * Derived rather than written twice: the repository dates a row in
- * milliseconds and the API reports a lifetime in seconds, and two literals
- * would eventually disagree about how long a reset token lives.
- */
 export const PASSWORD_RESET_TOKEN_TTL_SECONDS = PASSWORD_RESET_TOKEN_TTL_MS / 1000;
 
 export const USER_SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;

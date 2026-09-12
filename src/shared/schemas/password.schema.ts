@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-import { PASSWORD_MAX_LENGTH } from '#/core/security/index.js';
 import {
   PASSWORD_LOWERCASE_PATTERN,
+  PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   PASSWORD_SPECIAL_PATTERN,
   PASSWORD_UPPERCASE_PATTERN,
-} from '#/shared/constants/index.js';
+} from '../constants/index.js';
 
 export const passwordSchema = z
   .string()

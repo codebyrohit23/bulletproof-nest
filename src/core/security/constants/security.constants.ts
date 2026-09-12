@@ -7,8 +7,6 @@ export const PASSWORD_HASH_OPTIONS = {
   parallelism: 1,
 } as const;
 
-export const PASSWORD_MAX_LENGTH = 128;
-
 export const TOKEN_BYTE_LENGTH = 32;
 
 export const NUMERIC_CODE_LENGTH = 6;

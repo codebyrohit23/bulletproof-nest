@@ -11,9 +11,9 @@ import {
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
 import { RateLimit } from '#/core/rate-limit/index.js';
-import { ApiVersion } from '#/shared/constants/index.js';
+import { ApiVersion, USER_AUTH_API_TAG } from '#/shared/constants/index.js';
 
-import { TOKEN_DELIVERY, USER_AUTH_API_TAG } from '../constants/index.js';
+import { TOKEN_DELIVERY } from '../constants/index.js';
 import {
   AuthResultDto,
   AuthTokensDto,

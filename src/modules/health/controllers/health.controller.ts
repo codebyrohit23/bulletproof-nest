@@ -7,20 +7,10 @@ import { RawResponse } from '#/core/interceptors/index.js';
 import { SkipRateLimit } from '#/core/rate-limit/index.js';
 import { PrismaHealthIndicator } from '#/infrastructure/database/prisma/index.js';
 import { RedisHealthIndicator } from '#/infrastructure/redis/index.js';
+import { HEALTH_API_TAG } from '#/shared/constants/index.js';
 
-import { HEALTH_API_TAG } from '../constants/health.constants.js';
 import type { LivenessResult } from '../interfaces/index.js';
 
-/**
- * Exempt from rate limiting, floor included.
- *
- * These are called by an orchestrator on a fixed interval, not by clients. A
- * refused probe reads as an unhealthy instance, so a limit here would take
- * replicas out of the load balancer for being polled exactly as intended — the
- * limiter causing the outage it exists to prevent.
- *
- * Public for the same reason: an orchestrator holds no access token.
- */
 @Public()
 @SkipRateLimit()
 @ApiTags(HEALTH_API_TAG.name)

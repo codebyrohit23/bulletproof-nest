@@ -1,13 +1,12 @@
 import { DocumentBuilder } from '@nestjs/swagger';
 import type { OpenAPIObject } from '@nestjs/swagger';
 
-import { ApiVersion } from '#/shared/constants/index.js';
+import { ADMIN_API_TAGS, ApiVersion, USER_API_TAGS } from '#/shared/constants/index.js';
 
 import type { ApiAudience } from '../interfaces/index.js';
 
 import { ADMIN_PATH_SEGMENT, DOCS_PATH, SECURITY_SCHEME } from './openapi.constants.js';
 import { BEARER_SECURITY_SCHEME } from './openapi.security.js';
-import { ADMIN_API_TAGS, USER_API_TAGS } from './openapi.tags.js';
 
 export const API_AUDIENCES: readonly ApiAudience[] = [
   {

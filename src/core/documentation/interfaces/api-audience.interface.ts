@@ -1,14 +1,4 @@
-/**
- * A sidebar group in the rendered reference.
- *
- * Declared by the module it describes, so the name and its description live
- * next to the controller rather than in a distant list that drifts out of date.
- */
-export interface ApiTag {
-  readonly name: string;
-
-  readonly description: string;
-}
+import type { ApiTag } from '#/shared/interfaces/index.js';
 
 export interface ApiAudience {
   readonly key: string;

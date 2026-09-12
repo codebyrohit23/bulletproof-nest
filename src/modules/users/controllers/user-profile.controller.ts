@@ -7,9 +7,8 @@ import {
   ApiSuccessResponse,
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
-import { ApiVersion } from '#/shared/constants/index.js';
+import { ApiVersion, USER_PROFILE_API_TAG } from '#/shared/constants/index.js';
 
-import { USER_PROFILE_API_TAG } from '../constants/index.js';
 import { UpdateProfileDto, UserProfileDto, type UserProfile } from '../dto/index.js';
 import { UserService } from '../services/user.service.js';
 
