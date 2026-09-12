@@ -72,14 +72,13 @@ export class PrismaExceptionHandler implements ExceptionHandler {
    * Validation Error
    * ------------------------------------------------------
    */
-
   private handleValidationError(exception: PrismaClientValidationError): ExceptionDetails {
-    const statusCode = HttpStatus.BAD_REQUEST;
+    const statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
 
     return {
       statusCode,
 
-      message: EXCEPTION_MESSAGE.BAD_REQUEST,
+      message: EXCEPTION_MESSAGE.INTERNAL_SERVER_ERROR,
 
       error: this.buildApiError(statusCode, exception),
     };
