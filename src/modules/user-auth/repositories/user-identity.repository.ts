@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { IdentifierType, UserIdentity } from '@prisma/client';
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
-import { normalizeIdentifier } from '#/shared/utils/identifier.util.js';
+import { normalizeIdentifier } from '#/shared/utils/index.js';
 
 import type {
   CreateIdentityInput,

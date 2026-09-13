@@ -1,11 +1,17 @@
-import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
+import { Controller, Get, Optional, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { HealthCheck, HealthCheckService, type HealthCheckResult } from '@nestjs/terminus';
+import {
+  HealthCheck,
+  HealthCheckService,
+  type HealthCheckResult,
+  type HealthIndicatorFunction,
+} from '@nestjs/terminus';
 
 import { Public } from '#/core/auth/index.js';
 import { RawResponse } from '#/core/interceptors/index.js';
 import { SkipRateLimit } from '#/core/rate-limit/index.js';
 import { PrismaHealthIndicator } from '#/infrastructure/database/prisma/index.js';
+import { QueueHealthIndicator, WorkerHealthIndicator } from '#/infrastructure/queue/index.js';
 import { RedisHealthIndicator } from '#/infrastructure/redis/index.js';
 import { HEALTH_API_TAG } from '#/shared/constants/index.js';
 
@@ -22,20 +28,13 @@ export class HealthController {
     private readonly prisma: PrismaHealthIndicator,
 
     private readonly redis: RedisHealthIndicator,
+
+    private readonly queue: QueueHealthIndicator,
+
+    /** Absent in a process that runs no workers; its check then drops out on its own. */
+    @Optional() private readonly workers?: WorkerHealthIndicator,
   ) {}
 
-  /**
-   * "Is this process alive?"
-   *
-   * **Checks nothing external, on purpose.** A failing liveness probe tells the
-   * orchestrator to *restart the container* — and restarting will not fix an
-   * unreachable database. Wire Postgres into liveness and a thirty-second
-   * database blip becomes every replica restarting at once, which is a far
-   * worse outage than the blip.
-   *
-   * If this endpoint can reply at all, the event loop is turning and the answer
-   * is yes.
-   */
   @Get('live')
   @ApiOperation({ summary: 'Liveness — is the process running?' })
   @RawResponse()
@@ -47,24 +46,28 @@ export class HealthController {
     };
   }
 
-  /**
-   * "Can this process serve traffic?"
-   *
-   * A failure here should remove the instance from the load balancer and leave
-   * it running — it will recover on its own when its dependencies do.
-   */
   @Get('ready')
-  @ApiOperation({ summary: 'Readiness — can it serve traffic? Checks Postgres and Redis.' })
+  @ApiOperation({
+    summary: 'Readiness — can it serve traffic? Checks Postgres, Redis, the queue and its workers.',
+  })
   @RawResponse()
   @HealthCheck()
   ready(): Promise<HealthCheckResult> {
-    return this.health.check([() => this.prisma.isHealthy(), () => this.redis.isHealthy()]);
+    const checks: HealthIndicatorFunction[] = [
+      () => this.prisma.isHealthy(),
+      () => this.redis.isHealthy(),
+      () => this.queue.isHealthy(),
+    ];
+
+    const workers = this.workers;
+
+    if (workers !== undefined) {
+      checks.push(() => workers.isHealthy());
+    }
+
+    return this.health.check(checks);
   }
 
-  /**
-   * The conventional default endpoint, for uptime monitors and humans. Same
-   * checks as readiness.
-   */
   @Get()
   @ApiOperation({ summary: 'Readiness, at the conventional default path.' })
   @RawResponse()

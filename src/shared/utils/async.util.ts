@@ -1,16 +1,25 @@
-/**
- * Generic async helpers. No DI, no framework, no domain knowledge.
- */
-
-/**
- * Resolves after `milliseconds`.
- *
- * Used for backoff between retries and for polling a value another process is
- * expected to produce. Never use it to "wait for" something without also
- * bounding the number of waits — an unbounded poll is a hung request.
- */
 export function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
   });
+}
+
+export async function withTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([operation, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
 }

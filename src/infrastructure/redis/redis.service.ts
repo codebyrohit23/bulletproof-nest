@@ -3,6 +3,7 @@ import type { Redis } from 'ioredis';
 
 import { RedisConfigService } from '#/config/redis/index.js';
 import { AppLoggerService } from '#/core/logger/index.js';
+import { withTimeout } from '#/shared/utils/index.js';
 
 import {
   REDIS_CLIENT,
@@ -23,30 +24,14 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
     private readonly logger: AppLoggerService,
   ) {}
 
-  /**
-   * Only the default client is opened at startup.
-   *
-   * The queue and subscriber connections are created on first use. Managed and
-   * free tiers cap concurrent connections, and opening three when the
-   * application uses one wastes a third of a small budget.
-   */
   onModuleInit(): void {
     this.getClient(REDIS_CLIENT.DEFAULT);
   }
 
-  /**
-   * The default client — cache, locks, rate limiting.
-   */
   get client(): Redis {
     return this.getClient(REDIS_CLIENT.DEFAULT);
   }
 
-  /**
-   * Returns a named client, opening it on first request.
-   *
-   * Consumers must go through here rather than constructing their own: a stray
-   * client is invisible to the health probe and is never closed on shutdown.
-   */
   getClient(name: RedisClientName): Redis {
     const existing = this.clients.get(name);
 
@@ -62,26 +47,16 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
     return client;
   }
 
-  /**
-   * Liveness probe used by the health indicator.
-   *
-   * Bounded independently of the command timeout because probes run every few
-   * seconds and must fail fast rather than queue up behind each other.
-   */
   async isHealthy(): Promise<boolean> {
-    const reply = await this.withTimeout(this.client.ping(), REDIS_HEALTH_TIMEOUT_MS);
+    const reply = await withTimeout(
+      this.client.ping(),
+      REDIS_HEALTH_TIMEOUT_MS,
+      'Redis health check',
+    );
 
     return reply === REDIS_PING_REPLY;
   }
 
-  /**
-   * Closes every client that was opened.
-   *
-   * `quit()` waits for in-flight commands and sends `QUIT`; `disconnect()`
-   * would drop them. If a client is already unreachable the quit itself can
-   * fail, which must not stop the remaining ones from closing — hence the
-   * per-client catch.
-   */
   async onApplicationShutdown(): Promise<void> {
     const closings = [...this.clients.entries()].map(async ([name, client]) => {
       try {
@@ -107,11 +82,6 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
     });
   }
 
-  /**
-   * An ioredis client with no `error` listener emits an unhandled `error` event,
-   * which crashes the Node process. Redis being briefly unreachable must never
-   * do that — every client gets a listener before it is handed out.
-   */
   private registerListeners(name: RedisClientName, client: Redis): void {
     client.on('error', (error: Error) => {
       this.logger.error(error, `Redis client "${name}" error`, {
@@ -140,23 +110,5 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
         metadata: { client: name },
       });
     });
-  }
-
-  private async withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
-    let timer: NodeJS.Timeout | undefined;
-
-    const timeout = new Promise<never>((_resolve, reject) => {
-      timer = setTimeout(() => {
-        reject(new Error(`Redis health check timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
-    });
-
-    try {
-      return await Promise.race([operation, timeout]);
-    } finally {
-      if (timer !== undefined) {
-        clearTimeout(timer);
-      }
-    }
   }
 }

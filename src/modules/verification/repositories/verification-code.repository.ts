@@ -7,7 +7,7 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
-import { normalizeIdentifier } from '#/shared/utils/identifier.util.js';
+import { normalizeIdentifier } from '#/shared/utils/index.js';
 
 import { VERIFICATION_CODE_TTL_MS } from '../constants/index.js';
 import type { IssueVerificationCodeInput } from '../interfaces/index.js';

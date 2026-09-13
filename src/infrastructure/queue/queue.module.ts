@@ -1,26 +1,14 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Global, Module } from '@nestjs/common';
+import { TerminusModule } from '@nestjs/terminus';
 
 import { AppConfigModule } from '#/config/index.js';
 import { RedisConfigService } from '#/config/redis/index.js';
 
 import { QUEUE_NAMES, buildQueuePrefix } from './constants/queue.constants.js';
+import { QueueHealthIndicator } from './indicators/queue-health.indicator.js';
 import { JobDispatcher } from './services/job-dispatcher.service.js';
 
-/**
- * The **producer** side: connections, queue registration, and `JobDispatcher`.
- *
- * Always imported. Any process that can create work needs to enqueue it, even
- * one that never processes a job itself.
- *
- * Workers live in `QueueWorkerModule` deliberately. Today both are imported by
- * `AppModule` and one process does everything; when traffic justifies a
- * separate worker process, moving that one import is the whole change.
- *
- * BullMQ is given connection *options* rather than an existing client: it opens
- * its own connections, and workers use blocking commands that would monopolise
- * a shared one.
- */
 @Global()
 @Module({
   imports: [
@@ -46,9 +34,11 @@ import { JobDispatcher } from './services/job-dispatcher.service.js';
     }),
 
     ...QUEUE_NAMES.map((name) => BullModule.registerQueue({ name })),
+
+    TerminusModule,
   ],
 
-  providers: [JobDispatcher],
-  exports: [BullModule, JobDispatcher],
+  providers: [JobDispatcher, QueueHealthIndicator],
+  exports: [BullModule, JobDispatcher, QueueHealthIndicator],
 })
 export class QueueModule {}

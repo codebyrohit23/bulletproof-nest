@@ -76,7 +76,17 @@ export { JobDispatcher } from './services/job-dispatcher.service.js';
 
 export { JobHandler } from './decorators/job-handler.decorator.js';
 
-export { QUEUE, QUEUE_NAMES, type QueueName } from './constants/queue.constants.js';
+export { QueueHealthIndicator } from './indicators/queue-health.indicator.js';
+
+export { WorkerHealthIndicator } from './indicators/worker-health.indicator.js';
+
+export {
+  QUEUE,
+  QUEUE_HEALTH_KEY,
+  QUEUE_NAMES,
+  WORKER_HEALTH_KEY,
+  type QueueName,
+} from './constants/queue.constants.js';
 
 export type {
   DispatchOptions,
