@@ -12,6 +12,8 @@ import {
 export const databaseSchema = z.object({
   POSTGRES_DATABASE_URL: z.url(),
 
+  POSTGRES_DIRECT_DATABASE_URL: z.url(),
+
   POSTGRES_SSL: booleanEnv('false'),
 
   POSTGRES_LOG_LEVEL: enumListEnv(PRISMA_LOG_LEVELS, 'warn,error'),

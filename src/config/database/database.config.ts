@@ -8,6 +8,8 @@ export const databaseConfig = registerAs('database', (): DatabaseConfig => ({
   postgres: {
     url: env.POSTGRES_DATABASE_URL,
 
+    directUrl: env.POSTGRES_DIRECT_DATABASE_URL,
+
     ssl: env.POSTGRES_SSL,
 
     logLevel: env.POSTGRES_LOG_LEVEL,

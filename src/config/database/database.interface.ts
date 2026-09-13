@@ -7,6 +7,8 @@ export interface DatabaseConfig {
 export interface PostgresConfig {
   readonly url: string;
 
+  readonly directUrl: string;
+
   readonly ssl: boolean;
 
   readonly logLevel: readonly PrismaLogLevel[];
