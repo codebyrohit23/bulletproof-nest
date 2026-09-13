@@ -3,20 +3,6 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 
 import { SOFT_DELETABLE_MODELS, SOFT_DELETE_FIELD } from '../constants/prisma.constants.js';
 
-/**
- * Hides soft-deleted rows from every read.
- *
- * Applies only to the models listed in `SOFT_DELETABLE_MODELS`. A model that is
- * not registered is untouched, so this extension can never break a table that
- * has no `deletedAt` column.
- *
- * Deleting: `delete` and `deleteMany` are intentionally **not** intercepted and
- * still perform a hard delete. Erasure has to stay possible (GDPR, cleanup
- * scripts), and a hard delete is always something a developer typed on purpose.
- * To soft delete, update `deletedAt` — the reads below take care of the rest.
- */
-
-/** Operations whose `where` accepts arbitrary filters — the filter can be injected directly. */
 const FILTERABLE_OPERATIONS = new Set([
   'findFirst',
   'findFirstOrThrow',
@@ -24,6 +10,7 @@ const FILTERABLE_OPERATIONS = new Set([
   'count',
   'aggregate',
   'groupBy',
+  'update',
   'updateMany',
 ]);
 
@@ -44,6 +31,12 @@ export function createSoftDeleteExtension() {
             return query(withNotDeletedFilter(args));
           }
 
+          if (operation === 'upsert') {
+            throw new Error(
+              `upsert is not supported on soft-deletable model "${model}"; use find + create/update`,
+            );
+          }
+
           if (UNIQUE_READ_OPERATIONS.has(operation)) {
             return handleUniqueRead(operation, args, query);
           }
@@ -59,12 +52,6 @@ function isSoftDeletable(model: string | undefined): boolean {
   return model !== undefined && (SOFT_DELETABLE_MODELS as readonly string[]).includes(model);
 }
 
-/**
- * Merges `deletedAt: null` into the existing `where`.
- *
- * An explicit `deletedAt` supplied by the caller wins, so a repository can still
- * query the archive deliberately.
- */
 function withNotDeletedFilter<TArgs>(args: TArgs): TArgs {
   const query = toRecord(args) ?? {};
   const where = toRecord(query['where']) ?? {};
@@ -79,14 +66,6 @@ function withNotDeletedFilter<TArgs>(args: TArgs): TArgs {
   } as TArgs;
 }
 
-/**
- * `findUnique` cannot carry a non-unique filter, so the row is fetched and
- * discarded afterwards.
- *
- * When the caller supplied a `select` that omits `deletedAt`, the field is
- * temporarily added so the check is possible, then stripped from the result —
- * otherwise a narrow projection would silently expose deleted rows.
- */
 async function handleUniqueRead<TArgs>(
   operation: string,
   args: TArgs,
@@ -124,10 +103,6 @@ async function handleUniqueRead<TArgs>(
   return result;
 }
 
-/**
- * Mirrors the error Prisma raises for a missing record so `PrismaExceptionHandler`
- * maps it to 404 exactly as it would for a genuinely absent row.
- */
 function recordNotFoundError(): PrismaClientKnownRequestError {
   return new PrismaClientKnownRequestError('No record was found for a query.', {
     code: 'P2025',

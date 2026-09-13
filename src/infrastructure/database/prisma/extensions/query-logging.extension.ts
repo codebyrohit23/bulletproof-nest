@@ -6,13 +6,6 @@ import type { AppLoggerService } from '#/core/logger/index.js';
 
 import { PRISMA_QUERY_LOG_CONTEXT } from '../constants/prisma.constants.js';
 
-/**
- * Times every operation and flags slow ones.
- *
- * `args` is never logged. It carries password hashes, refresh tokens,
- * verification codes and customer PII — none of which belongs in a log stream.
- * Only the model, the operation and the duration are recorded.
- */
 export function createQueryLoggingExtension(
   logger: AppLoggerService,
   slowQueryThresholdMs: number,
