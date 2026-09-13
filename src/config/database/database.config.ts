@@ -14,6 +14,10 @@ export const databaseConfig = registerAs('database', (): DatabaseConfig => ({
 
     slowQueryThresholdMs: env.POSTGRES_SLOW_QUERY_THRESHOLD_MS,
 
+    statementTimeoutMs: env.POSTGRES_STATEMENT_TIMEOUT_MS,
+
+    idleInTransactionTimeoutMs: env.POSTGRES_IDLE_IN_TRANSACTION_TIMEOUT_MS,
+
     pool: {
       max: env.POSTGRES_POOL_MAX,
 

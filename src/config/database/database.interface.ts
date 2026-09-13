@@ -13,6 +13,10 @@ export interface PostgresConfig {
 
   readonly slowQueryThresholdMs: number;
 
+  readonly statementTimeoutMs: number;
+
+  readonly idleInTransactionTimeoutMs: number;
+
   readonly pool: PostgresPoolConfig;
 }
 
