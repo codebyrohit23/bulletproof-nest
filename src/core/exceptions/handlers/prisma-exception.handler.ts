@@ -7,7 +7,11 @@ import {
   PrismaClientValidationError,
 } from '@prisma/client/runtime/client';
 
-import { EXCEPTION_MESSAGE } from '../constants/index.js';
+import {
+  EXCEPTION_MESSAGE,
+  PRISMA_ERROR_RESPONSES,
+  UNMAPPED_PRISMA_ERROR_RESPONSE,
+} from '../constants/index.js';
 import type { ApiError, ExceptionDetails, ExceptionHandler } from '../interfaces/index.js';
 import { toExceptionCode } from '../mappers/exception-code.mapper.js';
 
@@ -54,12 +58,13 @@ export class PrismaExceptionHandler implements ExceptionHandler {
    */
 
   private handleKnownRequestError(exception: PrismaClientKnownRequestError): ExceptionDetails {
-    const statusCode = this.resolveStatusCode(exception.code);
+    const { statusCode, message } =
+      PRISMA_ERROR_RESPONSES[exception.code] ?? UNMAPPED_PRISMA_ERROR_RESPONSE;
 
     return {
       statusCode,
 
-      message: this.resolveMessage(exception),
+      message,
 
       error: this.buildApiError(statusCode, exception),
 
@@ -174,44 +179,6 @@ export class PrismaExceptionHandler implements ExceptionHandler {
 
   /**
    * ------------------------------------------------------
-   * Status Code Mapping
-   * ------------------------------------------------------
-   */
-
-  private resolveStatusCode(code: string): HttpStatus {
-    switch (code) {
-      case 'P2000':
-      case 'P2001':
-      case 'P2005':
-      case 'P2006':
-      case 'P2007':
-      case 'P2008':
-      case 'P2009':
-      case 'P2010':
-      case 'P2011':
-      case 'P2012':
-      case 'P2013':
-      case 'P2019':
-        return HttpStatus.BAD_REQUEST;
-
-      case 'P2002':
-      case 'P2003':
-      case 'P2014':
-        return HttpStatus.CONFLICT;
-
-      case 'P2025':
-        return HttpStatus.NOT_FOUND;
-
-      case 'P2024':
-        return HttpStatus.REQUEST_TIMEOUT;
-
-      default:
-        return HttpStatus.INTERNAL_SERVER_ERROR;
-    }
-  }
-
-  /**
-   * ------------------------------------------------------
    * API Error Builder
    * ------------------------------------------------------
    */
@@ -232,97 +199,6 @@ export class PrismaExceptionHandler implements ExceptionHandler {
         stack: exception.stack,
       }),
     };
-  }
-
-  /**
-   * ------------------------------------------------------
-   * Message Resolver
-   * ------------------------------------------------------
-   */
-
-  private resolveMessage(exception: PrismaClientKnownRequestError): string {
-    switch (exception.code) {
-      case 'P2000':
-        return 'Input value is too long.';
-
-      case 'P2001':
-        return 'The requested record does not exist.';
-
-      case 'P2002':
-        return 'A record with the same unique value already exists.';
-
-      case 'P2003':
-        return 'Foreign key constraint failed.';
-
-      case 'P2004':
-        return 'Database constraint failed.';
-
-      case 'P2005':
-        return 'Invalid field value.';
-
-      case 'P2006':
-        return 'Invalid data provided.';
-
-      case 'P2007':
-        return 'Data validation failed.';
-
-      case 'P2008':
-        return 'Query parsing failed.';
-
-      case 'P2009':
-        return 'Query validation failed.';
-
-      case 'P2010':
-        return 'Raw query execution failed.';
-
-      case 'P2011':
-        return 'A required field cannot be null.';
-
-      case 'P2012':
-        return 'A required value is missing.';
-
-      case 'P2013':
-        return 'Missing required argument.';
-
-      case 'P2014':
-        return 'The requested operation would violate a required relation.';
-
-      case 'P2015':
-        return 'Related record not found.';
-
-      case 'P2016':
-        return 'Query interpretation error.';
-
-      case 'P2017':
-        return 'Records are not connected.';
-
-      case 'P2018':
-        return 'Required connected records were not found.';
-
-      case 'P2019':
-        return 'Input error.';
-
-      case 'P2020':
-        return 'Value out of range.';
-
-      case 'P2021':
-        return 'Table does not exist.';
-
-      case 'P2022':
-        return 'Column does not exist.';
-
-      case 'P2023':
-        return 'Inconsistent column data.';
-
-      case 'P2024':
-        return 'Database connection timeout.';
-
-      case 'P2025':
-        return 'Requested record was not found.';
-
-      default:
-        return EXCEPTION_MESSAGE.INTERNAL_SERVER_ERROR;
-    }
   }
 
   /**
