@@ -119,5 +119,11 @@
     "node": "^24.11.0",
     "pnpm": "^10.31.0"
   },
-  "packageManager": "pnpm@10.31.0"
+  "packageManager": "pnpm@10.31.0",
+  "imports": {
+    "#/*": {
+      "types": "./src/*",
+      "default": "./dist/*"
+    }
+  }
 }

@@ -20,7 +20,7 @@ import type { LivenessResult } from '../interfaces/index.js';
 @Public()
 @SkipRateLimit()
 @ApiTags(HEALTH_API_TAG.name)
-@Controller({ path: '', version: VERSION_NEUTRAL })
+@Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
@@ -35,7 +35,7 @@ export class HealthController {
     @Optional() private readonly workers?: WorkerHealthIndicator,
   ) {}
 
-  @Get('health/live')
+  @Get('live')
   @ApiOperation({ summary: 'Liveness — is the process running?' })
   @RawResponse()
   live(): LivenessResult {
@@ -46,7 +46,7 @@ export class HealthController {
     };
   }
 
-  @Get('health/ready')
+  @Get('ready')
   @ApiOperation({
     summary: 'Readiness — can it serve traffic? Checks Postgres, Redis, the queue and its workers.',
   })
@@ -68,29 +68,11 @@ export class HealthController {
     return this.health.check(checks);
   }
 
-  @Get('health')
+  @Get()
   @ApiOperation({ summary: 'Readiness, at the conventional default path.' })
   @RawResponse()
   @HealthCheck()
   check(): Promise<HealthCheckResult> {
     return this.ready();
-  }
-
-  @Get('health')
-  @ApiOperation({ summary: 'Check application readiness' })
-  @RawResponse()
-  @HealthCheck()
-  checkReadiness(): Promise<HealthCheckResult> {
-    return this.ready();
-  }
-
-  @Get()
-  @ApiOperation({ summary: 'Get API information' })
-  @RawResponse()
-  getRoot() {
-    return {
-      success: true,
-      message: 'LeadFlow API is running',
-    };
   }
 }
