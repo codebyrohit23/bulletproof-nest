@@ -5,26 +5,7 @@
     "sourceMap": false,
     "declaration": true,
     "declarationMap": false,
-
-    /*
-     * Without an explicit rootDir, `prisma.config.ts` at the repository root
-     * widens the inferred root to the project directory, so output lands in
-     * `dist/src/main.js` and `start:prod` cannot find it.
-     *
-     * This previously also mattered for `tsc-alias`, which refuses to run when
-     * rootDir is implicit. That package has since been removed: the `#/*`
-     * specifiers resolve natively through the `imports` field in package.json,
-     * so no post-build path rewriting is needed. The rootDir reason above
-     * stands on its own.
-     */
     "rootDir": "./src",
-
-    /*
-     * Keep the incremental cache inside the output directory. Its default
-     * location is next to this file, where `rimraf dist` cannot reach it — so
-     * the second build onwards TypeScript believes everything is already
-     * emitted and silently produces an empty `dist`.
-     */
     "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   },
 
