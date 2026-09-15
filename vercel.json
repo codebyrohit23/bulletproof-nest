@@ -4,7 +4,7 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "functions": {
     "src/main.ts": {
-      "includeFiles": ["dist/**"]
+      "includeFiles": "dist/**"
     }
   }
 }
