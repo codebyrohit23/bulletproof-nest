@@ -2,14 +2,14 @@ import { DevicePlatform } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-import { IDENTIFIER_MAX_LENGTH } from '#/shared/constants/index.js';
+import { EMAIL_MAX_LENGTH } from '#/shared/constants/index.js';
 import { passwordCredentialSchema } from '#/shared/schemas/index.js';
 
 import { DECLARED_DEVICE_DESCRIPTION, declaredDeviceSchema } from '../../schemas/index.js';
 
 const loginSchema = z
   .object({
-    email: z.string().trim().toLowerCase().pipe(z.email().max(IDENTIFIER_MAX_LENGTH)),
+    email: z.string().trim().toLowerCase().pipe(z.email().max(EMAIL_MAX_LENGTH)),
 
     password: passwordCredentialSchema,
 

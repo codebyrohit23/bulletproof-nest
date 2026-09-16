@@ -40,6 +40,10 @@ export class AppConfigService {
     return this.app.requestTimeoutMs;
   }
 
+  get isLocal() {
+    return this.app.env === ENVIRONMENTS.LOCAL;
+  }
+
   get isDevelopment() {
     return this.app.env === ENVIRONMENTS.DEVELOPMENT;
   }

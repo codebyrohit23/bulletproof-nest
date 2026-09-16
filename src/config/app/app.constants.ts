@@ -1,4 +1,5 @@
 export const ENVIRONMENTS = {
+  LOCAL: 'local',
   DEVELOPMENT: 'development',
   TEST: 'test',
   PRODUCTION: 'production',
