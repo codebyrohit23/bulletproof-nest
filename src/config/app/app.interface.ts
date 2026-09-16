@@ -1,11 +1,6 @@
-import type { Environment } from '#/config/app/app.constants.js';
-/*
- * Direct import, never the `core/logger` barrel — see the note in
- * `app.schema.ts`. Type-only today, so it erases and cannot cycle on its own,
- * but it is kept on the same path so the two never disagree about where these
- * constants live.
- */
 import type { LogFormat, LogLevel } from '#/shared/constants/index.js';
+
+import type { Environment } from './app.constants.js';
 
 export interface AppConfig {
   readonly env: Environment;
