@@ -1,8 +1,11 @@
+export { emailSchema, lookupEmailSchema } from './email.schema.js';
+
 export {
-  emailIdentifierSchema,
   identifierSchema,
-  phoneIdentifierSchema,
+  lookupIdentifierSchema,
   type IdentifierInput,
 } from './identifier.schema.js';
 
-export { passwordSchema, passwordCredentialSchema } from './password.schema.js';
+export { passwordSchema, currentPasswordSchema } from './password.schema.js';
+
+export { lookupPhoneSchema, phoneSchema } from './phone.schema.js';

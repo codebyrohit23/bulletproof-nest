@@ -270,9 +270,17 @@ directory when you write the first file in it, not before.
 
 Two folders are intentionally kept with an `export {}` barrel rather than
 deleted, because the barrel documents a plan precise enough to follow:
-`shared/pipes/` (a `parse-uuid.pipe.ts` for the first `:id` route) and
-`shared/validators/` (id, contact and text schema primitives). `core/context/index.ts`
-carries the same kind of note for fields that arrive with RBAC and OpenTelemetry.
+`shared/pipes/` (a `parse-uuid.pipe.ts` for the first `:id` route).
+`core/context/index.ts` carries the same kind of note for fields that arrive
+with RBAC and OpenTelemetry.
+
+Shared schema primitives live in `shared/schemas/`. Email, phone and identifier
+schemas come in two strengths: `emailSchema` / `phoneSchema` / `identifierSchema`
+for **creating** an identity (disposable-domain blocklist, mobile-only), and
+`lookupEmailSchema` / `lookupPhoneSchema` / `lookupIdentifierSchema` for
+**finding** one that exists. Every login, OTP, verification and reset flow uses a
+`lookup*` schema — the strict one there would lock existing users out the day
+their domain joins the blocklist.
 
 ---
 

@@ -2,11 +2,11 @@ import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
 import { VERIFICATION_CODE_PATTERN } from '#/modules/verification/index.js';
-import { EMAIL_MAX_LENGTH } from '#/shared/constants/index.js';
+import { lookupEmailSchema } from '#/shared/schemas/index.js';
 
 const verifyResetOtpSchema = z
   .object({
-    email: z.string().trim().toLowerCase().pipe(z.email().max(EMAIL_MAX_LENGTH)),
+    email: lookupEmailSchema,
 
     code: z.string().trim().regex(VERIFICATION_CODE_PATTERN, 'Login code must be 6 digits'),
   })

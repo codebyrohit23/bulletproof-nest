@@ -1,11 +1,11 @@
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
-import { EMAIL_MAX_LENGTH } from '#/shared/constants/index.js';
+import { lookupEmailSchema } from '#/shared/schemas/index.js';
 
 const resetPasswordRequestSchema = z
   .object({
-    email: z.string().trim().toLowerCase().pipe(z.email().max(EMAIL_MAX_LENGTH)),
+    email: lookupEmailSchema,
   })
   .strict();
 

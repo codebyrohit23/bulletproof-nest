@@ -16,7 +16,7 @@ export const passwordSchema = z
   .regex(PASSWORD_UPPERCASE_PATTERN, 'Password must contain at least one uppercase letter')
   .regex(PASSWORD_SPECIAL_PATTERN, 'Password must contain at least one special character');
 
-export const passwordCredentialSchema = z
+export const currentPasswordSchema = z
   .string()
   .min(1, 'Password is required')
   .max(PASSWORD_MAX_LENGTH);

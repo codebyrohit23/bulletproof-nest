@@ -1,28 +1,23 @@
 import { IdentifierType } from '@prisma/client';
 import { z } from 'zod';
 
-import { PHONE_E164_PATTERN } from '../constants/index.js';
+import { emailSchema, lookupEmailSchema } from './email.schema.js';
+import { lookupPhoneSchema, phoneSchema } from './phone.schema.js';
 
-import { emailSchema } from './email.schema.js';
+const buildIdentifierSchema = <
+  TEmail extends z.ZodType<string, string>,
+  TPhone extends z.ZodType<string, string>,
+>(
+  email: TEmail,
+  phone: TPhone,
+) =>
+  z.discriminatedUnion('type', [
+    z.object({ type: z.literal(IdentifierType.EMAIL), value: email }),
+    z.object({ type: z.literal(IdentifierType.PHONE), value: phone }),
+  ]);
 
-export const emailIdentifierSchema = z.object({
-  type: z.literal(IdentifierType.EMAIL),
+export const identifierSchema = buildIdentifierSchema(emailSchema, phoneSchema);
 
-  value: emailSchema,
-});
-
-export const phoneIdentifierSchema = z.object({
-  type: z.literal(IdentifierType.PHONE),
-
-  value: z
-    .string()
-    .trim()
-    .regex(PHONE_E164_PATTERN, 'must be in E.164 format, for example +919876543210'),
-});
-
-export const identifierSchema = z.discriminatedUnion('type', [
-  emailIdentifierSchema,
-  phoneIdentifierSchema,
-]);
+export const lookupIdentifierSchema = buildIdentifierSchema(lookupEmailSchema, lookupPhoneSchema);
 
 export type IdentifierInput = z.infer<typeof identifierSchema>;

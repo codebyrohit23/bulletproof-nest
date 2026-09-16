@@ -1,11 +1,11 @@
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
-import { passwordCredentialSchema, passwordSchema } from '#/shared/schemas/index.js';
+import { currentPasswordSchema, passwordSchema } from '#/shared/schemas/index.js';
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: passwordCredentialSchema.describe('Current password of the user.'),
+    currentPassword: currentPasswordSchema.describe('Current password of the user.'),
 
     newPassword: passwordSchema.describe('New password of the user.'),
   })

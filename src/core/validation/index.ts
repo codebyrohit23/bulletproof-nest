@@ -8,7 +8,7 @@
  *                                          ZodError to 422 with field paths)
  *   response shape    → core/interceptors
  *   domain schemas    → modules/<feature>/dto/
- *   shared primitives → shared/validators/ (a job validating a payload needs
+ *   shared primitives → shared/schemas/    (a job validating a payload needs
  *                                          them too, and must not import HTTP)
  *
  * ---------------------------------------------------------------------------
