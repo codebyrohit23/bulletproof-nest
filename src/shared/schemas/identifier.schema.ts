@@ -1,12 +1,14 @@
 import { IdentifierType } from '@prisma/client';
 import { z } from 'zod';
 
-import { IDENTIFIER_MAX_LENGTH, PHONE_E164_PATTERN } from '../constants/index.js';
+import { PHONE_E164_PATTERN } from '../constants/index.js';
+
+import { emailSchema } from './email.schema.js';
 
 export const emailIdentifierSchema = z.object({
   type: z.literal(IdentifierType.EMAIL),
 
-  value: z.string().trim().toLowerCase().pipe(z.email().max(IDENTIFIER_MAX_LENGTH)),
+  value: emailSchema,
 });
 
 export const phoneIdentifierSchema = z.object({
