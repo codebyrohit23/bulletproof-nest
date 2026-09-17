@@ -117,6 +117,35 @@ enum RoleSource {
   CUSTOM
 }
 
+enum OutboxStatus {
+  PENDING
+  DISPATCHED
+  EXPIRED
+  FAILED
+}
+
+enum MessageChannel {
+  EMAIL
+  SMS
+}
+
+enum MessageCategory {
+  TRANSACTIONAL
+  MARKETING
+}
+
+/// Delivery state only, and it only moves forward. OPENED / CLICKED are events, not states.
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+  FAILED
+  SUPPRESSED
+  EXPIRED
+}
+
 // ======================================================
 // User Model
 // ======================================================
@@ -157,6 +186,8 @@ model User {
   pushTokens UserPushToken[] @relation("UserPushTokens")
 
   passwordResetTokens UserPasswordResetToken[] @relation("UserPasswordResetTokens")
+
+  outboundMessages OutboundMessage[] @relation("UserOutboundMessages")
 
   // memberships WorkspaceMember[] @relation("UserMemberships")
 
@@ -400,10 +431,16 @@ model UserPushToken {
 // Admin
 // ======================================================
 
+/// Email + password only; no phone, no OAuth, so no identity table.
+///
+/// Defined in the migration, not expressible here:
+///   admins_email_key   UNIQUE (email) WHERE deleted_at IS NULL
+///     A plain unique would keep a removed admin's email taken forever.
+///     Emails are lowercased in code before they reach this column.
 model Admin {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
-  email String @unique @db.VarChar(320)
+  email String @db.VarChar(320)
 
   firstName String @map("first_name") @db.VarChar(100)
 
@@ -430,6 +467,8 @@ model Admin {
   sessions AdminSession[] @relation("AdminSessions")
 
   passwordResetTokens AdminPasswordResetToken[] @relation("AdminPasswordResetTokens")
+
+  outboundMessages OutboundMessage[] @relation("AdminOutboundMessages")
 
   @@index([status])
   @@map("admins")
@@ -459,6 +498,10 @@ model AdminCredential {
 // Admin Session
 // ======================================================
 
+/// Defined in the migration, not expressible here:
+///   admin_sessions_live_device_key   UNIQUE (admin_id, device_id) WHERE revoked_at IS NULL
+///     One live session per device, so concurrent sign-ins cannot both succeed —
+///     the same guarantee as user_sessions_live_device_key.
 model AdminSession {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -559,4 +602,115 @@ model AdminPasswordResetToken {
   @@index([adminId, status])
   @@index([expiresAt])
   @@map("admin_password_reset_tokens")
+}
+
+// ======================================================
+// Outbox Message Model
+// ======================================================
+
+/// Intent to enqueue a job, written in the same transaction as the change that
+/// caused it. Short-lived: `payload` is cleared on dispatch, rows removed after a day.
+///
+/// Defined in the migration, not expressible here:
+///   outbox_messages_pending_idx   (available_at) WHERE status = 'PENDING'
+///   outbox_messages_cleanup_idx   (created_at)   WHERE status <> 'PENDING'
+///   chk_outbox_messages_dispatched        status <> 'DISPATCHED' OR dispatched_at IS NOT NULL
+///   chk_outbox_messages_pending_payload   status <> 'PENDING' OR payload IS NOT NULL
+///   autovacuum_vacuum_scale_factor = 0.01 (high-churn table)
+model OutboxMessage {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  queue String @db.VarChar(64)
+
+  jobName String @map("job_name") @db.VarChar(100)
+
+  payload Json? @db.JsonB
+
+  options Json? @db.JsonB
+
+  idempotencyKey String @unique @map("idempotency_key") @db.VarChar(200)
+
+  status OutboxStatus @default(PENDING)
+
+  attempts Int @default(0)
+
+  lastError String? @map("last_error") @db.VarChar(1000)
+
+  availableAt DateTime @default(now()) @map("available_at") @db.Timestamptz(6)
+
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  dispatchedAt DateTime? @map("dispatched_at") @db.Timestamptz(6)
+
+  @@map("outbox_messages")
+}
+
+// ======================================================
+// Outbound Message Model
+// ======================================================
+
+/// Every email and SMS the platform sends. Never stores the body — an OTP lives in it.
+///
+/// Defined in the migration, not expressible here:
+///   outbound_messages_recipient_user_id_created_at_idx
+///     (recipient_user_id, created_at DESC) WHERE recipient_user_id IS NOT NULL
+///   outbound_messages_recipient_admin_id_created_at_idx
+///     (recipient_admin_id, created_at DESC) WHERE recipient_admin_id IS NOT NULL
+///   outbound_messages_problems_idx
+///     (created_at DESC) WHERE status IN ('FAILED', 'BOUNCED', 'COMPLAINED')
+///   chk_outbound_messages_single_recipient
+///     recipient_user_id IS NULL OR recipient_admin_id IS NULL
+model OutboundMessage {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  channel MessageChannel
+
+  category MessageCategory
+
+  templateKey String @map("template_key") @db.VarChar(100)
+
+  recipient String @db.VarChar(320)
+
+  recipientUserId String? @map("recipient_user_id") @db.Uuid
+
+  recipientUser User? @relation("UserOutboundMessages", fields: [recipientUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  recipientAdminId String? @map("recipient_admin_id") @db.Uuid
+
+  recipientAdmin Admin? @relation("AdminOutboundMessages", fields: [recipientAdminId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  status MessageStatus @default(QUEUED)
+
+  provider String? @db.VarChar(32)
+
+  providerMessageId String? @map("provider_message_id") @db.VarChar(255)
+
+  idempotencyKey String @unique @map("idempotency_key") @db.VarChar(200)
+
+  subject String? @db.VarChar(998)
+
+  attempts Int @default(0)
+
+  errorCode String? @map("error_code") @db.VarChar(100)
+
+  errorMessage String? @map("error_message") @db.VarChar(1000)
+
+  metadata Json? @db.JsonB
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sentAt DateTime? @map("sent_at") @db.Timestamptz(6)
+
+  deliveredAt DateTime? @map("delivered_at") @db.Timestamptz(6)
+
+  failedAt DateTime? @map("failed_at") @db.Timestamptz(6)
+
+  @@unique([provider, providerMessageId])
+  @@index([createdAt(sort: Desc)])
+  @@index([recipient, createdAt(sort: Desc)])
+  @@map("outbound_messages")
 }
