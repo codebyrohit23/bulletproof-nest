@@ -1,7 +1,9 @@
 import { EmailConfigService } from '#/config/email/index.js';
-import { EmailTransport } from '#/infrastructure/communication/email/index.js';
+import { EmailTransport, EmailTransportError } from '#/infrastructure/communication/email/index.js';
 import { JobHandler, type JobHandlerContract } from '#/infrastructure/queue/index.js';
 
+import type { MessageFailure } from '../../interfaces/index.js';
+import { MessageRecorder } from '../../ports/message-recorder.port.js';
 import { EMAIL_JOB } from '../constants/index.js';
 import type { EmailDeliveryPayload } from '../interfaces/index.js';
 import { renderEmail } from '../templates/template.renderer.js';
@@ -23,6 +25,7 @@ export class EmailDeliveryJob implements JobHandlerContract<EmailDeliveryPayload
   constructor(
     private readonly transport: EmailTransport,
     private readonly config: EmailConfigService,
+    private readonly recorder: MessageRecorder,
   ) {}
 
   async handle(payload: EmailDeliveryPayload): Promise<void> {
@@ -35,20 +38,49 @@ export class EmailDeliveryJob implements JobHandlerContract<EmailDeliveryPayload
      */
     const replyTo = payload.replyTo ?? this.config.replyTo;
 
-    await this.transport.send({
-      from: { address: this.config.from.address, name: this.config.from.name },
+    try {
+      const receipt = await this.transport.send({
+        from: { address: this.config.from.address, name: this.config.from.name },
 
-      to: payload.to.map((address) => ({ address })),
+        to: payload.to.map((address) => ({ address })),
 
-      ...(replyTo !== undefined ? { replyTo: { address: replyTo } } : {}),
+        ...(replyTo !== undefined ? { replyTo: { address: replyTo } } : {}),
 
-      subject: rendered.subject,
+        subject: rendered.subject,
 
-      html: rendered.html,
+        html: rendered.html,
 
-      text: rendered.text,
+        text: rendered.text,
 
-      idempotencyKey: payload.idempotencyKey,
-    });
+        idempotencyKey: payload.idempotencyKey,
+      });
+
+      await this.recorder.markSent(payload.messageId, {
+        provider: receipt.provider,
+        providerMessageId: receipt.providerMessageId,
+      });
+    } catch (error) {
+      /*
+       * Recorded on every attempt, and the error is re-thrown so the queue keeps
+       * its retries. A later attempt that succeeds moves the record forward
+       * again, because a status never walks backwards.
+       *
+       * If recording itself fails the job fails with it and runs again, which
+       * can hand the provider a message it has already accepted — the transport
+       * carries `idempotencyKey` for exactly that. A duplicate the provider will
+       * drop is a better outcome than a record that stays wrong forever.
+       */
+      await this.recorder.markFailed(payload.messageId, toMessageFailure(error));
+
+      throw error;
+    }
   }
+}
+
+function toMessageFailure(error: unknown): MessageFailure {
+  if (error instanceof EmailTransportError) {
+    return { code: error.code, message: error.message };
+  }
+
+  return { message: error instanceof Error ? error.message : 'Email delivery failed' };
 }

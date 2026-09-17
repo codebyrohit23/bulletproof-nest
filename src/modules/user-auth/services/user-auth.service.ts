@@ -111,6 +111,7 @@ export class UserAuthService {
           EMAIL_TEMPLATE.OTP_VERIFICATION,
           identifier,
           issued,
+          userId,
           'register-user',
         );
       }
@@ -175,6 +176,7 @@ export class UserAuthService {
       EMAIL_TEMPLATE.OTP_VERIFICATION,
       identifier,
       issued,
+      existing.userId,
       'resend-verification',
     );
 
@@ -236,7 +238,13 @@ export class UserAuthService {
       return null;
     }
 
-    await this.deliverCode(EMAIL_TEMPLATE.LOGIN_OTP, identifier, issued, 'request-login-otp');
+    await this.deliverCode(
+      EMAIL_TEMPLATE.LOGIN_OTP,
+      identifier,
+      issued,
+      existing.userId,
+      'request-login-otp',
+    );
 
     return null;
   }
@@ -353,6 +361,7 @@ export class UserAuthService {
       EMAIL_TEMPLATE.PASSWORD_RESET,
       identifier,
       issued,
+      existing.userId,
       'request-password-reset-otp',
     );
 
@@ -621,6 +630,7 @@ export class UserAuthService {
         EMAIL_TEMPLATE.OTP_VERIFICATION,
         identifier,
         issued,
+        userId,
         'login-verification-challenge',
       );
     }
@@ -641,6 +651,7 @@ export class UserAuthService {
       | typeof EMAIL_TEMPLATE.PASSWORD_RESET,
     identifier: IdentifierInput,
     issued: IssuedVerificationCode,
+    userId: string,
     operation: string,
   ): Promise<void> {
     if (identifier.type !== IdentifierType.EMAIL) {
@@ -657,6 +668,7 @@ export class UserAuthService {
       to: identifier.value,
       data: { code: issued.code, expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES },
       idempotencyKey: `verification-${issued.id}`,
+      recipientRef: { userId },
     });
   }
 
