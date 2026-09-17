@@ -1,1 +1,1 @@
-export * from './outbound-message.repository.js';
+export { OutboundMessageRepository } from './outbound-message.repository.js';

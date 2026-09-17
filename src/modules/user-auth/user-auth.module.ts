@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 
 import { SessionValidator } from '#/core/auth/index.js';
-import { EmailModule } from '#/core/communication/email/index.js';
 import { UsersModule } from '#/modules/users/index.js';
 import { VerificationModule } from '#/modules/verification/index.js';
 
@@ -60,7 +59,7 @@ import { UserSessionService } from './services/user-session.service.js';
  * dependency arrow keeps pointing at `core`. See `AuthModule.forRoot`.
  */
 @Module({
-  imports: [UsersModule, VerificationModule, EmailModule],
+  imports: [UsersModule, VerificationModule],
   controllers: [UserAuthController],
   providers: [
     UserIdentityRepository,

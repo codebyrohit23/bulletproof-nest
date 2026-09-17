@@ -1,3 +1,5 @@
+import type { MessageCategory } from '../../constants/index.js';
+import type { MessageRecipient } from '../../interfaces/index.js';
 import type { EmailTemplateId } from '../constants/index.js';
 
 /**
@@ -37,6 +39,16 @@ export interface SendEmailInput<TData> {
 
   /** Overrides the configured reply address for this one message. */
   readonly replyTo?: string;
+
+  /**
+   * Who the message is for in this system's terms, so support can answer "was
+   * anything sent to this account" without matching on an address someone has
+   * since changed. Left out when the caller has no account to point at.
+   */
+  readonly recipientRef?: MessageRecipient;
+
+  /** Defaults to transactional. Campaigns say so explicitly. */
+  readonly category?: MessageCategory;
 }
 
 /**
@@ -53,6 +65,9 @@ export interface SendEmailInput<TData> {
  */
 export interface EmailDeliveryPayload {
   readonly template: EmailTemplateId;
+
+  /** The `outbound_messages` row to report the outcome against. */
+  readonly messageId: string;
 
   readonly to: readonly string[];
 

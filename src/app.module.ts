@@ -16,6 +16,7 @@ import { ValidationModule } from '#/core/validation/index.js';
 import { PrismaModule } from '#/infrastructure/database/prisma/index.js';
 import { QueueModule, QueueWorkerModule } from '#/infrastructure/queue/index.js';
 import { RedisModule } from '#/infrastructure/redis/index.js';
+import { CommunicationModule } from '#/modules/communication/index.js';
 import { HealthModule } from '#/modules/health/index.js';
 import { UserAuthModule } from '#/modules/user-auth/index.js';
 import { UsersModule } from '#/modules/users/index.js';
@@ -43,13 +44,14 @@ import { UsersModule } from '#/modules/users/index.js';
     ValidationModule,
     SecurityModule,
     JwtModule,
-    EmailModule,
 
     HealthModule,
     UsersModule,
     UserAuthModule,
+    CommunicationModule,
 
     AuthModule.forRoot({ imports: [UserAuthModule] }),
+    EmailModule.forRoot({ imports: [CommunicationModule] }),
   ],
   controllers: [],
   providers: [],

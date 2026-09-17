@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 
 import { JobDispatcher, QUEUE } from '#/infrastructure/queue/index.js';
 
+import { MESSAGE_CATEGORY, MESSAGE_CHANNEL } from '../../constants/index.js';
+import { MessageRecorder } from '../../ports/message-recorder.port.js';
 import { EMAIL_JOB, type EmailTemplateId } from '../constants/index.js';
 import type { EmailDeliveryPayload, SendEmailInput } from '../interfaces/index.js';
 import {
@@ -29,7 +31,11 @@ import {
  */
 @Injectable()
 export class EmailService {
-  constructor(private readonly jobs: JobDispatcher) {}
+  constructor(
+    private readonly jobs: JobDispatcher,
+
+    private readonly recorder: MessageRecorder,
+  ) {}
 
   /**
    * `template` is a separate argument so TypeScript infers it before checking
@@ -52,10 +58,36 @@ export class EmailService {
      */
     parseTemplateData(requireEmailTemplate(template), input.data);
 
+    const to = typeof input.to === 'string' ? [input.to] : input.to;
+    const [primaryRecipient] = to;
+
+    if (primaryRecipient === undefined) {
+      throw new Error(`No recipient for email template "${template}"`);
+    }
+
+    /*
+     * Recorded before dispatch and inside whatever transaction the caller is in,
+     * so the record and the write that caused it commit or roll back together.
+     *
+     * One row, addressed to the first recipient: every template here writes to
+     * one person. Fanning out to a row per address is a campaign concern, and
+     * belongs with the campaign that needs per-recipient delivery state.
+     */
+    const messageId = await this.recorder.record({
+      channel: MESSAGE_CHANNEL.EMAIL,
+      category: input.category ?? MESSAGE_CATEGORY.TRANSACTIONAL,
+      templateKey: template,
+      recipient: primaryRecipient,
+      idempotencyKey: input.idempotencyKey,
+      ...(input.recipientRef !== undefined ? { recipientRef: input.recipientRef } : {}),
+    });
+
     const payload: EmailDeliveryPayload = {
       template,
 
-      to: typeof input.to === 'string' ? [input.to] : input.to,
+      messageId,
+
+      to,
 
       data: input.data,
 
