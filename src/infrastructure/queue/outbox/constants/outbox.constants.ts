@@ -1,0 +1,31 @@
+export const OUTBOX_LOG_CONTEXT = 'Outbox';
+
+export const OUTBOX_HEALTH_KEY = 'outbox';
+
+export const OUTBOX_RELAY = {
+  BATCH_SIZE: 50,
+
+  POLL_INTERVAL_MS: 4_000,
+
+  FAST_PATH_GRACE_MS: 10_000,
+
+  LEASE_MS: 30_000,
+
+  MAX_ATTEMPTS: 10,
+
+  BACKOFF_BASE_MS: 2_000,
+
+  BACKOFF_MAX_MS: 300_000,
+
+  TICK_BACKOFF_MAX_MS: 60_000,
+} as const;
+
+export const OUTBOX_RETENTION = {
+  KEEP_FOR_MS: 86_400_000,
+
+  PURGE_BATCH_SIZE: 1_000,
+
+  PURGE_INTERVAL_MS: 3_600_000,
+} as const;
+
+export const OUTBOX_LAST_ERROR_MAX_LENGTH = 1_000;

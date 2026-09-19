@@ -10,14 +10,20 @@ export class OutboundMessageRepository {
   /**
    * Uses `prisma.db`, so a record written during a request joins that request's
    * transaction and disappears with it on rollback.
+   *
+   * Returns `null` when the idempotency key already exists. `ON CONFLICT DO
+   * NOTHING` rather than catching the unique violation: inside a transaction
+   * Postgres aborts on the first error, and the lookup that follows a caught one
+   * would fail along with everything else the request still had to write.
    */
-  async create(data: Prisma.OutboundMessageUncheckedCreateInput): Promise<string> {
-    const { id } = await this.prisma.db.outboundMessage.create({
-      data,
+  async insertIfAbsent(data: Prisma.OutboundMessageCreateManyInput): Promise<string | null> {
+    const [created] = await this.prisma.db.outboundMessage.createManyAndReturn({
+      data: [data],
+      skipDuplicates: true,
       select: { id: true },
     });
 
-    return id;
+    return created?.id ?? null;
   }
 
   async findIdByIdempotencyKey(idempotencyKey: string): Promise<string | null> {

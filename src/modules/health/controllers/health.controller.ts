@@ -11,7 +11,11 @@ import { Public } from '#/core/auth/index.js';
 import { RawResponse } from '#/core/interceptors/index.js';
 import { SkipRateLimit } from '#/core/rate-limit/index.js';
 import { PrismaHealthIndicator } from '#/infrastructure/database/prisma/index.js';
-import { QueueHealthIndicator, WorkerHealthIndicator } from '#/infrastructure/queue/index.js';
+import {
+  OutboxHealthIndicator,
+  QueueHealthIndicator,
+  WorkerHealthIndicator,
+} from '#/infrastructure/queue/index.js';
 import { RedisHealthIndicator } from '#/infrastructure/redis/index.js';
 import { HEALTH_API_TAG } from '#/shared/constants/index.js';
 
@@ -31,7 +35,8 @@ export class HealthController {
 
     private readonly queue: QueueHealthIndicator,
 
-    /** Absent in a process that runs no workers; its check then drops out on its own. */
+    private readonly outbox: OutboxHealthIndicator,
+
     @Optional() private readonly workers?: WorkerHealthIndicator,
   ) {}
 
@@ -48,7 +53,8 @@ export class HealthController {
 
   @Get('ready')
   @ApiOperation({
-    summary: 'Readiness — can it serve traffic? Checks Postgres, Redis, the queue and its workers.',
+    summary:
+      'Readiness — can it serve traffic? Checks Postgres, Redis, the queue and its workers; reports the outbox backlog.',
   })
   @RawResponse()
   @HealthCheck()
@@ -57,6 +63,7 @@ export class HealthController {
       () => this.prisma.isHealthy(),
       () => this.redis.isHealthy(),
       () => this.queue.isHealthy(),
+      () => this.outbox.isHealthy(),
     ];
 
     const workers = this.workers;

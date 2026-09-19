@@ -3,6 +3,7 @@ import { DiscoveryModule } from '@nestjs/core';
 import { TerminusModule } from '@nestjs/terminus';
 
 import { WorkerHealthIndicator } from './indicators/worker-health.indicator.js';
+import { OutboxRelay, OutboxRepository } from './outbox/index.js';
 import {
   DefaultQueueProcessor,
   ImportsQueueProcessor,
@@ -10,6 +11,7 @@ import {
   WebhooksQueueProcessor,
 } from './processors/queue.processors.js';
 import { JobHandlerRegistry } from './registry/job-handler.registry.js';
+import { JobPublisher } from './services/job-publisher.service.js';
 import { JobRunner } from './services/job-runner.service.js';
 
 @Global()
@@ -20,6 +22,10 @@ import { JobRunner } from './services/job-runner.service.js';
     JobHandlerRegistry,
     JobRunner,
     WorkerHealthIndicator,
+
+    OutboxRepository,
+    JobPublisher,
+    OutboxRelay,
 
     EmailQueueProcessor,
     WebhooksQueueProcessor,

@@ -55,7 +55,7 @@ export class VerificationCodeService {
       });
     });
 
-    return { id: record.id, code };
+    return { id: record.id, code, expiresAt: record.expiresAt };
   }
 
   async verify(
@@ -109,11 +109,6 @@ export class VerificationCodeService {
     }
   }
 
-  /**
-   * About guessing a code, not about asking for one too often — a user who
-   * confused the two would take the wrong action: stop guessing, versus wait.
-   * Asking too often is the route's quota, and never reaches this service.
-   */
   private tooManyAttempts(): HttpException {
     return new HttpException(
       VERIFICATION_ERROR_MESSAGE.TOO_MANY_CODE_ATTEMPTS,
@@ -122,11 +117,6 @@ export class VerificationCodeService {
   }
 }
 
-/**
- * An expired code can never be fresh — the interval is measured in seconds and
- * the TTL in minutes — so there is no expiry check here to keep in step with
- * one.
- */
 function isFresh(record: VerificationCode): boolean {
   return Date.now() - record.createdAt.getTime() < VERIFICATION_CODE_MIN_RESEND_INTERVAL_MS;
 }

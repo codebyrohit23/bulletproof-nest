@@ -3,6 +3,8 @@ export interface IssuedVerificationCode {
   readonly id: string;
 
   readonly code: string;
+
+  readonly expiresAt: Date;
 }
 
 export interface IssueVerificationCodeInput {

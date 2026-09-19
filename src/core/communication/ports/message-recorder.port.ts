@@ -6,4 +6,6 @@ export abstract class MessageRecorder {
   abstract markSent(id: string, receipt: MessageReceipt): Promise<void>;
 
   abstract markFailed(id: string, failure: MessageFailure): Promise<void>;
+
+  abstract markExpired(id: string): Promise<void>;
 }

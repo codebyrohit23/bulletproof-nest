@@ -12,9 +12,13 @@ const perIdentifier = (name: string, limit: number): RateLimitDefinition => ({
   by: { bodyField: 'identifier.value' },
 });
 
-const perEmail = (name: string, limit: number): RateLimitDefinition => ({
+const perEmail = (
+  name: string,
+  limit: number,
+  windowMs = FIVE_MINUTES_MS,
+): RateLimitDefinition => ({
   name,
-  rule: { limit, windowMs: FIVE_MINUTES_MS },
+  rule: { limit, windowMs },
   by: { bodyField: 'email' },
 });
 
@@ -51,7 +55,16 @@ export const AUTH_RATE_LIMIT = {
 
   VERIFY_RESET_OTP: [perEmail('verify-reset-otp', 10), perIp('verify-code-by-ip', 30)],
 
-  LOGIN: [perEmail('login', 10), perIp('login-by-ip', 30)],
+  /*
+   * The five-minute budget alone still allows ~2,900 guesses a day at one
+   * account. The hourly one caps that near 700 without a real user ever
+   * meeting it. Throttling, not lockout: a lockout lets anyone lock anyone out.
+   */
+  LOGIN: [
+    perEmail('login', 10),
+    perEmail('login-hourly', 30, ONE_HOUR_MS),
+    perIp('login-by-ip', 30),
+  ],
 
   REFRESH: [perIp('refresh-by-ip', 120)],
 

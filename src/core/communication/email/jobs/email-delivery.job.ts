@@ -29,16 +29,17 @@ export class EmailDeliveryJob implements JobHandlerContract<EmailDeliveryPayload
   ) {}
 
   async handle(payload: EmailDeliveryPayload): Promise<void> {
-    const rendered = await renderEmail(payload.template, payload.data);
+    if (payload.expiresAt !== undefined && Date.parse(payload.expiresAt) <= Date.now()) {
+      await this.recorder.markExpired(payload.messageId);
 
-    /*
-     * The sender is resolved here rather than carried on the payload: it is
-     * configuration, and a job queued before a domain change should go out from
-     * the address that is correct now, not the one that was correct then.
-     */
-    const replyTo = payload.replyTo ?? this.config.replyTo;
+      return;
+    }
 
     try {
+      const rendered = await renderEmail(payload.template, payload.data);
+
+      const replyTo = payload.replyTo ?? this.config.replyTo;
+
       const receipt = await this.transport.send({
         from: { address: this.config.from.address, name: this.config.from.name },
 
@@ -60,16 +61,6 @@ export class EmailDeliveryJob implements JobHandlerContract<EmailDeliveryPayload
         providerMessageId: receipt.providerMessageId,
       });
     } catch (error) {
-      /*
-       * Recorded on every attempt, and the error is re-thrown so the queue keeps
-       * its retries. A later attempt that succeeds moves the record forward
-       * again, because a status never walks backwards.
-       *
-       * If recording itself fails the job fails with it and runs again, which
-       * can hand the provider a message it has already accepted — the transport
-       * carries `idempotencyKey` for exactly that. A duplicate the provider will
-       * drop is a better outcome than a record that stays wrong forever.
-       */
       await this.recorder.markFailed(payload.messageId, toMessageFailure(error));
 
       throw error;

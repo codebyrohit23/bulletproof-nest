@@ -69,9 +69,11 @@ function wrap(kind: string, value: string | undefined | null): Subject | null {
 /**
  * Walks a dot path into a parsed body.
  *
- * Lowercased, because the subject of a limit is the thing being acted on and
- * `A@example.com` is the same mailbox as `a@example.com`. Without it, varying
- * the case of an address is enough to open a fresh budget.
+ * Trimmed and lowercased the way the request's own schema will be, because the
+ * subject of a limit is the account being acted on. Guards run before
+ * validation, so this sees the raw body: without the trim, `a@example.com ` is
+ * the same account to the login but a fresh budget to the limiter, and one
+ * trailing space per attempt opens a new one.
  */
 function readBodyField(body: unknown, path: string): string | null {
   let current: unknown = body;
@@ -84,5 +86,11 @@ function readBodyField(body: unknown, path: string): string | null {
     current = (current as Record<string, unknown>)[segment];
   }
 
-  return typeof current === 'string' && current.length > 0 ? current.toLowerCase() : null;
+  if (typeof current !== 'string') {
+    return null;
+  }
+
+  const subject = current.trim().toLowerCase();
+
+  return subject.length > 0 ? subject : null;
 }

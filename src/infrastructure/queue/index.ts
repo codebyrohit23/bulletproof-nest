@@ -20,7 +20,7 @@
  *         constructor(private readonly jobs: JobDispatcher) {}
  *         sendWelcomeEmail(userId: string) {
  *           return this.jobs.dispatch(QUEUE.EMAIL, USER_WELCOME_EMAIL, { userId }, {
- *             jobId: `welcome:${userId}`,
+ *             jobId: `welcome-${userId}`,   // no ":" — BullMQ rejects it
  *           });
  *         }
  *       }
@@ -79,6 +79,8 @@ export { JobHandler } from './decorators/job-handler.decorator.js';
 export { QueueHealthIndicator } from './indicators/queue-health.indicator.js';
 
 export { WorkerHealthIndicator } from './indicators/worker-health.indicator.js';
+
+export { OUTBOX_HEALTH_KEY, OutboxHealthIndicator } from './outbox/index.js';
 
 export {
   QUEUE,

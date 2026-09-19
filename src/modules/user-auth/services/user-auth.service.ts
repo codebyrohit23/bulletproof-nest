@@ -58,6 +58,7 @@ import type {
 import {
   PASSWORD_RESET_TOKEN_OUTCOME,
   REFRESH_TOKEN_OUTCOME,
+  type CodeEmailTemplate,
   type DeclaredDevice,
   type PasswordResetTokenOutcome,
 } from '../interfaces/index.js';
@@ -101,20 +102,13 @@ export class UserAuthService {
     return this.transaction.run<RegisterResponse>(async () => {
       const userId = await this.createAccount(payload);
 
-      const issued = await this.verificationCodeService.issueIfDue(
+      await this.issueAndDeliver(
+        EMAIL_TEMPLATE.OTP_VERIFICATION,
         identifier,
         verificationPurposeFor(identifier.type),
+        userId,
+        'register-user',
       );
-
-      if (issued !== null) {
-        await this.deliverCode(
-          EMAIL_TEMPLATE.OTP_VERIFICATION,
-          identifier,
-          issued,
-          userId,
-          'register-user',
-        );
-      }
 
       return { userId, identifier, verificationRequired: true };
     });
@@ -166,16 +160,10 @@ export class UserAuthService {
       return null;
     }
 
-    const issued = await this.verificationCodeService.issueIfDue(identifier, purpose);
-
-    if (issued === null) {
-      return null;
-    }
-
-    await this.deliverCode(
+    await this.issueAndDeliver(
       EMAIL_TEMPLATE.OTP_VERIFICATION,
       identifier,
-      issued,
+      purpose,
       existing.userId,
       'resend-verification',
     );
@@ -229,19 +217,10 @@ export class UserAuthService {
       return null;
     }
 
-    const issued = await this.verificationCodeService.issueIfDue(
-      identifier,
-      VerificationPurpose.LOGIN,
-    );
-
-    if (issued === null) {
-      return null;
-    }
-
-    await this.deliverCode(
+    await this.issueAndDeliver(
       EMAIL_TEMPLATE.LOGIN_OTP,
       identifier,
-      issued,
+      VerificationPurpose.LOGIN,
       existing.userId,
       'request-login-otp',
     );
@@ -348,19 +327,10 @@ export class UserAuthService {
 
     const identifier = { type: IdentifierType.EMAIL, value: email };
 
-    const issued = await this.verificationCodeService.issueIfDue(
-      identifier,
-      VerificationPurpose.PASSWORD_RESET,
-    );
-
-    if (issued === null) {
-      return null;
-    }
-
-    await this.deliverCode(
+    await this.issueAndDeliver(
       EMAIL_TEMPLATE.PASSWORD_RESET,
       identifier,
-      issued,
+      VerificationPurpose.PASSWORD_RESET,
       existing.userId,
       'request-password-reset-otp',
     );
@@ -620,20 +590,13 @@ export class UserAuthService {
     userId: string,
     identifier: IdentifierInput,
   ): Promise<AuthResult> {
-    const issued = await this.verificationCodeService.issueIfDue(
+    await this.issueAndDeliver(
+      EMAIL_TEMPLATE.OTP_VERIFICATION,
       identifier,
       verificationPurposeFor(identifier.type),
+      userId,
+      'login-verification-challenge',
     );
-
-    if (issued !== null) {
-      await this.deliverCode(
-        EMAIL_TEMPLATE.OTP_VERIFICATION,
-        identifier,
-        issued,
-        userId,
-        'login-verification-challenge',
-      );
-    }
 
     return {
       status: AUTH_RESULT_STATUS.VERIFICATION_REQUIRED,
@@ -644,11 +607,30 @@ export class UserAuthService {
     };
   }
 
+  /**
+   * Issues a code if one is due and queues the email carrying it, in one
+   * transaction: the code and the outbox row that delivers it commit together,
+   * so a code never exists without its message on the way. Joins the caller's
+   * transaction when there is one.
+   */
+  private issueAndDeliver(
+    template: CodeEmailTemplate,
+    identifier: IdentifierInput,
+    purpose: VerificationPurpose,
+    userId: string,
+    operation: string,
+  ): Promise<void> {
+    return this.transaction.run(async () => {
+      const issued = await this.verificationCodeService.issueIfDue(identifier, purpose);
+
+      if (issued !== null) {
+        await this.deliverCode(template, identifier, issued, userId, operation);
+      }
+    });
+  }
+
   private async deliverCode(
-    template:
-      | typeof EMAIL_TEMPLATE.OTP_VERIFICATION
-      | typeof EMAIL_TEMPLATE.LOGIN_OTP
-      | typeof EMAIL_TEMPLATE.PASSWORD_RESET,
+    template: CodeEmailTemplate,
     identifier: IdentifierInput,
     issued: IssuedVerificationCode,
     userId: string,
@@ -669,6 +651,7 @@ export class UserAuthService {
       data: { code: issued.code, expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES },
       idempotencyKey: `verification-${issued.id}`,
       recipientRef: { userId },
+      expiresAt: issued.expiresAt,
     });
   }
 

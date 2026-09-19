@@ -30,7 +30,7 @@ This is the rule the whole `src` tree is arranged around. It is enforced by
 `pnpm lint`, not review.
 
 ```
-modules/          features: user-auth, users, verification, health
+modules/          features: user-auth, users, verification, communication, health
    │
    ├──→ core/            policy: auth, cache, csrf, rate-limit, jwt,
    │                     logger, context, exceptions, documentation, …
@@ -132,8 +132,15 @@ direction, not to anticipate a second adapter. Do not add a port without one of
 these reasons; an abstraction with a single caller and no layering problem is
 indirection.
 
-Existing ports: `SessionValidator`, `CacheStore`, `RateLimitStore`,
-`EmailTransport`.
+`MessageRecorder` has the same shape. `core/communication` states what
+recording a sent message needs; `outbound_messages` belongs to
+`modules/communication`, which satisfies it; `AppModule` wires them with
+`EmailModule.forRoot({ imports: [CommunicationModule] })`. `EmailModule` is
+global for the reason `AuthModule` is — a module importing the plain class would
+get a second copy with no recorder behind it.
+
+Existing ports: `SessionValidator`, `MessageRecorder`, `CacheStore`,
+`RateLimitStore`, `EmailTransport`.
 
 ---
 
@@ -176,11 +183,14 @@ in `shared/constants/` when two layers must agree on the value. Rate-limit
 budgets, TTLs and column widths are code, not environment variables — they are
 decisions reviewed in a pull request and identical everywhere the app runs.
 
-**Make drift a build error** where the language allows it. Two examples already
-in the tree:
+**Make drift a build error** where the language allows it. Examples already in
+the tree:
 
 - `EMAIL_TEMPLATES … satisfies Record<EmailTemplateId, …>` — adding a template
   id without registering its template fails the build.
+- `MESSAGE_CHANNEL_COLUMN … satisfies Record<MessageChannel, …>` in
+  `modules/communication` — a channel added to the port without a database value
+  fails the build.
 - `SessionDeviceColumns = Pick<Prisma.UserSessionUncheckedCreateInput, keyof DeviceContext>`
   in `modules/user-auth/interfaces/device-context.interface.ts` — a field added
   to `DeviceContext` that is not a column fails the build, because the spread
@@ -231,13 +241,61 @@ Prisma 7 with the `pg` driver adapter over an app-owned pool.
   `PrismaClient`.** This is what lets a repository be written once and behave
   correctly inside or outside a transaction.
 - Wrap multi-step writes in `TransactionService.run`. Side effects that must not
-  fire on rollback go in `runAfterCommit` — `JobDispatcher` already does this,
-  so enqueueing inside a transaction is safe.
+  fire on rollback go in `runAfterCommit`. Jobs go through `JobDispatcher`,
+  which writes them to the outbox inside the transaction — see the next section.
 - Soft delete is a `deletedAt` update, not `delete`. The extension filters reads
   for models listed in `SOFT_DELETABLE_MODELS`. `delete`/`deleteMany` still hard
   delete, deliberately.
-- Some constraints cannot be expressed in `schema.prisma` — partial unique
-  indexes live in the migration, with a comment in the schema pointing at it.
+- Some things cannot be expressed in `schema.prisma`: partial unique indexes,
+  check constraints, storage parameters. They are listed in a `///` comment on
+  the model and **added to the migration by hand** after
+  `migrate dev --create-only`. Prisma neither generates them nor notices when
+  they are missing — they were left out twice while the outbox was built. Never
+  edit a migration once applied (its checksum is recorded); add a new one.
+
+---
+
+## Jobs, the outbox and email
+
+`JobDispatcher.dispatch` is the one way to enqueue work. `OutboxRepository` and
+`JobPublisher` are deliberately not exported from `QueueModule`: a caller that
+wrote the outbox or published directly would skip the commit guarantee or the
+context capture.
+
+**A committed transaction means the job will run.** `dispatch` writes the job to
+`outbox_messages` through `prisma.db`, so it commits or rolls back with the
+caller's writes, and publishes it as soon as the transaction commits. If that
+fails — Redis unreachable, the process killed between commit and publish — the
+row stays `PENDING` and `OutboxRelay` publishes it. The relay runs with the
+workers, leases rows with `FOR UPDATE SKIP LOCKED` so several can run at once,
+backs off, gives up loudly after ten attempts, and purges finished rows after a
+day. Readiness reports the backlog but never fails on it.
+
+Rules that are not visible from the code that follows them:
+
+- **A job id is derived from what the job is about** — `verification-<codeId>` —
+  never a timestamp or a random value. It is the deduplication key in the
+  outbox, in BullMQ and at the email provider; a unique-per-attempt id defeats
+  all three at once.
+- **A job id never contains `:`.** BullMQ rejects it; `dispatch` refuses it up
+  front.
+- **Payloads carry ids, not documents, and handlers are idempotent.** Delivery
+  is at least once.
+- **Anything carrying a one-time code sets `expiresAt`**, so it is dropped
+  rather than delivered late — by the relay if it never left the outbox, by the
+  worker if it waited in the queue.
+- Retries and retention per queue live in `QUEUE_SETTINGS` and are applied to
+  every job by `JobPublisher` — BullMQ's own default is a single attempt. The
+  email queue keeps no completed jobs, because their payloads carry codes.
+- The BullMQ connection needs `maxRetriesPerRequest: null`; BullMQ refuses to
+  start otherwise.
+
+**Email** goes through `EmailService.send` only. It records the message in
+`outbound_messages` inside the caller's transaction, then dispatches. The record
+never holds the body — a code travels in it. Status only moves forward
+(`MESSAGE_STATUS_RANK`), because provider webhooks arrive out of order. A flow
+that issues a one-time code uses `issueAndDeliver` in `UserAuthService`, so the
+code and its email commit together.
 
 ---
 
@@ -249,7 +307,8 @@ container and is a real smoke test — it connects Postgres and Redis.
 
 When adding tests, start with the logic that needed a paragraph of explanation:
 `RateLimitService.consumeAll` refunds, the soft-delete extension, session
-device-binding concurrency, `PasswordService.verify`'s null branch.
+device-binding concurrency, `PasswordService.verify`'s null branch, the outbox
+lease and relay, and `MESSAGE_STATUS_RANK`.
 
 ---
 
@@ -262,7 +321,7 @@ directory when you write the first file in it, not before.
 
 | Area                                | Build it when                                                       | Notes                                                                                                                                                                                                                                                                                                                                                                                          |
 | ----------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `core/events/`                      | a second consumer needs to react to something a module already does | `@nestjs/event-emitter` is not a dependency yet. `TransactionService.runAfterCommit` already covers "do X after this write commits", which is what most of the demand looks like — reach for events when one write needs _several_ independent reactions. Domain events are modelled in `docs/phase-2-domain-model/06-domain-events.md`.                                                       |
+| `core/events/`                      | a second consumer needs to react to something a module already does | `@nestjs/event-emitter` is not a dependency yet. `JobDispatcher` and its outbox already cover "do X after this write commits", durably, which is what most of the demand looks like — reach for events when one write needs _several_ independent reactions. Domain events are modelled in `docs/phase-2-domain-model/06-domain-events.md`.                                                    |
 | `core/permissions/`                 | with the workspace/membership schema                                | RBAC per ADR-002. Needs `permissions`, `organization_roles` and `role_permissions` tables first; a permission guard with nothing to resolve against is not testable. Resolution should cache through `CacheService`.                                                                                                                                                                           |
 | `infrastructure/communication/sms/` | phone verification ships                                            | Mirrors `infrastructure/communication/email/`: an `SmsTransport` abstract class, a provider adapter, and a log adapter for local development. The schema already supports it (`IdentifierType.PHONE`, `VerificationPurpose.PHONE_VERIFICATION`) but no flow sends a code by SMS. Note the queue is named `email`, not `mail` — a separate SMS queue is a workload-class decision to make then. |
 | `modules/user-auth/mappers/`        | a row shape stops matching its DTO                                  | Today the services narrow rows by hand, explicitly, which is safer than a mapper while the shapes are small — see `buildAuthUser`. Add mappers when the same narrowing appears in three places, not before.                                                                                                                                                                                    |

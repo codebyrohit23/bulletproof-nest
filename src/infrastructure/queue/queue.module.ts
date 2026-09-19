@@ -7,7 +7,9 @@ import { RedisConfigService } from '#/config/redis/index.js';
 
 import { QUEUE_NAMES, buildQueuePrefix } from './constants/queue.constants.js';
 import { QueueHealthIndicator } from './indicators/queue-health.indicator.js';
+import { OutboxHealthIndicator, OutboxRepository } from './outbox/index.js';
 import { JobDispatcher } from './services/job-dispatcher.service.js';
+import { JobPublisher } from './services/job-publisher.service.js';
 
 @Global()
 @Module({
@@ -22,10 +24,6 @@ import { JobDispatcher } from './services/job-dispatcher.service.js';
           url: redisConfig.url,
           connectTimeout: redisConfig.connectTimeoutMs,
 
-          /*
-           * BullMQ requires this and refuses to start otherwise — its blocking
-           * commands have no meaningful retry limit.
-           */
           maxRetriesPerRequest: null,
 
           ...(redisConfig.tls !== undefined ? { tls: redisConfig.tls } : {}),
@@ -38,7 +36,13 @@ import { JobDispatcher } from './services/job-dispatcher.service.js';
     TerminusModule,
   ],
 
-  providers: [JobDispatcher, QueueHealthIndicator],
-  exports: [BullModule, JobDispatcher, QueueHealthIndicator],
+  providers: [
+    JobDispatcher,
+    JobPublisher,
+    OutboxRepository,
+    QueueHealthIndicator,
+    OutboxHealthIndicator,
+  ],
+  exports: [BullModule, JobDispatcher, QueueHealthIndicator, OutboxHealthIndicator],
 })
 export class QueueModule {}

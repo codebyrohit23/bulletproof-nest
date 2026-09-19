@@ -11,3 +11,5 @@ export * from './device-context.interface.js';
 export * from './user-session.interface.js';
 
 export * from './token-delivery.interface.js';
+
+export * from './code-delivery.interface.js';
