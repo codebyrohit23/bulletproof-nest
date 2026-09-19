@@ -327,13 +327,13 @@ directory when you write the first file in it, not before.
 | `modules/user-auth/mappers/`        | a row shape stops matching its DTO                                  | Today the services narrow rows by hand, explicitly, which is safer than a mapper while the shapes are small — see `buildAuthUser`. Add mappers when the same narrowing appears in three places, not before.                                                                                                                                                                                    |
 | `shared/decorators/`                | a decorator is needed by two layers                                 | Nothing is shared yet. Context decorators live in `core/context/decorators/`, rate limiting in `core/rate-limit/decorators/`, CSRF in `core/csrf/decorators/` — each with the subsystem that gives it meaning, which is where they should stay unless a genuinely generic one appears.                                                                                                         |
 
-Two folders are intentionally kept with an `export {}` barrel rather than
-deleted, because the barrel documents a plan precise enough to follow:
-`shared/pipes/` (a `parse-uuid.pipe.ts` for the first `:id` route).
-`core/context/index.ts` carries the same kind of note for fields that arrive
+`core/context/index.ts` carries a note of the same kind for fields that arrive
 with RBAC and OpenTelemetry.
 
-Shared schema primitives live in `shared/schemas/`. Email, phone and identifier
+Shared schema primitives live in `shared/schemas/`. `idSchema` is what an id is
+in this system; a URL id is validated with `@Param('id', ParseIdPipe)` from
+`core/validation` — Nest machinery stays out of `shared/`, which imports no
+framework. Email, phone and identifier
 schemas come in two strengths: `emailSchema` / `phoneSchema` / `identifierSchema`
 for **creating** an identity (disposable-domain blocklist, mobile-only), and
 `lookupEmailSchema` / `lookupPhoneSchema` / `lookupIdentifierSchema` for

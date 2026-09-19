@@ -1,5 +1,7 @@
 export { emailSchema, lookupEmailSchema } from './email.schema.js';
 
+export { idSchema, type Id } from './id.schema.js';
+
 export {
   identifierSchema,
   lookupIdentifierSchema,
