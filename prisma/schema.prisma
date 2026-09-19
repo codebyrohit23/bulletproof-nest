@@ -175,23 +175,25 @@ model User {
   // Relations
   // ======================================================
 
-  identities UserIdentity[] @relation("UserIdentities")
+  identities UserIdentity[] @relation("UserToUserIdentity")
 
-  credential UserCredential? @relation("UserCredential")
+  credential UserCredential? @relation("UserToUserCredential")
 
-  authAccounts UserAuthAccount[] @relation("UserAuthAccounts")
+  authAccounts UserAuthAccount[] @relation("UserToUserAuthAccount")
 
-  sessions UserSession[] @relation("UserSessions")
+  sessions UserSession[] @relation("UserToUserSession")
 
-  pushTokens UserPushToken[] @relation("UserPushTokens")
+  refreshTokens UserRefreshToken[] @relation("UserToUserRefreshToken")
 
-  passwordResetTokens UserPasswordResetToken[] @relation("UserPasswordResetTokens")
+  pushTokens UserPushToken[] @relation("UserToUserPushToken")
 
-  outboundMessages OutboundMessage[] @relation("UserOutboundMessages")
+  passwordResetTokens UserPasswordResetToken[] @relation("UserToUserPasswordResetToken")
 
-  // memberships WorkspaceMember[] @relation("UserMemberships")
+  outboundMessages OutboundMessage[] @relation("UserToOutboundMessage")
 
-  // invitationsSent WorkspaceInvitation[] @relation("UserSentInvitations")
+  // memberships WorkspaceMember[] @relation("UserToWorkspaceMember")
+
+  // invitationsSent WorkspaceInvitation[] @relation("UserToWorkspaceInvitation_InvitedBy")
 
   @@index([status])
   @@map("users")
@@ -205,7 +207,7 @@ model UserIdentity {
 
   userId String @map("user_id") @db.Uuid
 
-  user User @relation("UserIdentities", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user User @relation("UserToUserIdentity", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   identifierType IdentifierType @map("identifier_type")
 
@@ -228,7 +230,7 @@ model UserIdentity {
 model UserCredential {
   userId String @id @map("user_id") @db.Uuid
 
-  user User @relation("UserCredential", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user User @relation("UserToUserCredential", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   passwordHash String @map("password_hash") @db.VarChar(255)
 
@@ -249,7 +251,7 @@ model UserAuthAccount {
 
   userId String @map("user_id") @db.Uuid
 
-  user User @relation("UserAuthAccounts", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user User @relation("UserToUserAuthAccount", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   provider UserAuthProvider
 
@@ -272,7 +274,7 @@ model UserSession {
 
   userId String @map("user_id") @db.Uuid
 
-  user User @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user User @relation("UserToUserSession", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   deviceId String? @map("device_id") @db.VarChar(255)
 
@@ -313,7 +315,7 @@ model UserSession {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  refreshTokens UserRefreshToken[] @relation("UserRefreshTokens")
+  refreshTokens UserRefreshToken[] @relation("UserSessionToUserRefreshToken")
 
   @@index([userId])
   @@index([expiresAt])
@@ -326,9 +328,13 @@ model UserSession {
 model UserRefreshToken {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
+  userId String @map("user_id") @db.Uuid
+
+  user User @relation("UserToUserRefreshToken", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
   sessionId String @map("session_id") @db.Uuid
 
-  session UserSession @relation("UserRefreshTokens", fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session UserSession @relation("UserSessionToUserRefreshToken", fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   tokenHash String @unique @map("token_hash") @db.VarChar(64)
 
@@ -340,9 +346,10 @@ model UserRefreshToken {
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  @@index([userId])
   @@index([sessionId])
   @@index([expiresAt])
-  @@map("refresh_tokens")
+  @@map("user_refresh_tokens")
 }
 
 // ======================================================
@@ -353,7 +360,7 @@ model UserPasswordResetToken {
 
   userId String @map("user_id") @db.Uuid
 
-  user User @relation("UserPasswordResetTokens", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user User @relation("UserToUserPasswordResetToken", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   tokenHash String @unique @map("token_hash") @db.VarChar(64)
 
@@ -376,7 +383,7 @@ model UserPasswordResetToken {
 model UserPushToken {
   userId String @map("user_id") @db.Uuid
 
-  user User @relation("UserPushTokens", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user User @relation("UserToUserPushToken", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   deviceId String @map("device_id") @db.VarChar(255)
 
@@ -424,13 +431,15 @@ model Admin {
 
   // Relations
 
-  credential AdminCredential? @relation("AdminCredential")
+  credential AdminCredential? @relation("AdminToAdminCredential")
 
-  sessions AdminSession[] @relation("AdminSessions")
+  sessions AdminSession[] @relation("AdminToAdminSession")
 
-  passwordResetTokens AdminPasswordResetToken[] @relation("AdminPasswordResetTokens")
+  refreshTokens AdminRefreshToken[] @relation("AdminToAdminRefreshToken")
 
-  outboundMessages OutboundMessage[] @relation("AdminOutboundMessages")
+  passwordResetTokens AdminPasswordResetToken[] @relation("AdminToAdminPasswordResetToken")
+
+  outboundMessages OutboundMessage[] @relation("AdminToOutboundMessage")
 
   @@index([status])
   @@map("admins")
@@ -442,7 +451,7 @@ model Admin {
 model AdminCredential {
   adminId String @id @map("admin_id") @db.Uuid
 
-  admin Admin @relation("AdminCredential", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  admin Admin @relation("AdminToAdminCredential", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   passwordHash String @map("password_hash") @db.VarChar(255)
 
@@ -463,7 +472,7 @@ model AdminSession {
 
   adminId String @map("admin_id") @db.Uuid
 
-  admin Admin @relation("AdminSessions", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  admin Admin @relation("AdminToAdminSession", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   deviceId String? @map("device_id") @db.VarChar(255)
 
@@ -501,7 +510,7 @@ model AdminSession {
 
   // Relations
 
-  refreshTokens AdminRefreshToken[] @relation("AdminRefreshTokens")
+  refreshTokens AdminRefreshToken[] @relation("AdminSessionToAdminRefreshToken")
 
   @@index([adminId])
   @@index([expiresAt])
@@ -514,9 +523,13 @@ model AdminSession {
 model AdminRefreshToken {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
+  adminId String @map("admin_id") @db.Uuid
+
+  admin Admin @relation("AdminToAdminRefreshToken", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
   sessionId String @map("session_id") @db.Uuid
 
-  session AdminSession @relation("AdminRefreshTokens", fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session AdminSession @relation("AdminSessionToAdminRefreshToken", fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   tokenHash String @unique @map("token_hash") @db.VarChar(64)
 
@@ -528,6 +541,7 @@ model AdminRefreshToken {
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  @@index([adminId])
   @@index([sessionId])
   @@index([expiresAt])
   @@map("admin_refresh_tokens")
@@ -541,7 +555,7 @@ model AdminPasswordResetToken {
 
   adminId String @map("admin_id") @db.Uuid
 
-  admin Admin @relation("AdminPasswordResetTokens", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  admin Admin @relation("AdminToAdminPasswordResetToken", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   tokenHash String @unique @map("token_hash") @db.VarChar(64)
 
@@ -657,11 +671,11 @@ model OutboundMessage {
 
   recipientUserId String? @map("recipient_user_id") @db.Uuid
 
-  recipientUser User? @relation("UserOutboundMessages", fields: [recipientUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  recipientUser User? @relation("UserToOutboundMessage", fields: [recipientUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   recipientAdminId String? @map("recipient_admin_id") @db.Uuid
 
-  recipientAdmin Admin? @relation("AdminOutboundMessages", fields: [recipientAdminId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  recipientAdmin Admin? @relation("AdminToOutboundMessage", fields: [recipientAdminId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   status MessageStatus @default(QUEUED)
 

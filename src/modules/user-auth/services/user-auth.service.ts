@@ -597,7 +597,7 @@ export class UserAuthService {
 
     const session = await this.userSessionService.startForDevice({ userId, device });
 
-    const refreshToken = await this.refreshTokenService.issue(session.id);
+    const refreshToken = await this.refreshTokenService.issue(session.id, userId);
 
     const accessToken = await this.jwtSigner.signAccessToken({ sub: userId, sid: session.id });
 

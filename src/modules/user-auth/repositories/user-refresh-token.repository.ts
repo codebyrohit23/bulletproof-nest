@@ -13,6 +13,7 @@ export class UserRefreshTokenRepository {
   async create(input: CreateRefreshTokenInput): Promise<UserRefreshToken> {
     return this.prisma.db.userRefreshToken.create({
       data: {
+        userId: input.userId,
         sessionId: input.sessionId,
         tokenHash: input.tokenHash,
         expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),

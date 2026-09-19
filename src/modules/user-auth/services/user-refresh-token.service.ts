@@ -20,10 +20,11 @@ export class UserRefreshTokenService {
     private readonly transaction: TransactionService,
   ) {}
 
-  async issue(sessionId: string): Promise<IssuedRefreshToken> {
+  async issue(sessionId: string, userId: string): Promise<IssuedRefreshToken> {
     const token = this.tokenService.generate();
 
     const record = await this.refreshTokenRepo.create({
+      userId,
       sessionId,
       tokenHash: this.tokenService.hash(token),
     });
@@ -57,7 +58,7 @@ export class UserRefreshTokenService {
         return null;
       }
 
-      return this.issue(current.sessionId);
+      return this.issue(current.sessionId, current.userId);
     });
   }
 

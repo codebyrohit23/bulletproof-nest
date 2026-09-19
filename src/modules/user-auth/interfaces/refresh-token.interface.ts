@@ -1,6 +1,8 @@
 import type { Prisma } from '@prisma/client';
 
 export interface CreateRefreshTokenInput {
+  readonly userId: string;
+
   readonly sessionId: string;
 
   readonly tokenHash: string;
