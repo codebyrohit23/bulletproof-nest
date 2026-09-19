@@ -5,3 +5,6 @@ export type CodeEmailTemplate =
   | typeof EMAIL_TEMPLATE.OTP_VERIFICATION
   | typeof EMAIL_TEMPLATE.LOGIN_OTP
   | typeof EMAIL_TEMPLATE.PASSWORD_RESET;
+
+/** How a password came to change — the notice words it differently. */
+export type PasswordChangeMethod = 'changed' | 'reset';

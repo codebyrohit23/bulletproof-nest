@@ -6,6 +6,7 @@ import type { EmailTemplate } from '../interfaces/index.js';
 
 import { loginOtpTemplate } from './catalog/auth/login-otp.template.js';
 import { otpVerificationTemplate } from './catalog/auth/otp-verification.template.js';
+import { passwordChangedTemplate } from './catalog/auth/password-changed.template.js';
 import { passwordResetTemplate } from './catalog/auth/password-reset.template.js';
 import { welcomeTemplate } from './catalog/auth/welcome.template.js';
 
@@ -29,6 +30,7 @@ export const EMAIL_TEMPLATES = {
   [EMAIL_TEMPLATE.LOGIN_OTP]: loginOtpTemplate,
   [EMAIL_TEMPLATE.PASSWORD_RESET]: passwordResetTemplate,
   [EMAIL_TEMPLATE.WELCOME]: welcomeTemplate,
+  [EMAIL_TEMPLATE.PASSWORD_CHANGED]: passwordChangedTemplate,
 } satisfies Record<EmailTemplateId, Pick<EmailTemplate<never>, 'id' | 'category'>>;
 
 export type RegisteredEmailTemplate = (typeof EMAIL_TEMPLATES)[EmailTemplateId];

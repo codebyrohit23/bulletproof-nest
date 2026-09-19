@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { IdentifierType, UserIdentity } from '@prisma/client';
+import { IdentifierType, type UserIdentity } from '@prisma/client';
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 import { normalizeIdentifier } from '#/shared/utils/index.js';
@@ -76,6 +76,16 @@ export class UserIdentityRepository {
         identifierValue: normalizeIdentifier(input.identifierType, input.identifierValue),
       },
     });
+  }
+
+  /** The account's email address, if it has one — a phone-only account does not. */
+  async findEmailByUserId(userId: string): Promise<string | null> {
+    const identity = await this.prisma.db.userIdentity.findUnique({
+      where: { userId_identifierType: { userId, identifierType: IdentifierType.EMAIL } },
+      select: { identifierValue: true },
+    });
+
+    return identity?.identifierValue ?? null;
   }
 
   async markVerified(id: string): Promise<void> {

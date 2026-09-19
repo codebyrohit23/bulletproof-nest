@@ -61,6 +61,7 @@ import {
   REFRESH_TOKEN_OUTCOME,
   type CodeEmailTemplate,
   type DeclaredDevice,
+  type PasswordChangeMethod,
   type PasswordResetTokenOutcome,
 } from '../interfaces/index.js';
 import type { AuthUser } from '../schemas/index.js';
@@ -185,8 +186,6 @@ export class UserAuthService {
       email,
     );
 
-    // Hashes before refusing: a plain throw here would return in ~1ms and make
-    // login timeable to discover which addresses have accounts.
     if (!existing || !existing.user.credential) {
       throw await this.userCredentialService.invalidCredentialsError(password);
     }
@@ -390,9 +389,16 @@ export class UserAuthService {
         this.refusePasswordReset(PASSWORD_RESET_TOKEN_OUTCOME.CONSUMED, userId);
       }
 
-      await this.userCredentialService.setCredential(userId, password);
+      const credential = await this.userCredentialService.setCredential(userId, password);
 
       await this.userSessionService.revokeAllForUser(userId, SessionRevokeReason.PASSWORD_RESET);
+
+      await this.notifyPasswordChanged(
+        userId,
+        'reset',
+        credential.passwordChangedAt,
+        `password-reset-done-${id}`,
+      );
     });
 
     return null;
@@ -418,12 +424,19 @@ export class UserAuthService {
     );
 
     await this.transaction.run(async () => {
-      await this.userCredentialService.setCredential(userId, newPassword);
+      const credential = await this.userCredentialService.setCredential(userId, newPassword);
 
       await this.userSessionService.revokeAllForUser(
         userId,
         SessionRevokeReason.PASSWORD_CHANGED,
         sessionId,
+      );
+
+      await this.notifyPasswordChanged(
+        userId,
+        'changed',
+        credential.passwordChangedAt,
+        `password-changed-${userId}-${credential.passwordChangedAt.getTime()}`,
       );
     });
 
@@ -630,6 +643,37 @@ export class UserAuthService {
       if (issued !== null) {
         await this.deliverCode(template, identifier, issued, userId, operation);
       }
+    });
+  }
+
+  private async notifyPasswordChanged(
+    userId: string,
+    method: PasswordChangeMethod,
+    changedAt: Date,
+    idempotencyKey: string,
+  ): Promise<void> {
+    const address = await this.userIdentityService.findEmailByUserId(userId);
+
+    if (address === null) {
+      return;
+    }
+
+    const user = await this.userService.getUserById(userId);
+
+    if (user === null) {
+      return;
+    }
+
+    await this.email.send(EMAIL_TEMPLATE.PASSWORD_CHANGED, {
+      to: address,
+      data: {
+        firstName: user.firstName,
+        method,
+        changedAt: changedAt.toISOString(),
+        signInUrl: this.appConfig.webUrl,
+      },
+      idempotencyKey,
+      recipientRef: { userId },
     });
   }
 

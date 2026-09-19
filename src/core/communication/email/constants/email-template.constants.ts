@@ -3,6 +3,7 @@ export const EMAIL_TEMPLATE = {
   LOGIN_OTP: 'auth.login-otp',
   PASSWORD_RESET: 'auth.password-reset',
   WELCOME: 'auth.welcome',
+  PASSWORD_CHANGED: 'auth.password-changed',
 } as const;
 
 export type EmailTemplateId = (typeof EMAIL_TEMPLATE)[keyof typeof EMAIL_TEMPLATE];

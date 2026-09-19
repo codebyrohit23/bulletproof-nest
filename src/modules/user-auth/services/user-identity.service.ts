@@ -30,6 +30,10 @@ export class UserIdentityService {
     return this.identityRepo.create(input);
   }
 
+  async findEmailByUserId(userId: string): Promise<string | null> {
+    return this.identityRepo.findEmailByUserId(userId);
+  }
+
   async markVerified(id: string): Promise<void> {
     await this.identityRepo.markVerified(id);
   }
