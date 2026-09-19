@@ -21,6 +21,9 @@ export const appSchema = z.object({
 
   APP_NAME: z.string().min(1),
 
+  /** The web app users sign in to. Emails link here, so it must be absolute. */
+  APP_WEB_URL: z.url(),
+
   HOST: z.string(),
 
   PORT: z.coerce.number().int().positive(),

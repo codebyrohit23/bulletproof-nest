@@ -13,6 +13,7 @@ import {
   VerificationPurpose,
 } from '@prisma/client';
 
+import { AppConfigService } from '#/config/app/index.js';
 import {
   AUTH_ERROR_MESSAGE,
   AUTH_FAILURE_REASON,
@@ -86,6 +87,7 @@ export class UserAuthService {
     private readonly jwtSigner: JwtSignerService,
     private readonly requestContext: RequestContextService,
     private readonly email: EmailService,
+    private readonly appConfig: AppConfigService,
   ) {}
   async registerUser(payload: RegisterInput): Promise<RegisterResponse> {
     const { identifier } = payload;
@@ -138,6 +140,8 @@ export class UserAuthService {
       await this.verificationCodeService.consume(codeId);
 
       await this.userIdentityService.markVerified(target.id);
+
+      await this.sendWelcome(target.userId, identifier);
     });
 
     this.assertAccountCanSignIn(target.user.status, target.userId, 'verify-registration');
@@ -626,6 +630,25 @@ export class UserAuthService {
       if (issued !== null) {
         await this.deliverCode(template, identifier, issued, userId, operation);
       }
+    });
+  }
+
+  private async sendWelcome(userId: string, identifier: IdentifierInput): Promise<void> {
+    if (identifier.type !== IdentifierType.EMAIL) {
+      return;
+    }
+
+    const user = await this.userService.getUserById(userId);
+
+    if (user === null) {
+      return;
+    }
+
+    await this.email.send(EMAIL_TEMPLATE.WELCOME, {
+      to: identifier.value,
+      data: { firstName: user.firstName, dashboardUrl: this.appConfig.webUrl },
+      idempotencyKey: `welcome-${userId}`,
+      recipientRef: { userId },
     });
   }
 

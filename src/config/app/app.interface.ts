@@ -7,6 +7,8 @@ export interface AppConfig {
 
   readonly name: string;
 
+  readonly webUrl: string;
+
   readonly host: string;
 
   readonly port: number;

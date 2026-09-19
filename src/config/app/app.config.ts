@@ -9,6 +9,8 @@ export const appConfig = registerAs('app', (): AppConfig => ({
 
   name: env.APP_NAME,
 
+  webUrl: env.APP_WEB_URL,
+
   host: env.HOST,
 
   port: env.PORT,

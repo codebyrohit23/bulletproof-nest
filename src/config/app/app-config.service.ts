@@ -19,6 +19,10 @@ export class AppConfigService {
     return this.app.port;
   }
 
+  get webUrl() {
+    return this.app.webUrl;
+  }
+
   get host() {
     return this.app.host;
   }
