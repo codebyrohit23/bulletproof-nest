@@ -13,6 +13,11 @@ export const CurrentUserId = createParamDecorator(
     requestContextStorage.getStore()?.userId,
 );
 
+export const CurrentAdminId = createParamDecorator(
+  (_data: unknown, _ctx: ExecutionContext): string | undefined =>
+    requestContextStorage.getStore()?.adminId,
+);
+
 export const CurrentWorkspaceId = createParamDecorator(
   (_data: unknown, _ctx: ExecutionContext): string | undefined =>
     requestContextStorage.getStore()?.workspaceId,

@@ -103,20 +103,25 @@ There is one rule and it has an acid test.
 something only a feature module can provide, and importing that module would
 invert the layering.
 
-`core/auth/ports/session-validator.port.ts` is the example. The guard must read
-`user_sessions`, that table belongs to `modules/user-auth`, and `core` cannot
-import a feature module. So `core/auth` declares the requirement, the module
-satisfies it, and `AppModule` — the only place entitled to know both — connects
-them:
+`core/auth/ports/user-session-validator.port.ts` is the example. The guard must
+read `user_sessions`, that table belongs to `modules/user-auth`, and `core`
+cannot import a feature module. So `core/auth` declares the requirement, the
+module satisfies it, and `AppModule` — the only place entitled to know both —
+connects them:
 
 ```ts
 // modules/user-auth/user-auth.module.ts
-providers: [{ provide: SessionValidator, useExisting: UserSessionService }];
-exports: [SessionValidator];
+providers: [{ provide: UserSessionValidator, useExisting: UserSessionService }];
+exports: [UserSessionValidator];
 
 // app.module.ts
 AuthModule.forRoot({ imports: [UserAuthModule] });
 ```
+
+`AdminSessionValidator` is the same seam for `admin_sessions`, and is
+deliberately a **second port rather than one port generic over the session
+kind**: one provider answering for both would be the single place where an
+admin session could satisfy a user route.
 
 **Abstract class, not an interface.** An interface is erased and cannot be an
 injection token, so the alternative is a `Symbol` plus an interface plus
@@ -139,8 +144,8 @@ recording a sent message needs; `outbound_messages` belongs to
 global for the reason `AuthModule` is — a module importing the plain class would
 get a second copy with no recorder behind it.
 
-Existing ports: `SessionValidator`, `MessageRecorder`, `CacheStore`,
-`RateLimitStore`, `EmailTransport`.
+Existing ports: `UserSessionValidator`, `AdminSessionValidator`,
+`MessageRecorder`, `CacheStore`, `RateLimitStore`, `EmailTransport`.
 
 ---
 
@@ -209,6 +214,47 @@ plugins, adapter options, versioning, shutdown. Registration order in
 
 **Config** is validated by Zod at startup and fails loudly. Every variable is
 documented in `.env.example`.
+
+---
+
+## Audiences: user and admin
+
+This API serves two audiences and they do not share credentials. An admin
+access token must never open a user route, nor a user token an admin route.
+
+**A route's audience is its path.** `resolveApiAudience` in `shared/utils/`
+answers it from the matched route pattern: anything containing `/admin/` is the
+admin audience, everything else is the user audience. So **an admin controller
+must be mounted under `admin/`** — that is not cosmetic, it is the whole
+declaration. `API_AUDIENCE` lives in `shared/constants/` because `core/auth`
+dispatches on it and `core/documentation` slices the two OpenAPI documents by
+it, and the two must not be able to disagree.
+
+**One global guard.** `ApiAuthGuard` is the only `APP_GUARD`. It resolves the
+audience, does everything common — `@Public()`, the bearer token, the device id,
+the refusal — then delegates to `UserAuthenticator` or `AdminAuthenticator`,
+which differ in exactly three things: which verify method, which session table,
+which identity field. The dispatch table is typed
+`Record<ApiAudienceKey, RequestAuthenticator>`, so a third audience fails the
+build until it has an authenticator.
+
+Per-controller `@UseGuards` was rejected, and not narrowly: it defaults to
+_unprotected_, so a forgotten decorator opens a route with no error and no
+failing test. Worse here — with a global guard already in place it would force
+`@Public()` onto admin controllers, one careless refactor away from being the
+only decorator left. A forgotten `@Public()` merely 401s your own login
+endpoint on the first call.
+
+**Two layers, deliberately.** The path dispatch is one; the `aud` claim is the
+other. Tokens carry `JWT_AUDIENCE.USER` or `JWT_AUDIENCE.ADMIN` and each verify
+method pins one, enforced by jose and covered by the signature. If the dispatch
+is ever wrong, verification still refuses. `typ` stays `access` for both — it
+discriminates token _kind_, not audience, and restating `aud` from inside the
+same signed payload buys nothing. One keypair serves both.
+
+Authentication is global; **authorization is per route** — a permission
+decorator that is missing leaves a route authenticated-but-unrestricted, which
+is a visible state rather than a hole. That is where `core/permissions` lands.
 
 ---
 

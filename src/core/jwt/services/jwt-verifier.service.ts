@@ -23,10 +23,23 @@ export class JwtVerifierService {
   ) {}
 
   async verifyAccessToken(token: string): Promise<AccessTokenPayload> {
-    return this.verify(token, accessTokenPayloadSchema);
+    return this.verify(token, accessTokenPayloadSchema, JWT_AUDIENCE.USER);
   }
 
-  private async verify<T>(token: string, schema: ZodType<T, JWTPayload>): Promise<T> {
+  /**
+   * The payload has the same shape as a user token's, but `sub` is an admin id
+   * and `sid` an `admin_sessions` id. Only `AdminSessionValidator` should be
+   * given either.
+   */
+  async verifyAdminAccessToken(token: string): Promise<AccessTokenPayload> {
+    return this.verify(token, accessTokenPayloadSchema, JWT_AUDIENCE.ADMIN);
+  }
+
+  private async verify<T>(
+    token: string,
+    schema: ZodType<T, JWTPayload>,
+    audience: string,
+  ): Promise<T> {
     const key = this.keyStore.getVerificationKey(this.readKid(token));
 
     if (key === undefined) {
@@ -36,10 +49,14 @@ export class JwtVerifierService {
     let payload: JWTPayload;
 
     try {
+      /*
+       * `audience` is enforced here, by jose, before the payload is parsed —
+       * a token issued for the other audience never reaches the schema below.
+       */
       ({ payload } = await jwtVerify(token, key, {
         algorithms: [JWT_ALGORITHM],
         issuer: this.config.issuer,
-        audience: JWT_AUDIENCE,
+        audience,
         clockTolerance: JWT_CLOCK_TOLERANCE_SECONDS,
       }));
     } catch (error) {

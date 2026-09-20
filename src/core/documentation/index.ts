@@ -12,7 +12,6 @@ export { API_AUDIENCES } from './openapi/openapi.config.js';
 export { buildApiDocuments } from './openapi/openapi.document.js';
 
 export {
-  ADMIN_PATH_SEGMENT,
   DOCS_PATH,
   DOCUMENTATION_LOG_CONTEXT,
   SECURITY_SCHEME,

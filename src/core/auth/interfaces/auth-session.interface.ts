@@ -2,10 +2,16 @@ import type { ModuleMetadata } from '@nestjs/common';
 
 import type { AUTH_FAILURE_REASON } from '../constants/auth.constants.js';
 
-export interface AuthenticatedSession {
+export interface AuthenticatedUserSession {
   readonly id: string;
 
   readonly userId: string;
+}
+
+export interface AuthenticatedAdminSession {
+  readonly id: string;
+
+  readonly adminId: string;
 }
 
 export type SessionFailureReason =
@@ -15,8 +21,12 @@ export type SessionFailureReason =
   | typeof AUTH_FAILURE_REASON.SESSION_UNBOUND
   | typeof AUTH_FAILURE_REASON.DEVICE_MISMATCH;
 
-export type SessionValidationResult =
-  | { readonly ok: true; readonly session: AuthenticatedSession }
+export type UserSessionValidationResult =
+  | { readonly ok: true; readonly session: AuthenticatedUserSession }
+  | { readonly ok: false; readonly reason: SessionFailureReason };
+
+export type AdminSessionValidationResult =
+  | { readonly ok: true; readonly session: AuthenticatedAdminSession }
   | { readonly ok: false; readonly reason: SessionFailureReason };
 
 export interface AuthModuleOptions {

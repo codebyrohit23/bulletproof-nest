@@ -1,7 +1,8 @@
+import type { ApiAudienceKey } from '#/shared/constants/index.js';
 import type { ApiTag } from '#/shared/interfaces/index.js';
 
 export interface ApiAudience {
-  readonly key: string;
+  readonly key: ApiAudienceKey;
 
   readonly title: string;
 

@@ -1,6 +1,3 @@
-export type {
-  AuthenticatedSession,
-  SessionFailureReason,
-  SessionValidationResult,
-  AuthModuleOptions,
-} from './auth-session.interface.js';
+export * from './auth-session.interface.js';
+
+export * from './request-authenticator.interface.js';

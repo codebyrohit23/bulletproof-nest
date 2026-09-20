@@ -2,7 +2,7 @@ export { AuthModule } from './auth.module.js';
 
 export { Public } from './decorators/public.decorator.js';
 
-export { SessionValidator } from './ports/session-validator.port.js';
+export { AdminSessionValidator, UserSessionValidator } from './ports/index.js';
 
 export {
   AUTH_ERROR_MESSAGE,
@@ -12,8 +12,10 @@ export {
 } from './constants/auth.constants.js';
 
 export type {
-  AuthenticatedSession,
-  SessionFailureReason,
-  SessionValidationResult,
+  AdminSessionValidationResult,
+  AuthenticatedAdminSession,
+  AuthenticatedUserSession,
   AuthModuleOptions,
+  SessionFailureReason,
+  UserSessionValidationResult,
 } from './interfaces/index.js';

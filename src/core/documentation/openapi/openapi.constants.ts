@@ -1,7 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
 
-export const ADMIN_PATH_SEGMENT = '/admin/';
-
 export const DOCS_PATH = {
   USER: '/docs',
 
@@ -22,14 +20,6 @@ export const SCHEMA_REF_PREFIX = '#/components/schemas/';
 
 export const DOCUMENTATION_LOG_CONTEXT = 'Documentation';
 
-/**
- * What each documented failure means, in the caller's terms.
- *
- * The single source for these sentences, so fifty endpoints cannot end up with
- * fifty slightly different accounts of the same `401`. `DocumentedErrorStatus`
- * is derived from the keys, which is what stops a status being accepted by the
- * decorator without having a description to show for it.
- */
 export const ERROR_DESCRIPTION = {
   [HttpStatus.BAD_REQUEST]: 'The request was malformed.',
   [HttpStatus.UNAUTHORIZED]: 'No access token was supplied, or it was expired or invalid.',

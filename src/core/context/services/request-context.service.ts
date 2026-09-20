@@ -48,6 +48,10 @@ export class RequestContextService {
     return requestContextStorage.getStore()?.userId;
   }
 
+  get adminId(): string | undefined {
+    return requestContextStorage.getStore()?.adminId;
+  }
+
   get workspaceId(): string | undefined {
     return requestContextStorage.getStore()?.workspaceId;
   }
@@ -60,13 +64,6 @@ export class RequestContextService {
     return requestContextStorage.getStore()?.deviceId;
   }
 
-  /**
-   * The client address as the middleware resolved it — forwarding headers
-   * considered, not the raw socket.
-   *
-   * Read it from here rather than from `request.ip` so that everything keying
-   * on an address agrees about which one it is.
-   */
   get ip(): string | undefined {
     return requestContextStorage.getStore()?.ip;
   }
@@ -75,15 +72,6 @@ export class RequestContextService {
     return requestContextStorage.getStore()?.locale;
   }
 
-  /**
-   * Fills in identity once authentication has run.
-   *
-   * Only identity fields can be patched — transport fields are fixed by the
-   * middleware and must stay stable for the life of the request, otherwise a
-   * log line and a response could disagree about which request they belong to.
-   *
-   * A no-op outside a context, so callers never need to guard.
-   */
   setIdentity(patch: RequestIdentityPatch): void {
     const context = requestContextStorage.getStore();
 

@@ -7,29 +7,39 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
 
-import { RequestContextService } from '#/core/context/index.js';
-import { JwtVerifierService, TokenExpiredError } from '#/core/jwt/index.js';
+import { RequestContextService, type RequestIdentityPatch } from '#/core/context/index.js';
 import { AppLoggerService } from '#/core/logger/index.js';
+import { API_AUDIENCE, type ApiAudienceKey } from '#/shared/constants/index.js';
+import { resolveApiAudience } from '#/shared/utils/index.js';
 
+import { AdminAuthenticator, UserAuthenticator } from '../authenticators/index.js';
 import {
   AUTH_ERROR_MESSAGE,
   AUTH_FAILURE_REASON,
   AUTH_LOG_CONTEXT,
   AUTH_PUBLIC_METADATA,
+  AUTH_WIRING_FAULTS,
   BEARER_SCHEME,
   type AuthFailureReason,
 } from '../constants/auth.constants.js';
-import { SessionValidator } from '../ports/session-validator.port.js';
+import type { RequestAuthenticator } from '../interfaces/index.js';
 
 @Injectable()
-export class UserAuthGuard implements CanActivate {
+export class ApiAuthGuard implements CanActivate {
+  private readonly authenticators: Record<ApiAudienceKey, RequestAuthenticator>;
+
   constructor(
-    private readonly jwtVerifier: JwtVerifierService,
-    private readonly sessionValidator: SessionValidator,
+    userAuthenticator: UserAuthenticator,
+    adminAuthenticator: AdminAuthenticator,
     private readonly requestContext: RequestContextService,
     private readonly logger: AppLoggerService,
     private readonly reflector: Reflector,
-  ) {}
+  ) {
+    this.authenticators = {
+      [API_AUDIENCE.USER]: userAuthenticator,
+      [API_AUDIENCE.ADMIN]: adminAuthenticator,
+    };
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     if (this.isPublic(context)) {
@@ -37,32 +47,33 @@ export class UserAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<FastifyRequest>();
+
+    const routePath = request.routeOptions.url;
+
+    if (routePath === undefined) {
+      this.refuse(AUTH_FAILURE_REASON.ROUTE_UNRESOLVED);
+    }
+
+    const audience = resolveApiAudience(routePath);
     const token = this.readBearerToken(request);
 
     if (token === undefined) {
-      this.refuse(AUTH_FAILURE_REASON.TOKEN_MISSING);
+      this.refuse(AUTH_FAILURE_REASON.TOKEN_MISSING, audience);
     }
 
-    const payload = await this.verify(token);
     const deviceId = this.requestContext.deviceId;
 
     if (deviceId === undefined) {
-      this.refuse(AUTH_FAILURE_REASON.DEVICE_ID_MISSING, {
-        userId: payload.sub,
-        sessionId: payload.sid,
-      });
+      this.refuse(AUTH_FAILURE_REASON.DEVICE_ID_MISSING, audience);
     }
 
-    const result = await this.sessionValidator.validate(payload.sid, deviceId);
+    const result = await this.authenticators[audience].authenticate(token, deviceId);
 
     if (!result.ok) {
-      this.refuse(result.reason, { userId: payload.sub, sessionId: payload.sid });
+      this.refuse(result.reason, audience, result.subject);
     }
 
-    this.requestContext.setIdentity({
-      userId: result.session.userId,
-      sessionId: result.session.id,
-    });
+    this.requestContext.setIdentity(result.identity);
 
     return true;
   }
@@ -74,18 +85,6 @@ export class UserAuthGuard implements CanActivate {
         context.getClass(),
       ]) === true
     );
-  }
-
-  private async verify(token: string) {
-    try {
-      return await this.jwtVerifier.verifyAccessToken(token);
-    } catch (error) {
-      this.refuse(
-        error instanceof TokenExpiredError
-          ? AUTH_FAILURE_REASON.TOKEN_EXPIRED
-          : AUTH_FAILURE_REASON.TOKEN_INVALID,
-      );
-    }
   }
 
   private readBearerToken(request: FastifyRequest): string | undefined {
@@ -106,17 +105,30 @@ export class UserAuthGuard implements CanActivate {
 
   private refuse(
     reason: AuthFailureReason,
-    identity?: { userId?: string; sessionId?: string },
+    audience?: ApiAudienceKey,
+    subject?: RequestIdentityPatch,
   ): never {
-    this.logger.warn('Rejected an authenticated request', {
+    const entry = {
       context: AUTH_LOG_CONTEXT,
       operation: 'canActivate',
       metadata: {
         reason,
-        ...(identity?.userId !== undefined ? { userId: identity.userId } : {}),
-        ...(identity?.sessionId !== undefined ? { sessionId: identity.sessionId } : {}),
+        ...(audience !== undefined ? { audience } : {}),
+        ...Object.fromEntries(
+          Object.entries(subject ?? {}).filter(([, value]) => value !== undefined),
+        ),
       },
-    });
+    };
+
+    if (AUTH_WIRING_FAULTS.has(reason)) {
+      this.logger.error(
+        new Error(`Authentication is mis-wired: ${reason}`),
+        'Refused a request this service could not authenticate',
+        entry,
+      );
+    } else {
+      this.logger.warn('Rejected an authenticated request', entry);
+    }
 
     throw new UnauthorizedException(AUTH_ERROR_MESSAGE.UNAUTHORIZED);
   }

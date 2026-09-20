@@ -23,14 +23,30 @@ export class JwtSignerService {
   ) {}
 
   async signAccessToken(claims: AccessTokenClaims): Promise<string> {
-    return this.sign({ ...claims, typ: JWT_TOKEN_TYPE.ACCESS }, TOKEN_TTL_SECONDS.ACCESS);
+    return this.sign(
+      { ...claims, typ: JWT_TOKEN_TYPE.ACCESS },
+      TOKEN_TTL_SECONDS.ACCESS,
+      JWT_AUDIENCE.USER,
+    );
   }
 
-  private async sign(payload: Record<string, unknown>, ttlSeconds: number): Promise<string> {
+  async signAdminAccessToken(claims: AccessTokenClaims): Promise<string> {
+    return this.sign(
+      { ...claims, typ: JWT_TOKEN_TYPE.ACCESS },
+      TOKEN_TTL_SECONDS.ACCESS,
+      JWT_AUDIENCE.ADMIN,
+    );
+  }
+
+  private async sign(
+    payload: Record<string, unknown>,
+    ttlSeconds: number,
+    audience: string,
+  ): Promise<string> {
     return new SignJWT(payload)
       .setProtectedHeader({ alg: JWT_ALGORITHM, kid: this.keyStore.signingKid })
       .setIssuer(this.config.issuer)
-      .setAudience(JWT_AUDIENCE)
+      .setAudience(audience)
       .setJti(randomUUID())
       .setIssuedAt()
       .setExpirationTime(`${ttlSeconds}s`)

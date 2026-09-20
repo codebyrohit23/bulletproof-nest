@@ -1,8 +1,8 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { SessionRevokeReason, TokenRevokeReason, type UserSession } from '@prisma/client';
 
-import { AUTH_FAILURE_REASON, SessionValidator } from '#/core/auth/index.js';
-import type { SessionValidationResult } from '#/core/auth/index.js';
+import { AUTH_FAILURE_REASON, UserSessionValidator } from '#/core/auth/index.js';
+import type { UserSessionValidationResult } from '#/core/auth/index.js';
 import { AppLoggerService } from '#/core/logger/index.js';
 import {
   isUniqueConstraintViolation,
@@ -21,7 +21,7 @@ import { UserSessionRepository } from '../repositories/index.js';
 import { UserRefreshTokenService } from './user-refresh-token.service.js';
 
 @Injectable()
-export class UserSessionService extends SessionValidator {
+export class UserSessionService extends UserSessionValidator {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly sessionRepo: UserSessionRepository,
@@ -137,7 +137,10 @@ export class UserSessionService extends SessionValidator {
     });
   }
 
-  override async validate(sessionId: string, deviceId: string): Promise<SessionValidationResult> {
+  override async validate(
+    sessionId: string,
+    deviceId: string,
+  ): Promise<UserSessionValidationResult> {
     const session = await this.sessionCache.remember(sessionId, () => {
       return this.sessionRepo.findSnapshotById(sessionId);
     });

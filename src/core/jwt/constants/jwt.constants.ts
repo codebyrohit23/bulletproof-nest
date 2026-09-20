@@ -1,8 +1,14 @@
+import type { ApiAudienceKey } from '#/shared/constants/index.js';
+
 export const JWT_ALGORITHM = 'EdDSA';
 
 export const JWT_CLOCK_TOLERANCE_SECONDS = 5;
 
-export const JWT_AUDIENCE = 'leadflow:api';
+export const JWT_AUDIENCE = {
+  USER: 'leadflow:api',
+
+  ADMIN: 'leadflow:admin-api',
+} as const satisfies Record<Uppercase<ApiAudienceKey>, string>;
 
 export const JWT_TOKEN_TYPE = {
   ACCESS: 'access',

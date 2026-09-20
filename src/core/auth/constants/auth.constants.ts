@@ -19,15 +19,11 @@ export const AUTH_FAILURE_REASON = {
 
   DEVICE_ID_MISSING: 'DEVICE_ID_MISSING',
 
-  /**
-   * The request context carries no identity where one was required.
-   *
-   * Unlike every other reason here, this one is never the caller's doing.
-   * `UserAuthGuard` sets the identity before any handler runs, so an absent one
-   * means the route lost its guard or the context middleware stopped running —
-   * a wiring fault, findable only because it is logged under this name.
-   */
   IDENTITY_MISSING: 'IDENTITY_MISSING',
+
+  ROUTE_UNRESOLVED: 'ROUTE_UNRESOLVED',
+
+  SESSION_VALIDATOR_MISSING: 'SESSION_VALIDATOR_MISSING',
 
   SESSION_UNBOUND: 'SESSION_UNBOUND',
 
@@ -47,6 +43,12 @@ export const AUTH_FAILURE_REASON = {
 } as const;
 
 export type AuthFailureReason = (typeof AUTH_FAILURE_REASON)[keyof typeof AUTH_FAILURE_REASON];
+
+export const AUTH_WIRING_FAULTS: ReadonlySet<AuthFailureReason> = new Set([
+  AUTH_FAILURE_REASON.IDENTITY_MISSING,
+  AUTH_FAILURE_REASON.ROUTE_UNRESOLVED,
+  AUTH_FAILURE_REASON.SESSION_VALIDATOR_MISSING,
+]);
 
 export const BEARER_SCHEME = 'Bearer';
 

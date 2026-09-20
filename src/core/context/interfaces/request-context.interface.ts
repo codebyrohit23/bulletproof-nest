@@ -37,9 +37,14 @@ export interface RequestContext {
 
   userId?: string;
 
+  adminId?: string;
+
   workspaceId?: string;
 
   sessionId?: string;
 }
 
-export type RequestIdentityPatch = Pick<RequestContext, 'userId' | 'workspaceId' | 'sessionId'>;
+export type RequestIdentityPatch = Pick<
+  RequestContext,
+  'userId' | 'adminId' | 'workspaceId' | 'sessionId'
+>;

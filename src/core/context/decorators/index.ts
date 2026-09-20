@@ -1,5 +1,6 @@
 export {
   CorrelationId,
+  CurrentAdminId,
   CurrentContext,
   CurrentDeviceId,
   CurrentWorkspaceId,
