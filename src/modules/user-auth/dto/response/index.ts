@@ -5,3 +5,12 @@ export { AuthTokensDto, type AuthTokens } from './auth-tokens.dto.js';
 export { RegisterResponseDto, type RegisterResponse } from './register.dto.js';
 
 export { PasswordResetTokenDto, type PasswordResetToken } from './password-reset-token.dto.js';
+
+export {
+  RevokedSessionsDto,
+  UserSessionDto,
+  UserSessionListDto,
+  type RevokedSessions,
+  type UserSession,
+  type UserSessionList,
+} from './user-session.dto.js';

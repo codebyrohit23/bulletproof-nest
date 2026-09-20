@@ -55,11 +55,6 @@ export const AUTH_RATE_LIMIT = {
 
   VERIFY_RESET_OTP: [perEmail('verify-reset-otp', 10), perIp('verify-code-by-ip', 30)],
 
-  /*
-   * The five-minute budget alone still allows ~2,900 guesses a day at one
-   * account. The hourly one caps that near 700 without a real user ever
-   * meeting it. Throttling, not lockout: a lockout lets anyone lock anyone out.
-   */
   LOGIN: [
     perEmail('login', 10),
     perEmail('login-hourly', 30, ONE_HOUR_MS),

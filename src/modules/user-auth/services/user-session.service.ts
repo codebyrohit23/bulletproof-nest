@@ -15,7 +15,7 @@ import {
   USER_AUTH_ERROR_MESSAGE,
   USER_AUTH_LOG_CONTEXT,
 } from '../constants/index.js';
-import type { CreateSessionInput } from '../interfaces/index.js';
+import type { CreateSessionInput, SessionSummaryRow } from '../interfaces/index.js';
 import { UserSessionRepository } from '../repositories/index.js';
 
 import { UserRefreshTokenService } from './user-refresh-token.service.js';
@@ -54,14 +54,6 @@ export class UserSessionService extends SessionValidator {
         throw error;
       }
 
-      /*
-       * Losing twice needs a third simultaneous sign-in from one installation,
-       * which is beyond what a retry should keep absorbing — past this point a
-       * loop would be hiding a problem rather than solving one. Translated
-       * here so the caller gets a sentence about signing in again instead of
-       * Prisma's "a record with the same unique value already exists", which
-       * describes our schema to someone who asked to log in.
-       */
       this.logger.warn('Concurrent sign-in did not settle after a retry', {
         context: USER_AUTH_LOG_CONTEXT,
         operation: 'startForDevice',
@@ -74,6 +66,37 @@ export class UserSessionService extends SessionValidator {
 
   async revoke(sessionId: string, reason: SessionRevokeReason): Promise<boolean> {
     return this.transaction.run(() => this.retire(sessionId, reason));
+  }
+
+  async listLive(userId: string): Promise<SessionSummaryRow[]> {
+    return this.sessionRepo.findLiveByUser(userId);
+  }
+
+  /**
+   * A session signed out by the user it belongs to. `false` when it is not
+   * theirs or no longer live — the caller cannot tell which, by design.
+   */
+  async revokeOwned(userId: string, sessionId: string): Promise<boolean> {
+    return this.transaction.run(async () => {
+      const revoked = await this.sessionRepo.revokeOwned(
+        sessionId,
+        userId,
+        SessionRevokeReason.USER_REVOKED,
+      );
+
+      if (!revoked) {
+        return false;
+      }
+
+      await this.refreshTokenService.revokeSessionTokens(
+        sessionId,
+        TokenRevokeReason.SESSION_REVOKED,
+      );
+
+      await this.evictAfterCommit(sessionId);
+
+      return true;
+    });
   }
 
   async revokeAllForUser(

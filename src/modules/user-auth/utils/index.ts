@@ -1,3 +1,3 @@
 export { resolveDeviceContext } from './device-context.util.js';
 
-export { toSessionSnapshot } from './session.util.js';
+export { toSessionSnapshot, toUserSession } from './session.util.js';

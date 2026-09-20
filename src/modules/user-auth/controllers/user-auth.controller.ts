@@ -1,4 +1,15 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -11,6 +22,7 @@ import {
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
 import { RateLimit } from '#/core/rate-limit/index.js';
+import { ParseIdPipe } from '#/core/validation/index.js';
 import { ApiVersion, USER_AUTH_API_TAG } from '#/shared/constants/index.js';
 
 import { TOKEN_DELIVERY } from '../constants/index.js';
@@ -28,12 +40,16 @@ import {
   ResendVerificationDto,
   ResetPasswordDto,
   ResetPasswordRequestDto,
+  RevokedSessionsDto,
+  UserSessionListDto,
   VerifyCodeDto,
   VerifyResetOtpDto,
   type AuthResult,
   type AuthTokens,
   type PasswordResetToken,
   type RegisterResponse,
+  type RevokedSessions,
+  type UserSessionList,
 } from '../dto/index.js';
 import { AUTH_RATE_LIMIT } from '../rate-limit/user-auth-limits.constants.js';
 import { AuthTokenDeliveryService } from '../services/auth-token-delivery.service.js';
@@ -411,6 +427,80 @@ export class UserAuthController {
   async logout(@Res({ passthrough: true }) reply: FastifyReply): Promise<null> {
     await this.userAuthService.logout();
     this.delivery.clear(reply);
+    return null;
+  }
+
+  /**
+   * List Sessions
+   */
+  @Get('sessions')
+  @ApiOperation({
+    summary: 'List signed-in devices',
+    description:
+      'Every live session of the signed-in user, most recently active first. The session that ' +
+      'made the request is marked `current`.',
+  })
+  @ApiSuccessResponse(UserSessionListDto, {
+    status: HttpStatus.OK,
+    description: 'The live sessions.',
+  })
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.TOO_MANY_REQUESTS)
+  @ResponseMessage('Sessions fetched successfully')
+  @ApiDeviceIdHeader()
+  listSessions(): Promise<UserSessionList> {
+    return this.userAuthService.listSessions();
+  }
+
+  /**
+   * Revoke Other Sessions
+   */
+  @Post('sessions/revoke-others')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sign out every other device',
+    description:
+      'Revokes every live session except the current one, with their refresh tokens. Takes ' +
+      'effect on the next request those devices make.',
+  })
+  @ApiSuccessResponse(RevokedSessionsDto, {
+    status: HttpStatus.OK,
+    description: 'How many other sessions were revoked. Zero is a success.',
+  })
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
+  @ResponseMessage('Other sessions revoked successfully')
+  @ApiDeviceIdHeader()
+  revokeOtherSessions(): Promise<RevokedSessions> {
+    return this.userAuthService.revokeOtherSessions();
+  }
+
+  /**
+   * Revoke Session
+   */
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sign out one device',
+    description:
+      'Revokes one of the signed-in user’s sessions and its refresh tokens. Revoking the ' +
+      'current session is a logout, and clears the refresh cookie.',
+  })
+  @ApiSuccessMessageResponse({
+    status: HttpStatus.OK,
+    description: 'The session was revoked.',
+  })
+  @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND)
+  @ResponseMessage('Session revoked successfully')
+  @ApiDeviceIdHeader()
+  async revokeSession(
+    @Param('id', ParseIdPipe) id: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<null> {
+    const { wasCurrent } = await this.userAuthService.revokeSession(id);
+
+    if (wasCurrent) {
+      this.delivery.clear(reply);
+    }
+
     return null;
   }
 }

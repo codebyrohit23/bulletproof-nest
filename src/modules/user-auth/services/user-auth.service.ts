@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -53,6 +54,8 @@ import type {
   ResendVerificationInput,
   ResetPasswordInput,
   ResetPasswordRequestInput,
+  RevokedSessions,
+  UserSessionList,
   VerifyCodeInput,
   VerifyResetOtpInput,
 } from '../dto/index.js';
@@ -63,9 +66,10 @@ import {
   type DeclaredDevice,
   type PasswordChangeMethod,
   type PasswordResetTokenOutcome,
+  type SessionRevocation,
 } from '../interfaces/index.js';
 import type { AuthUser } from '../schemas/index.js';
-import { resolveDeviceContext } from '../utils/index.js';
+import { resolveDeviceContext, toUserSession } from '../utils/index.js';
 
 import { UserCredentialService } from './user-credential.service.js';
 import { UserIdentityService } from './user-identity.service.js';
@@ -443,6 +447,45 @@ export class UserAuthService {
     return null;
   }
 
+  async listSessions(): Promise<UserSessionList> {
+    const userId = this.requireUserId('list-sessions');
+    const currentSessionId = this.requireSessionId('list-sessions');
+
+    const rows = await this.userSessionService.listLive(userId);
+
+    return { sessions: rows.map((row) => toUserSession(row, currentSessionId)) };
+  }
+
+  /**
+   * 404 for a session that is not the caller's, never 403: a 403 would confirm
+   * that the id belongs to someone.
+   */
+  async revokeSession(sessionId: string): Promise<SessionRevocation> {
+    const userId = this.requireUserId('revoke-session');
+    const currentSessionId = this.requireSessionId('revoke-session');
+
+    const revoked = await this.userSessionService.revokeOwned(userId, sessionId);
+
+    if (!revoked) {
+      throw new NotFoundException(USER_AUTH_ERROR_MESSAGE.SESSION_NOT_FOUND);
+    }
+
+    return { wasCurrent: sessionId === currentSessionId };
+  }
+
+  async revokeOtherSessions(): Promise<RevokedSessions> {
+    const userId = this.requireUserId('revoke-other-sessions');
+    const currentSessionId = this.requireSessionId('revoke-other-sessions');
+
+    const revoked = await this.userSessionService.revokeAllForUser(
+      userId,
+      SessionRevokeReason.USER_REVOKED,
+      currentSessionId,
+    );
+
+    return { revoked };
+  }
+
   async logout(): Promise<void> {
     const sessionId = this.requireSessionId('logout');
 
@@ -623,13 +666,6 @@ export class UserAuthService {
       tokens: null,
     };
   }
-
-  /**
-   * Issues a code if one is due and queues the email carrying it, in one
-   * transaction: the code and the outbox row that delivers it commit together,
-   * so a code never exists without its message on the way. Joins the caller's
-   * transaction when there is one.
-   */
   private issueAndDeliver(
     template: CodeEmailTemplate,
     identifier: IdentifierInput,
