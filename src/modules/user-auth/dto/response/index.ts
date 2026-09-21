@@ -9,8 +9,8 @@ export { PasswordResetTokenDto, type PasswordResetToken } from './password-reset
 export {
   RevokedSessionsDto,
   UserSessionDto,
-  UserSessionListDto,
+  UserSessionPageDto,
   type RevokedSessions,
   type UserSession,
-  type UserSessionList,
+  type UserSessionPage,
 } from './user-session.dto.js';

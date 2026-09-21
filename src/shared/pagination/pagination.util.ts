@@ -5,10 +5,6 @@ import type {
   Pagination,
 } from './pagination.interface.js';
 
-/**
- * Pure builders for pagination. No DI, no database, no HTTP.
- */
-
 export function buildOffsetPagination(
   total: number,
   page: number,
@@ -27,11 +23,6 @@ export function buildOffsetPagination(
   };
 }
 
-/**
- * Cursor pagination has no total, so "is there another page" is answered by
- * over-fetching: the repository asks for `limit + 1` rows, and the presence of
- * the extra row is the answer. `items` must already be trimmed to `limit`.
- */
 export function buildCursorPagination(limit: number, nextCursor: string | null): CursorPagination {
   return {
     limit: Math.max(1, limit),
@@ -40,14 +31,6 @@ export function buildCursorPagination(limit: number, nextCursor: string | null):
   };
 }
 
-/**
- * Assembles the shape a list handler returns.
- *
- * `P` is inferred from the second argument, so the result stays concrete:
- * `paginate(leads, buildOffsetPagination(total, page, limit))` is typed
- * `Paginated<Lead, OffsetPagination>` and `pagination.total` is reachable
- * without narrowing.
- */
 export function paginate<T, P extends Pagination>(
   items: readonly T[],
   pagination: P,

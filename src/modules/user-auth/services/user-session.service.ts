@@ -8,6 +8,7 @@ import {
   isUniqueConstraintViolation,
   TransactionService,
 } from '#/infrastructure/database/prisma/index.js';
+import type { OffsetSlice } from '#/shared/pagination/index.js';
 
 import { UserSessionCacheService } from '../cache/user-session.cache.js';
 import {
@@ -15,7 +16,11 @@ import {
   USER_AUTH_ERROR_MESSAGE,
   USER_AUTH_LOG_CONTEXT,
 } from '../constants/index.js';
-import type { CreateSessionInput, SessionSummaryRow } from '../interfaces/index.js';
+import type {
+  CreateSessionInput,
+  SessionPageQuery,
+  SessionSummaryRow,
+} from '../interfaces/index.js';
 import { UserSessionRepository } from '../repositories/index.js';
 
 import { UserRefreshTokenService } from './user-refresh-token.service.js';
@@ -68,14 +73,14 @@ export class UserSessionService extends UserSessionValidator {
     return this.transaction.run(() => this.retire(sessionId, reason));
   }
 
-  async listLive(userId: string): Promise<SessionSummaryRow[]> {
-    return this.sessionRepo.findLiveByUser(userId);
+  async listForUser(
+    userId: string,
+    query: SessionPageQuery,
+    now: Date,
+  ): Promise<OffsetSlice<SessionSummaryRow>> {
+    return this.sessionRepo.findPageByUser(userId, query, now);
   }
 
-  /**
-   * A session signed out by the user it belongs to. `false` when it is not
-   * theirs or no longer live — the caller cannot tell which, by design.
-   */
   async revokeOwned(userId: string, sessionId: string): Promise<boolean> {
     return this.transaction.run(async () => {
       const revoked = await this.sessionRepo.revokeOwned(

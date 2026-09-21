@@ -1,23 +1,18 @@
-/**
- * Pagination contract — transport-agnostic and ORM-agnostic.
- *
- * Query logic (`skip`/`take`, cursor encode/decode, Prisma arguments) lives in
- * `infrastructure/database/prisma/utils/` and is built with the first
- * repository that needs it. Nothing here may import Prisma.
- */
-
 export { PAGINATION_DEFAULTS, SORT_ORDER, type SortOrder } from './pagination.constants.js';
 
 export type {
   CursorPagination,
   OffsetPagination,
+  OffsetSlice,
   Paginated,
   Pagination,
 } from './pagination.interface.js';
 
 export {
-  cursorPaginationSchema,
-  offsetPaginationSchema,
+  cursorPaginationQuerySchema,
+  offsetPageSchema,
+  offsetPaginationMetaSchema,
+  offsetPaginationQuerySchema,
   sortOrderSchema,
   type CursorPaginationQuery,
   type OffsetPaginationQuery,

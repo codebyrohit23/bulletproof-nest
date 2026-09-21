@@ -48,14 +48,6 @@ export class TransactionService {
     return result;
   }
 
-  /**
-   * Defers work until the current transaction commits.
-   *
-   * Domain events, emails and webhooks belong here. Publishing them inside the
-   * transaction means a rollback still fires them, announcing a lead that does
-   * not exist. Outside a transaction the hook runs immediately, so callers do
-   * not need to know whether they are in one.
-   */
   async runAfterCommit(hook: AfterCommitHook): Promise<void> {
     if (this.context.registerAfterCommit(hook)) {
       return;
@@ -64,10 +56,6 @@ export class TransactionService {
     await hook();
   }
 
-  /**
-   * Hook failures are logged and swallowed. The transaction is already durable,
-   * and a failed notification must not surface as a failed write.
-   */
   private async drainAfterCommitHooks(hooks: readonly AfterCommitHook[]): Promise<void> {
     for (const hook of hooks) {
       try {

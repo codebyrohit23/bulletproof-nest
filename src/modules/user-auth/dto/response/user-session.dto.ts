@@ -2,16 +2,29 @@ import { DevicePlatform, DeviceType } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
+import { offsetPageSchema } from '#/shared/pagination/index.js';
 import { idSchema } from '#/shared/schemas/index.js';
 
-/**
- * No IP address. City and country are enough to recognise a device, and an IP
- * is personal data this list would also show to whoever holds a stolen session.
- */
+import { SESSION_END_REASON, SESSION_STATUS } from '../../constants/index.js';
+
 const userSessionSchema = z.object({
   id: idSchema,
 
   current: z.boolean().describe('True for the session that made this request.'),
+
+  status: z
+    .enum(SESSION_STATUS)
+    .describe('`ACTIVE` can make requests now. `ENDED` was signed out or expired.'),
+
+  endedAt: z.iso.datetime().nullable().describe('When it ended. Null while active.'),
+
+  endReason: z
+    .enum(SESSION_END_REASON)
+    .nullable()
+    .describe(
+      'Why it ended. Null while active. `SECURITY_ALERT` means it was ended because its ' +
+        'credentials were used from somewhere they should not have been — worth reviewing.',
+    ),
 
   deviceName: z.string().nullable(),
 
@@ -42,13 +55,11 @@ export class UserSessionDto extends createZodDto(userSessionSchema) {}
 
 export type UserSession = z.infer<typeof userSessionSchema>;
 
-const userSessionListSchema = z.object({
-  sessions: z.array(userSessionSchema).describe('Most recently active first.'),
-});
+const userSessionPageSchema = offsetPageSchema(userSessionSchema);
 
-export class UserSessionListDto extends createZodDto(userSessionListSchema) {}
+export class UserSessionPageDto extends createZodDto(userSessionPageSchema) {}
 
-export type UserSessionList = z.infer<typeof userSessionListSchema>;
+export type UserSessionPage = z.infer<typeof userSessionPageSchema>;
 
 const revokedSessionsSchema = z.object({
   revoked: z.number().int().nonnegative().describe('How many other devices were signed out.'),

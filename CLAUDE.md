@@ -319,6 +319,74 @@ Prisma 7 with the `pg` driver adapter over an app-owned pool.
 
 ---
 
+## Pagination
+
+Every list endpoint returns `data: { items, pagination }`. The outer shape is
+the same for every list in the API, so a client writes one list component;
+only the `pagination` block differs by strategy. Pagination lives in `data`,
+not the envelope's `meta` — `meta` describes the response, pagination describes
+the data. There is no `strategy` field: a route uses one for its lifetime.
+
+**Offset** is built; **cursor** is not yet — its interface and builder exist in
+`shared/pagination`, and its response schema and Prisma helper arrive with the
+first feed or long list.
+
+| Piece                                       | Where                                           |
+| ------------------------------------------- | ----------------------------------------------- |
+| `offsetPaginationQuerySchema(filters?)`     | `shared/pagination` — request                   |
+| `offsetPageSchema(itemSchema)`              | `shared/pagination` — response `data`           |
+| `paginate(items, buildOffsetPagination(…))` | `shared/pagination` — what a service returns    |
+| `OffsetSlice<Row>` = `{ rows, total }`      | `shared/pagination` — what a repository returns |
+| `toOffsetArgs(query, orderBy)`              | `infrastructure/database/prisma`                |
+| `createZodDto(…)`                           | the module — it is framework, so not `shared/`  |
+
+The flow, and why each layer stops where it does: the **controller** takes
+`@Query() query` and calls the service — HTTP only. The **service** scopes the
+request (user, workspace), calls the repository, maps rows to the DTO and
+returns `paginate(…)` — so it is callable from a job as well as a route. The
+**repository** owns `where`, `select` and the sort, runs count and page, and
+returns an `OffsetSlice` of rows as stored — it knows the table, not the
+response. `sessions` in `modules/user-auth` is the reference implementation.
+
+There is deliberately no `PaginationService`. It would hold no state and no
+dependencies — the reason `TransactionService` is injectable — and a service
+calling it would pass `where` and `orderBy`, carrying Prisma out of the
+repositories. A `$allModels` extension (`prisma.db.lead.findPage`) was also
+declined for now: heavy generic typing, three models with no `id`, and magic in
+a codebase that prefers explicit calls. Revisit it when lists are numerous.
+
+Rules that are not visible from the code that follows them:
+
+- **The query schema is a builder, never an object to spread.** The depth check
+  is a refinement, and `z.object({ ...schema.shape, status })` — the usual
+  idiom — drops it without a word. Pass filters in:
+  `offsetPaginationQuerySchema({ status: … })`. `page` and `limit` are spread
+  last, so a filter cannot redefine them.
+- **A page DTO must be built with `offsetPageSchema`.** `@ApiSuccessResponse`
+  attaches `ZodSerializerDto`, which strips every field the DTO does not name —
+  a hand-rolled `{ items }` schema delivers the items and silently drops
+  `pagination`.
+- **Every offset `orderBy` ends in `id`, and `toOffsetArgs` enforces it.** It
+  takes the sort and appends `{ id: 'desc' }`, so `skip`/`take` cannot be had
+  without a total order. Rows that tie on every sort key would otherwise come
+  back in a different order per query and appear on two pages, or none. A
+  misspelt column, or a model with no `id`, is a compile error. Never write
+  `skip`/`take` by hand.
+- **`MAX_OFFSET` is 10,000.** `OFFSET` computes every skipped row, so cost grows
+  with depth; a few `?page=999999` requests would hold the small connection pool
+  while the rate limiter, which counts requests rather than their cost, lets
+  them through. Refused in the schema, before any query runs. Deeper than that
+  is an export or a sync, and wants a cursor.
+- `limit` above 100 is a 422, never silently clamped. An empty list is page 1 of
+  1; a page past the end is an empty `items` with `200`, not a `404`.
+- Count and page run in `Promise.all`, not `$transaction` — `prisma.db` may
+  already be a transaction client, which cannot open another.
+- `sortBy` is never part of the shared schema. Each module declares an enum of
+  the columns it allows, as a filter — an open string reaching `orderBy` is an
+  injection surface and a full scan.
+
+---
+
 ## Jobs, the outbox and email
 
 `JobDispatcher.dispatch` is the one way to enqueue work. `OutboxRepository` and

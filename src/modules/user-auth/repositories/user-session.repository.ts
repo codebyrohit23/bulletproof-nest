@@ -1,32 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma, SessionRevokeReason, UserSession } from '@prisma/client';
 
-import { PrismaService } from '#/infrastructure/database/prisma/index.js';
+import { PrismaService, toOffsetArgs } from '#/infrastructure/database/prisma/index.js';
+import type { OffsetSlice } from '#/shared/pagination/index.js';
 
-import { SESSION_ACTIVITY_THROTTLE_MS, USER_SESSION_TTL_MS } from '../constants/index.js';
+import {
+  SESSION_ACTIVITY_THROTTLE_MS,
+  SESSION_SUMMARY_SELECT,
+  USER_SESSION_TTL_MS,
+} from '../constants/index.js';
 import type {
   CreateSessionInput,
   SessionDeviceColumns,
+  SessionPageQuery,
   SessionSnapshot,
   SessionSummaryRow,
 } from '../interfaces/index.js';
-import { toSessionSnapshot } from '../utils/session.util.js';
-
-const SESSION_SUMMARY_SELECT = {
-  id: true,
-  deviceName: true,
-  deviceType: true,
-  platform: true,
-  browserName: true,
-  browserVersion: true,
-  osName: true,
-  osVersion: true,
-  city: true,
-  region: true,
-  countryCode: true,
-  lastActivityAt: true,
-  createdAt: true,
-} as const satisfies Prisma.UserSessionSelect;
+import { buildSessionStatusWhere, toSessionSnapshot } from '../utils/index.js';
 
 @Injectable()
 export class UserSessionRepository {
@@ -88,19 +78,31 @@ export class UserSessionRepository {
     return count > 0 ? now : null;
   }
 
-  /** A user's live sessions, most recently active first. */
-  async findLiveByUser(userId: string): Promise<SessionSummaryRow[]> {
-    return this.prisma.db.userSession.findMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
-      select: SESSION_SUMMARY_SELECT,
-      orderBy: [{ lastActivityAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
-    });
+  async findPageByUser(
+    userId: string,
+    query: SessionPageQuery,
+    now: Date,
+  ): Promise<OffsetSlice<SessionSummaryRow>> {
+    const where = {
+      userId,
+      ...buildSessionStatusWhere(query.status, now),
+    } satisfies Prisma.UserSessionWhereInput;
+
+    const [total, rows] = await Promise.all([
+      this.prisma.db.userSession.count({ where }),
+      this.prisma.db.userSession.findMany({
+        where,
+        select: SESSION_SUMMARY_SELECT,
+        ...toOffsetArgs(query, [
+          { lastActivityAt: { sort: 'desc', nulls: 'last' } },
+          { createdAt: 'desc' },
+        ]),
+      }),
+    ]);
+
+    return { rows, total };
   }
 
-  /**
-   * Revokes a session only if it belongs to `userId`. Ownership is part of the
-   * write, not a read before it, so no other request can land in between.
-   */
   async revokeOwned(id: string, userId: string, reason: SessionRevokeReason): Promise<boolean> {
     const { count } = await this.prisma.db.userSession.updateMany({
       where: { id, userId, revokedAt: null },

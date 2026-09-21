@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Req,
   Res,
 } from '@nestjs/common';
@@ -30,6 +31,7 @@ import {
   AuthResultDto,
   AuthTokensDto,
   ChangePasswordDto,
+  ListSessionsQueryDto,
   LoginDto,
   OtpLoginDto,
   OtpLoginRequestDto,
@@ -41,7 +43,7 @@ import {
   ResetPasswordDto,
   ResetPasswordRequestDto,
   RevokedSessionsDto,
-  UserSessionListDto,
+  UserSessionPageDto,
   VerifyCodeDto,
   VerifyResetOtpDto,
   type AuthResult,
@@ -49,7 +51,7 @@ import {
   type PasswordResetToken,
   type RegisterResponse,
   type RevokedSessions,
-  type UserSessionList,
+  type UserSessionPage,
 } from '../dto/index.js';
 import { AUTH_RATE_LIMIT } from '../rate-limit/user-auth-limits.constants.js';
 import { AuthTokenDeliveryService } from '../services/auth-token-delivery.service.js';
@@ -63,9 +65,6 @@ export class UserAuthController {
     private readonly delivery: AuthTokenDeliveryService,
   ) {}
 
-  /**
-   * Register User
-   */
   @Post('register')
   @Public()
   @RateLimit(...AUTH_RATE_LIMIT.REGISTER)
@@ -90,10 +89,6 @@ export class UserAuthController {
   registerUser(@Body() body: RegisterDto): Promise<RegisterResponse> {
     return this.userAuthService.registerUser(body);
   }
-
-  /**
-   * Verify your identity
-   */
   @Post('verification/verify')
   @Public()
   @RateLimit(...AUTH_RATE_LIMIT.VERIFY_REGISTRATION)
@@ -435,20 +430,26 @@ export class UserAuthController {
    */
   @Get('sessions')
   @ApiOperation({
-    summary: 'List signed-in devices',
+    summary: 'List signed-in devices and recent sign-ins',
     description:
-      'Every live session of the signed-in user, most recently active first. The session that ' +
-      'made the request is marked `current`.',
+      'The signed-in user’s sessions, most recently active first, one page at a time. ' +
+      '`status=active` (the default) lists devices signed in now; `ended` lists sessions ' +
+      'signed out or expired in the last 90 days, each with `endReason`; `all` lists both. ' +
+      'The session that made the request is marked `current`.',
   })
-  @ApiSuccessResponse(UserSessionListDto, {
+  @ApiSuccessResponse(UserSessionPageDto, {
     status: HttpStatus.OK,
-    description: 'The live sessions.',
+    description: 'One page of sessions. A page past the end is an empty `items`, not an error.',
   })
-  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.TOO_MANY_REQUESTS)
+  @ApiErrorResponses(
+    HttpStatus.UNPROCESSABLE_ENTITY,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.TOO_MANY_REQUESTS,
+  )
   @ResponseMessage('Sessions fetched successfully')
   @ApiDeviceIdHeader()
-  listSessions(): Promise<UserSessionList> {
-    return this.userAuthService.listSessions();
+  listSessions(@Query() query: ListSessionsQueryDto): Promise<UserSessionPage> {
+    return this.userAuthService.listSessions(query);
   }
 
   /**

@@ -1,8 +1,14 @@
-import type { DevicePlatform, DeviceType } from '@prisma/client';
+import type { DevicePlatform, DeviceType, SessionRevokeReason } from '@prisma/client';
+
+import type { OffsetPaginationQuery } from '#/shared/pagination/index.js';
+
+import type { SessionListStatus } from '../constants/index.js';
 
 import type { DeviceContext } from './device-context.interface.js';
 
-/** One live session as the "your devices" list needs it. */
+export type SessionPageQuery = OffsetPaginationQuery & { readonly status: SessionListStatus };
+
+/** One session, live or ended, as the "your devices" list needs it. */
 export interface SessionSummaryRow {
   readonly id: string;
 
@@ -29,6 +35,12 @@ export interface SessionSummaryRow {
   readonly lastActivityAt: Date | null;
 
   readonly createdAt: Date;
+
+  readonly expiresAt: Date;
+
+  readonly revokedAt: Date | null;
+
+  readonly revokedReason: SessionRevokeReason | null;
 }
 
 export interface SessionRevocation {

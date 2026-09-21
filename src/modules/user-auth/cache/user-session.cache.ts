@@ -6,7 +6,7 @@ import type { SessionSnapshot } from '../interfaces/index.js';
 
 @Injectable()
 export class UserSessionCacheService {
-  private static readonly VERSION = 2;
+  private static readonly VERSION = 1;
 
   constructor(private readonly cache: CacheService) {}
 

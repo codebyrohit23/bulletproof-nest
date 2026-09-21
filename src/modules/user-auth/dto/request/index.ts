@@ -22,3 +22,5 @@ export { VerifyResetOtpDto, type VerifyResetOtpInput } from './verify-reset-otp.
 export { ResetPasswordDto, type ResetPasswordInput } from './reset-password.dto.js';
 
 export { ChangePasswordDto, type ChangePasswordInput } from './change-password.dto.js';
+
+export { ListSessionsQueryDto, type ListSessionsQuery } from './list-sessions-query.dto.js';

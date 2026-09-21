@@ -2,6 +2,7 @@ export const PAGINATION_DEFAULTS = {
   PAGE: 1,
   LIMIT: 20,
   MAX_LIMIT: 100,
+  MAX_OFFSET: 10_000,
 } as const;
 
 export const SORT_ORDER = {

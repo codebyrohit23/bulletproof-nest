@@ -33,6 +33,7 @@ import {
   verificationPurposeFor,
   type IssuedVerificationCode,
 } from '#/modules/verification/index.js';
+import { buildOffsetPagination, paginate } from '#/shared/pagination/index.js';
 import type { IdentifierInput } from '#/shared/schemas/index.js';
 
 import {
@@ -45,6 +46,7 @@ import type {
   AuthResult,
   AuthTokens,
   ChangePasswordInput,
+  ListSessionsQuery,
   LoginInput,
   OtpLoginInput,
   OtpLoginRequestInput,
@@ -55,7 +57,7 @@ import type {
   ResetPasswordInput,
   ResetPasswordRequestInput,
   RevokedSessions,
-  UserSessionList,
+  UserSessionPage,
   VerifyCodeInput,
   VerifyResetOtpInput,
 } from '../dto/index.js';
@@ -447,13 +449,18 @@ export class UserAuthService {
     return null;
   }
 
-  async listSessions(): Promise<UserSessionList> {
+  async listSessions(query: ListSessionsQuery): Promise<UserSessionPage> {
     const userId = this.requireUserId('list-sessions');
     const currentSessionId = this.requireSessionId('list-sessions');
 
-    const rows = await this.userSessionService.listLive(userId);
+    const now = new Date();
 
-    return { sessions: rows.map((row) => toUserSession(row, currentSessionId)) };
+    const { rows, total } = await this.userSessionService.listForUser(userId, query, now);
+
+    return paginate(
+      rows.map((row) => toUserSession(row, currentSessionId, now)),
+      buildOffsetPagination(total, query.page, query.limit),
+    );
   }
 
   /**
