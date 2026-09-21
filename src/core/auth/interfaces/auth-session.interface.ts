@@ -1,6 +1,6 @@
 import type { ModuleMetadata } from '@nestjs/common';
 
-import type { AUTH_FAILURE_REASON } from '../constants/auth.constants.js';
+import type { AUTH_FAILURE_REASON } from '../constants/index.js';
 
 export interface AuthenticatedUserSession {
   readonly id: string;

@@ -19,3 +19,7 @@ export const accessTokenPayloadSchema = z.object({
 
   sid: z.uuid(),
 });
+
+export type AccessTokenPayload = z.infer<typeof accessTokenPayloadSchema>;
+
+export type AccessTokenClaims = Omit<AccessTokenPayload, 'typ' | 'jti' | 'iat' | 'exp'>;

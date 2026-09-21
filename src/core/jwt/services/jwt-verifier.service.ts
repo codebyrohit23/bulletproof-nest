@@ -6,15 +6,13 @@ import { JwtConfigService } from '#/config/jwt/index.js';
 
 import {
   JWT_ALGORITHM,
-  JWT_AUDIENCE,
   JWT_CLOCK_TOLERANCE_SECONDS,
+  type JwtAudience,
 } from '../constants/jwt.constants.js';
 import { TokenExpiredError, TokenInvalidError } from '../errors/jwt.errors.js';
-import { accessTokenPayloadSchema } from '../schemas/jwt-payload.schema.js';
-import type { AccessTokenPayload } from '../types/jwt-payload.type.js';
+import { accessTokenPayloadSchema, type AccessTokenPayload } from '../schemas/index.js';
 
 import { KeyStoreService } from './key-store.service.js';
-
 @Injectable()
 export class JwtVerifierService {
   constructor(
@@ -22,23 +20,14 @@ export class JwtVerifierService {
     private readonly config: JwtConfigService,
   ) {}
 
-  async verifyAccessToken(token: string): Promise<AccessTokenPayload> {
-    return this.verify(token, accessTokenPayloadSchema, JWT_AUDIENCE.USER);
-  }
-
-  /**
-   * The payload has the same shape as a user token's, but `sub` is an admin id
-   * and `sid` an `admin_sessions` id. Only `AdminSessionValidator` should be
-   * given either.
-   */
-  async verifyAdminAccessToken(token: string): Promise<AccessTokenPayload> {
-    return this.verify(token, accessTokenPayloadSchema, JWT_AUDIENCE.ADMIN);
+  async verifyAccessToken(token: string, audience: JwtAudience): Promise<AccessTokenPayload> {
+    return this.verify(token, accessTokenPayloadSchema, audience);
   }
 
   private async verify<T>(
     token: string,
     schema: ZodType<T, JWTPayload>,
-    audience: string,
+    audience: JwtAudience,
   ): Promise<T> {
     const key = this.keyStore.getVerificationKey(this.readKid(token));
 
@@ -51,7 +40,7 @@ export class JwtVerifierService {
     try {
       /*
        * `audience` is enforced here, by jose, before the payload is parsed —
-       * a token issued for the other audience never reaches the schema below.
+       * a token issued for another audience never reaches the schema below.
        */
       ({ payload } = await jwtVerify(token, key, {
         algorithms: [JWT_ALGORITHM],

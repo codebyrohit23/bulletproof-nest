@@ -6,6 +6,11 @@ export { JwtVerifierService } from './services/jwt-verifier.service.js';
 
 export { JwtError, TokenExpiredError, TokenInvalidError } from './errors/jwt.errors.js';
 
-export { JWT_AUDIENCE, JWT_TOKEN_TYPE, TOKEN_TTL_SECONDS } from './constants/jwt.constants.js';
+export {
+  JWT_AUDIENCE,
+  JWT_TOKEN_TYPE,
+  TOKEN_TTL_SECONDS,
+  type JwtAudience,
+} from './constants/jwt.constants.js';
 
-export type { AccessTokenClaims, AccessTokenPayload } from './types/jwt-payload.type.js';
+export type { AccessTokenClaims, AccessTokenPayload } from './schemas/index.js';

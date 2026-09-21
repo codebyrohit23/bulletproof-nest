@@ -1,12 +1,13 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 import {
+  JWT_AUDIENCE,
   JwtVerifierService,
   TokenExpiredError,
   type AccessTokenPayload,
 } from '#/core/jwt/index.js';
 
-import { AUTH_FAILURE_REASON } from '../constants/auth.constants.js';
+import { AUTH_FAILURE_REASON } from '../constants/index.js';
 import type { AuthenticationResult, RequestAuthenticator } from '../interfaces/index.js';
 import { AdminSessionValidator } from '../ports/index.js';
 
@@ -27,7 +28,7 @@ export class AdminAuthenticator implements RequestAuthenticator {
     let payload: AccessTokenPayload;
 
     try {
-      payload = await this.jwtVerifier.verifyAdminAccessToken(token);
+      payload = await this.jwtVerifier.verifyAccessToken(token, JWT_AUDIENCE.ADMIN);
     } catch (error) {
       return {
         ok: false,

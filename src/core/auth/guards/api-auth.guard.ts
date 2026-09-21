@@ -21,7 +21,7 @@ import {
   AUTH_WIRING_FAULTS,
   BEARER_SCHEME,
   type AuthFailureReason,
-} from '../constants/auth.constants.js';
+} from '../constants/index.js';
 import type { RequestAuthenticator } from '../interfaces/index.js';
 
 @Injectable()

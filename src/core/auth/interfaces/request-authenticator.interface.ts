@@ -1,6 +1,6 @@
 import type { RequestIdentityPatch } from '#/core/context/index.js';
 
-import type { AuthFailureReason } from '../constants/auth.constants.js';
+import type { AuthFailureReason } from '../constants/index.js';
 
 export type AuthenticationResult =
   | { readonly ok: true; readonly identity: RequestIdentityPatch }

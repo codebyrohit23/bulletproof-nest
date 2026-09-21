@@ -166,6 +166,14 @@ should still use `import type`.
 This already shipped once as a latent bug and was invisible because the class
 was not yet registered as a provider.
 
+**The same metadata is why nothing that boots a Nest container can run under
+`tsx`.** `tsx` is esbuild, and esbuild does not resolve types, so it cannot emit
+`design:paramtypes` at all — every injected constructor parameter arrives as
+`undefined` and the container dies on the first provider it builds, naming a
+property on `undefined` rather than the missing metadata. `tsx` is fine for a
+script that imports nothing from `src/` (`scripts/generate-keys.ts`); anything
+that resolves a provider goes through `dist`, as `start:prod` and `db:seed` do.
+
 ---
 
 ## Module boundaries
@@ -233,8 +241,8 @@ it, and the two must not be able to disagree.
 **One global guard.** `ApiAuthGuard` is the only `APP_GUARD`. It resolves the
 audience, does everything common — `@Public()`, the bearer token, the device id,
 the refusal — then delegates to `UserAuthenticator` or `AdminAuthenticator`,
-which differ in exactly three things: which verify method, which session table,
-which identity field. The dispatch table is typed
+which differ in exactly three things: which audience they verify against, which
+session table, which identity field. The dispatch table is typed
 `Record<ApiAudienceKey, RequestAuthenticator>`, so a third audience fails the
 build until it has an authenticator.
 
@@ -245,12 +253,22 @@ failing test. Worse here — with a global guard already in place it would force
 only decorator left. A forgotten `@Public()` merely 401s your own login
 endpoint on the first call.
 
-**Two layers, deliberately.** The path dispatch is one; the `aud` claim is the
-other. Tokens carry `JWT_AUDIENCE.USER` or `JWT_AUDIENCE.ADMIN` and each verify
-method pins one, enforced by jose and covered by the signature. If the dispatch
-is ever wrong, verification still refuses. `typ` stays `access` for both — it
-discriminates token _kind_, not audience, and restating `aud` from inside the
-same signed payload buys nothing. One keypair serves both.
+**Three layers, in order of strength.** The session table is the real
+guarantee: an admin token's `sid` is not in `user_sessions`, so the wrong token
+fails the lookup. Above it, the `aud` claim — `JWT_AUDIENCE.USER` or
+`.ADMIN`, enforced by jose inside `jwtVerify` and covered by the signature —
+which is what still holds if the path dispatch is ever wrong and the table
+lookup never gets its chance. The dispatch itself is the outermost and the
+weakest, because it is our code. `typ` stays `access` for both: it discriminates
+token _kind_, not audience. One keypair serves both.
+
+**`core/jwt` knows token kinds; it does not know actors.** A method per token
+kind, because each has its own payload schema; the audience is a required
+_parameter_. So a new actor is a value added to `JWT_AUDIENCE` and to
+`API_AUDIENCE`, and neither the signer nor the verifier changes — while
+required-ness means no call site can obtain a payload whose audience nobody
+checked. Choosing the audience is `core/auth`'s job and happens once per
+authenticator.
 
 Authentication is global; **authorization is per route** — a permission
 decorator that is missing leaves a route authenticated-but-unrestricted, which
@@ -342,6 +360,41 @@ never holds the body — a code travels in it. Status only moves forward
 (`MESSAGE_STATUS_RANK`), because provider webhooks arrive out of order. A flow
 that issues a one-time code uses `issueAndDeliver` in `UserAuthService`, so the
 code and its email commit together.
+
+---
+
+## Seeding
+
+`pnpm db:seed` compiles and runs `src/seed.ts`, which boots `SeedModule` and
+asks `SeedRunner` to run the registered seeders. `prisma.config.ts` points its
+seed hook at the same script, so `prisma migrate reset` leaves a usable
+environment rather than an empty one.
+
+**A seeder lives with the table it seeds** — `modules/<x>/seeds/` — and is
+registered as `{ provide: Seeder, useExisting: XSeeder, multi: true }`. `core`
+declares the `Seeder` port for the usual reason: it needs seeders, the tables
+belong to feature modules, and `core` may not import one.
+
+**`SeedModule` is not `AppModule`.** `AppModule` starts the BullMQ workers,
+which in a seed script means a process that never exits — a CI job that hangs
+rather than one that fails. It lists only what a seeder needs.
+
+**Order is declared once**, in `SeedingModule.forRoot({ order })`. A seeder that
+is registered but unlisted, or listed but unregistered, refuses to run and says
+which — provider registration order is not an order anybody chose.
+
+**Each seeder declares a `kind`,** because the word covers things with different
+rules: `reference` (permissions, roles — every environment, every deploy,
+upserted by natural key) and `bootstrap` (the first admin — once per
+environment, created and never overwritten). `db:seed` runs everything;
+`--only=<key>` names seeders explicitly and `--kinds=<kind>` filters.
+
+There is no `demo` kind. Nothing generates fixtures yet, and the environment
+gate one would need — refusing to run outside development — is not worth writing
+against no caller. Add both in the same change as the first fixture seeder.
+
+**Seeders never delete.** A permission the catalogue no longer defines may still
+be referenced by a role — report it in `notes` and let a human decide.
 
 ---
 

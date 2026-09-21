@@ -9,7 +9,7 @@ export {
   AUTH_FAILURE_REASON,
   AUTH_LOG_CONTEXT,
   type AuthFailureReason,
-} from './constants/auth.constants.js';
+} from './constants/index.js';
 
 export type {
   AdminSessionValidationResult,

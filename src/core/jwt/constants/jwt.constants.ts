@@ -10,6 +10,8 @@ export const JWT_AUDIENCE = {
   ADMIN: 'leadflow:admin-api',
 } as const satisfies Record<Uppercase<ApiAudienceKey>, string>;
 
+export type JwtAudience = (typeof JWT_AUDIENCE)[keyof typeof JWT_AUDIENCE];
+
 export const JWT_TOKEN_TYPE = {
   ACCESS: 'access',
 } as const;

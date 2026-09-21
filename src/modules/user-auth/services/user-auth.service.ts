@@ -22,7 +22,7 @@ import {
 } from '#/core/auth/index.js';
 import { EMAIL_TEMPLATE, EmailService } from '#/core/communication/email/index.js';
 import { RequestContextService } from '#/core/context/index.js';
-import { JwtSignerService, TOKEN_TTL_SECONDS } from '#/core/jwt/index.js';
+import { JWT_AUDIENCE, JwtSignerService, TOKEN_TTL_SECONDS } from '#/core/jwt/index.js';
 import { AppLoggerService } from '#/core/logger/index.js';
 import { TransactionService } from '#/infrastructure/database/prisma/index.js';
 import { UserService } from '#/modules/users/index.js';
@@ -306,10 +306,10 @@ export class UserAuthService {
 
     const { session } = validation;
 
-    const accessToken = await this.jwtSigner.signAccessToken({
-      sub: session.userId,
-      sid: session.id,
-    });
+    const accessToken = await this.jwtSigner.signAccessToken(
+      { sub: session.userId, sid: session.id },
+      JWT_AUDIENCE.USER,
+    );
 
     this.requestContext.setIdentity({ userId: session.userId, sessionId: session.id });
 
@@ -629,7 +629,10 @@ export class UserAuthService {
 
     const refreshToken = await this.refreshTokenService.issue(session.id, userId);
 
-    const accessToken = await this.jwtSigner.signAccessToken({ sub: userId, sid: session.id });
+    const accessToken = await this.jwtSigner.signAccessToken(
+      { sub: userId, sid: session.id },
+      JWT_AUDIENCE.USER,
+    );
 
     this.requestContext.setIdentity({ userId, sessionId: session.id });
 
