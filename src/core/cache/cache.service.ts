@@ -6,7 +6,7 @@ import { CacheStore } from '#/infrastructure/cache/index.js';
 import { LOCK_OUTCOME, RedisLockService } from '#/infrastructure/redis/index.js';
 import { delay } from '#/shared/utils/index.js';
 
-import { CACHE_LOCK, CACHE_LOG_CONTEXT } from './constants/cache.constants.js';
+import { CACHE_LOCK, CACHE_LOG_CONTEXT } from './constants/index.js';
 import type {
   CacheKeyDescriptor,
   CacheRememberOptions,

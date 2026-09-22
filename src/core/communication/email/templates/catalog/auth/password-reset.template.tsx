@@ -10,14 +10,6 @@ const schema = z.object({
   expiresInMinutes: z.number().int().positive(),
 });
 
-/**
- * A code, not a link.
- *
- * Every other flow in this service proves an identifier with a code, and
- * `VerificationPurpose.PASSWORD_RESET` is issued the same way as the rest. A
- * magic link here would need its own token, its own expiry and its own landing
- * route, to answer a question the existing mechanism already answers.
- */
 export const passwordResetTemplate: EmailTemplate<z.infer<typeof schema>> = {
   id: EMAIL_TEMPLATE.PASSWORD_RESET,
 
@@ -33,11 +25,6 @@ export const passwordResetTemplate: EmailTemplate<z.infer<typeof schema>> = {
 
       <EmailCode value={data.code} />
 
-      {/*
-       * Deliberately firmer than the verification email. This message is the
-       * one signal an account owner gets that someone is trying to take their
-       * account, so it says what to do rather than "you can ignore this".
-       */}
       <EmailText muted>
         This code expires in {data.expiresInMinutes} minutes. If you did not request a password
         reset, your password is unchanged — but someone knows your email address, so it is worth

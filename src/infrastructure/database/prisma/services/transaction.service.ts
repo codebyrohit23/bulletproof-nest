@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { AppLoggerService } from '#/core/logger/index.js';
 
-import {
-  PRISMA_TRANSACTION_LOG_CONTEXT,
-  TRANSACTION_DEFAULTS,
-} from '../constants/prisma.constants.js';
+import { PRISMA_TRANSACTION_LOG_CONTEXT, TRANSACTION_DEFAULTS } from '../constants/index.js';
 import type {
   AfterCommitHook,
   TransactionCallback,

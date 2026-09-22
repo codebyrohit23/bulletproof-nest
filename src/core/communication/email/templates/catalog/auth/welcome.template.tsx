@@ -10,14 +10,6 @@ const schema = z.object({
   dashboardUrl: z.url(),
 });
 
-/**
- * Transactional, not marketing, even though it is the friendliest email here.
- *
- * It is sent once, in direct response to finishing signup, and a user who
- * unsubscribed from marketing still needs it. Categorising it as marketing would
- * put it behind the suppression list and on the bulk sending domain, where it
- * would arrive late or not at all.
- */
 export const welcomeTemplate: EmailTemplate<z.infer<typeof schema>> = {
   id: EMAIL_TEMPLATE.WELCOME,
 

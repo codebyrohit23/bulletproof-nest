@@ -1,4 +1,4 @@
-import { CACHE_CIRCUIT, CIRCUIT_STATE, type CircuitState } from '../constants/cache.constants.js';
+import { CACHE_CIRCUIT, CIRCUIT_STATE, type CircuitState } from '../constants/index.js';
 
 export class CircuitBreaker {
   private current: CircuitState = CIRCUIT_STATE.CLOSED;

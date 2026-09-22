@@ -7,15 +7,6 @@ import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 export class OutboundMessageRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Uses `prisma.db`, so a record written during a request joins that request's
-   * transaction and disappears with it on rollback.
-   *
-   * Returns `null` when the idempotency key already exists. `ON CONFLICT DO
-   * NOTHING` rather than catching the unique violation: inside a transaction
-   * Postgres aborts on the first error, and the lookup that follows a caught one
-   * would fail along with everything else the request still had to write.
-   */
   async insertIfAbsent(data: Prisma.OutboundMessageCreateManyInput): Promise<string | null> {
     const [created] = await this.prisma.db.outboundMessage.createManyAndReturn({
       data: [data],
@@ -35,13 +26,6 @@ export class OutboundMessageRepository {
     return existing?.id ?? null;
   }
 
-  /**
-   * Moves the row to `status`, but only from the statuses listed in `from`.
-   *
-   * One conditional `updateMany` rather than read-then-write: two callers can
-   * report an outcome at the same time — a worker and a provider webhook — and
-   * a read followed by a write would let the loser overwrite the winner.
-   */
   async advance(
     id: string,
     status: MessageStatus,

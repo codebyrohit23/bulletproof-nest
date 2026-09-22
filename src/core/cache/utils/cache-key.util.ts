@@ -1,55 +1,20 @@
 import { REDIS_KEY_SEPARATOR } from '#/config/redis/index.js';
 
-import { CACHE_DOMAIN, CACHE_SCOPE, CACHE_VERSION_PREFIX } from '../constants/cache.constants.js';
+import { CACHE_DOMAIN, CACHE_SCOPE, CACHE_VERSION_PREFIX } from '../constants/index.js';
 import type { CacheKeyDescriptor } from '../interfaces/index.js';
-
-/**
- * The only place cache keys are assembled.
- *
- * Layout:
- *
- *     cache:ws:<workspaceId>:v<n>:<resource>:<segments...>
- *     cache:global:v<n>:<resource>:<segments...>
- *
- * Deliberately **no hash tags**. A tag forces every key sharing it onto one
- * cluster slot, which concentrates a large tenant on a single node and buys
- * nothing unless a single command spans those keys. Cache reads are individual
- * `GET`s, and tenant-wide invalidation is solved by bumping a version rather
- * than by co-locating keys. Tags belong only where a multi-key command or a Lua
- * script genuinely requires them — BullMQ's queue prefix being the clear case.
- *
- * Pure: no DI, no Redis, no request context.
- */
 
 export function buildTenantCacheKey(workspaceId: string, descriptor: CacheKeyDescriptor): string {
   return join([CACHE_DOMAIN, CACHE_SCOPE.TENANT, workspaceId, ...versionedResource(descriptor)]);
 }
 
-/**
- * For entities that genuinely span tenants — a user identity, a verification
- * code, an IP rate-limit counter.
- *
- * Separate function rather than a flag so that opting out of tenant isolation
- * is visible in review at the call site.
- */
 export function buildGlobalCacheKey(descriptor: CacheKeyDescriptor): string {
   return join([CACHE_DOMAIN, CACHE_SCOPE.GLOBAL, ...versionedResource(descriptor)]);
 }
 
-/**
- * Prefix covering every cached entry for one tenant.
- *
- * Useful for an operator dropping a tenant's cache by hand. Application code
- * should prefer a version bump — that is O(1) and needs no scan.
- */
 export function buildTenantCachePrefix(workspaceId: string): string {
   return `${join([CACHE_DOMAIN, CACHE_SCOPE.TENANT, workspaceId])}${REDIS_KEY_SEPARATOR}`;
 }
 
-/**
- * Prefix covering every cached entry for one resource within a tenant, at a
- * given version — what a module's `invalidate*` method deletes.
- */
 export function buildTenantResourcePrefix(
   workspaceId: string,
   resource: string,

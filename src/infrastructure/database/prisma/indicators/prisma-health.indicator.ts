@@ -3,7 +3,7 @@ import { type HealthIndicatorResult, HealthIndicatorService } from '@nestjs/term
 
 import { withTimeout } from '#/shared/utils/index.js';
 
-import { HEALTH_CHECK_TIMEOUT_MS, PRISMA_HEALTH_KEY } from '../constants/prisma.constants.js';
+import { HEALTH_CHECK_TIMEOUT_MS, PRISMA_HEALTH_KEY } from '../constants/index.js';
 import { PrismaService } from '../prisma.service.js';
 
 @Injectable()

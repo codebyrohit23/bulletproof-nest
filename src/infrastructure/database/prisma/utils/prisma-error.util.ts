@@ -1,6 +1,6 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 
-import { PRISMA_ERROR_CODE } from '../constants/prisma.constants.js';
+import { PRISMA_ERROR_CODE } from '../constants/index.js';
 
 /**
  * Error classification. Pure — no DI, no logging, no queries.

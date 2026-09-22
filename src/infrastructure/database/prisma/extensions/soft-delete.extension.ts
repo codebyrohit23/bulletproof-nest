@@ -1,21 +1,12 @@
 import { Prisma } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 
-import { SOFT_DELETABLE_MODELS, SOFT_DELETE_FIELD } from '../constants/prisma.constants.js';
-
-const FILTERABLE_OPERATIONS = new Set([
-  'findFirst',
-  'findFirstOrThrow',
-  'findMany',
-  'count',
-  'aggregate',
-  'groupBy',
-  'update',
-  'updateMany',
-]);
-
-/** Operations whose `where` accepts unique fields only — the result must be filtered instead. */
-const UNIQUE_READ_OPERATIONS = new Set(['findUnique', 'findUniqueOrThrow']);
+import {
+  FILTERABLE_OPERATIONS,
+  SOFT_DELETABLE_MODELS,
+  SOFT_DELETE_FIELD,
+  UNIQUE_READ_OPERATIONS,
+} from '../constants/index.js';
 
 export function createSoftDeleteExtension() {
   return Prisma.defineExtension({

@@ -81,7 +81,7 @@ export { CacheService } from './cache.service.js';
 
 export { CacheMetricsService } from './metrics/cache-metrics.service.js';
 
-export { CACHE_NEGATIVE_TTL_SECONDS, CACHE_TTL } from './constants/cache.constants.js';
+export { CACHE_NEGATIVE_TTL_SECONDS, CACHE_TTL } from './constants/index.js';
 
 export type {
   CacheKeyDescriptor,

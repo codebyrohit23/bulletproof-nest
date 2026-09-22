@@ -11,7 +11,7 @@ export {
   PRISMA_HEALTH_KEY,
   SOFT_DELETABLE_MODELS,
   SOFT_DELETE_FIELD,
-} from './constants/prisma.constants.js';
+} from './constants/index.js';
 
 export { isUniqueConstraintViolation } from './utils/prisma-error.util.js';
 

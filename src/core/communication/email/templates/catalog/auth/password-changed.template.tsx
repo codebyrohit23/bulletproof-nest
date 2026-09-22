@@ -25,13 +25,6 @@ function formatChangedAt(iso: string): string {
   return `${formatted} UTC`;
 }
 
-/**
- * The account owner's one signal that a password changed without them.
- *
- * Carries no token-bearing link and nothing about where the change came from:
- * after a takeover this lands in a mailbox the attacker may also read, so it
- * tells the owner what to do and gives the attacker nothing to use.
- */
 export const passwordChangedTemplate: EmailTemplate<z.infer<typeof schema>> = {
   id: EMAIL_TEMPLATE.PASSWORD_CHANGED,
 

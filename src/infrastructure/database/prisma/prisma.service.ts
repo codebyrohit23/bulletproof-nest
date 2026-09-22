@@ -4,7 +4,7 @@ import type { Pool } from 'pg';
 import { DatabaseConfigService } from '#/config/database/index.js';
 import { AppLoggerService } from '#/core/logger/index.js';
 
-import { DATABASE_RETRY, PRISMA_LOG_CONTEXT } from './constants/prisma.constants.js';
+import { DATABASE_RETRY, PRISMA_LOG_CONTEXT } from './constants/index.js';
 import { applyPrismaExtensions } from './extensions/index.js';
 import { createPgPool, createPrismaClient, registerPrismaLogHandlers } from './providers/index.js';
 import { TransactionContextService } from './services/transaction-context.service.js';

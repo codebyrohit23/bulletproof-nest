@@ -10,16 +10,6 @@ const schema = z.object({
   expiresInMinutes: z.number().int().positive(),
 });
 
-/**
- * Signing in, not proving an address.
- *
- * Separate from `OTP_VERIFICATION` even though the data is identical, because
- * the copy is the whole point of the email: one asks someone to confirm an
- * address they just gave you, the other lets them into an account that already
- * exists. Sharing a template would mean mailing "verify your email address" to
- * someone who is logging in — confusing at best, and it trains people to type
- * codes into whatever asks for them.
- */
 export const loginOtpTemplate: EmailTemplate<z.infer<typeof schema>> = {
   id: EMAIL_TEMPLATE.LOGIN_OTP,
 

@@ -13,11 +13,6 @@ export interface CursorPagination {
 
 export type Pagination = OffsetPagination | CursorPagination;
 
-/**
- * What a repository returns for an offset page: rows as stored, and the count
- * across every page. The service maps the rows and builds `pagination` — a
- * repository knows the table, not the response.
- */
 export interface OffsetSlice<T> {
   readonly rows: readonly T[];
 

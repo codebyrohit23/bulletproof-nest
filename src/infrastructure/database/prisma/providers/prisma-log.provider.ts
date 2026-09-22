@@ -1,7 +1,7 @@
 import type { PrismaLogLevel } from '#/config/database/index.js';
 import type { AppLoggerService } from '#/core/logger/index.js';
 
-import { PRISMA_QUERY_LOG_CONTEXT } from '../constants/prisma.constants.js';
+import { PRISMA_QUERY_LOG_CONTEXT } from '../constants/index.js';
 import type { BasePrismaClient } from '../types/prisma.types.js';
 
 /**

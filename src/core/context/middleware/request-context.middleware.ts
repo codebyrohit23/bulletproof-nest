@@ -13,7 +13,7 @@ import {
   USER_AGENT_HEADER,
 } from '#/shared/constants/index.js';
 
-import { DEVICE_ID_MAX_LENGTH } from '../constants/context.constants.js';
+import { DEVICE_ID_MAX_LENGTH } from '../constants/index.js';
 import type { RequestContext } from '../interfaces/index.js';
 import { RequestContextService } from '../services/request-context.service.js';
 import {

@@ -13,7 +13,7 @@ export {
   RequestId,
 } from './decorators/index.js';
 
-export { DEFAULT_LOCALE } from './constants/context.constants.js';
+export { DEFAULT_LOCALE } from './constants/index.js';
 
 export { resolveRequestId } from './utils/request-id.util.js';
 
