@@ -3,8 +3,9 @@ export {
   CurrentAdminId,
   CurrentContext,
   CurrentDeviceId,
-  CurrentWorkspaceId,
+  CurrentSessionId,
   CurrentUserId,
+  CurrentWorkspaceId,
   Locale,
   RequestId,
 } from './context.decorators.js';

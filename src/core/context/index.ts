@@ -7,11 +7,14 @@ export {
   CurrentAdminId,
   CurrentContext,
   CurrentDeviceId,
-  CurrentWorkspaceId,
+  CurrentSessionId,
   CurrentUserId,
+  CurrentWorkspaceId,
   Locale,
   RequestId,
 } from './decorators/index.js';
+
+export { IdentityMissingException } from './exceptions/index.js';
 
 export { DEFAULT_LOCALE } from './constants/index.js';
 

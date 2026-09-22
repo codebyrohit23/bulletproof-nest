@@ -16,7 +16,8 @@ import type {
   SessionSnapshot,
   SessionSummaryRow,
 } from '../interfaces/index.js';
-import { buildSessionStatusWhere, toSessionSnapshot } from '../utils/index.js';
+import { toSessionSnapshot } from '../mappers/index.js';
+import { buildSessionStatusWhere } from '../utils/index.js';
 
 @Injectable()
 export class UserSessionRepository {

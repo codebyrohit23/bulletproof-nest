@@ -15,6 +15,7 @@ import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { Public } from '#/core/auth/index.js';
+import { CurrentSessionId, CurrentUserId } from '#/core/context/index.js';
 import {
   ApiDeviceIdHeader,
   ApiErrorResponses,
@@ -399,8 +400,12 @@ export class UserAuthController {
   )
   @ResponseMessage('Password changed successfully')
   @ApiDeviceIdHeader()
-  changePassword(@Body() body: ChangePasswordDto): Promise<null> {
-    return this.userAuthService.changePassword(body);
+  changePassword(
+    @CurrentUserId() userId: string,
+    @CurrentSessionId() sessionId: string,
+    @Body() body: ChangePasswordDto,
+  ): Promise<null> {
+    return this.userAuthService.changePassword(userId, sessionId, body);
   }
 
   /**
@@ -419,8 +424,11 @@ export class UserAuthController {
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
   @ResponseMessage('Logged out successfully')
   @ApiDeviceIdHeader()
-  async logout(@Res({ passthrough: true }) reply: FastifyReply): Promise<null> {
-    await this.userAuthService.logout();
+  async logout(
+    @CurrentSessionId() sessionId: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<null> {
+    await this.userAuthService.logout(sessionId);
     this.delivery.clear(reply);
     return null;
   }
@@ -448,8 +456,12 @@ export class UserAuthController {
   )
   @ResponseMessage('Sessions fetched successfully')
   @ApiDeviceIdHeader()
-  listSessions(@Query() query: ListSessionsQueryDto): Promise<UserSessionPage> {
-    return this.userAuthService.listSessions(query);
+  listSessions(
+    @CurrentUserId() userId: string,
+    @CurrentSessionId() currentSessionId: string,
+    @Query() query: ListSessionsQueryDto,
+  ): Promise<UserSessionPage> {
+    return this.userAuthService.listSessions(userId, currentSessionId, query);
   }
 
   /**
@@ -470,8 +482,11 @@ export class UserAuthController {
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED)
   @ResponseMessage('Other sessions revoked successfully')
   @ApiDeviceIdHeader()
-  revokeOtherSessions(): Promise<RevokedSessions> {
-    return this.userAuthService.revokeOtherSessions();
+  revokeOtherSessions(
+    @CurrentUserId() userId: string,
+    @CurrentSessionId() currentSessionId: string,
+  ): Promise<RevokedSessions> {
+    return this.userAuthService.revokeOtherSessions(userId, currentSessionId);
   }
 
   /**
@@ -493,10 +508,12 @@ export class UserAuthController {
   @ResponseMessage('Session revoked successfully')
   @ApiDeviceIdHeader()
   async revokeSession(
+    @CurrentUserId() userId: string,
+    @CurrentSessionId() currentSessionId: string,
     @Param('id', ParseIdPipe) id: string,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<null> {
-    const { wasCurrent } = await this.userAuthService.revokeSession(id);
+    const { wasCurrent } = await this.userAuthService.revokeSession(userId, currentSessionId, id);
 
     if (wasCurrent) {
       this.delivery.clear(reply);

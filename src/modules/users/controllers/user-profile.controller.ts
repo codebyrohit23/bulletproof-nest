@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpStatus, Patch } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { CurrentUserId } from '#/core/context/index.js';
 import {
   ApiDeviceIdHeader,
   ApiErrorResponses,
@@ -32,8 +33,8 @@ export class UserProfileController {
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND)
   @ResponseMessage('Profile fetched successfully')
   @ApiDeviceIdHeader()
-  getProfile(): Promise<UserProfile> {
-    return this.userService.getProfile();
+  getProfile(@CurrentUserId() userId: string): Promise<UserProfile> {
+    return this.userService.getProfile(userId);
   }
 
   /**
@@ -53,7 +54,10 @@ export class UserProfileController {
   @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND)
   @ResponseMessage('Profile updated successfully')
   @ApiDeviceIdHeader()
-  updateProfile(@Body() body: UpdateProfileDto): Promise<UserProfile> {
-    return this.userService.updateProfile(body);
+  updateProfile(
+    @CurrentUserId() userId: string,
+    @Body() body: UpdateProfileDto,
+  ): Promise<UserProfile> {
+    return this.userService.updateProfile(userId, body);
   }
 }

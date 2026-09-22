@@ -214,6 +214,19 @@ way throughout; a comment restating the code is noise, and a comment that
 survives a refactor is the only documentation that was ever true. When removing
 one, check it is not the last record of a decision.
 
+**`mappers/` translate a shape; `utils/` do everything else.** A mapper takes
+one shape and returns another — a row to a snapshot, a snapshot to a DTO, a DTO
+to a repository input — and decides nothing on the way. `user.mapper.ts`,
+`user-session.mapper.ts` and `auth-user.mapper.ts` are the examples. Anything
+that parses, derives or builds a query stays in `utils/`: `user-agent.util.ts`
+reads a header, `device-context.util.ts` derives a device from several sources,
+`session-query.util.ts` builds a Prisma `where`.
+
+They were one folder until the same narrowing appeared in five places across
+two modules, which is the threshold this file used to reserve the name for.
+The split is worth having because the two are tested and changed differently:
+a mapper changes when a DTO changes, a util when the logic does.
+
 **Guards, filters, pipes and interceptors** are bound with `APP_GUARD` /
 `APP_FILTER` / `APP_PIPE` / `APP_INTERCEPTOR` inside their own module, never in
 `bootstrap/`. Bootstrap is only for what the container cannot do — Fastify
@@ -491,7 +504,6 @@ directory when you write the first file in it, not before.
 | `core/events/`                      | a second consumer needs to react to something a module already does | `@nestjs/event-emitter` is not a dependency yet. `JobDispatcher` and its outbox already cover "do X after this write commits", durably, which is what most of the demand looks like — reach for events when one write needs _several_ independent reactions. Domain events are modelled in `docs/phase-2-domain-model/06-domain-events.md`.                                                    |
 | `core/permissions/`                 | with the workspace/membership schema                                | RBAC per ADR-002. Needs `permissions`, `organization_roles` and `role_permissions` tables first; a permission guard with nothing to resolve against is not testable. Resolution should cache through `CacheService`.                                                                                                                                                                           |
 | `infrastructure/communication/sms/` | phone verification ships                                            | Mirrors `infrastructure/communication/email/`: an `SmsTransport` abstract class, a provider adapter, and a log adapter for local development. The schema already supports it (`IdentifierType.PHONE`, `VerificationPurpose.PHONE_VERIFICATION`) but no flow sends a code by SMS. Note the queue is named `email`, not `mail` — a separate SMS queue is a workload-class decision to make then. |
-| `modules/user-auth/mappers/`        | a row shape stops matching its DTO                                  | Today the services narrow rows by hand, explicitly, which is safer than a mapper while the shapes are small — see `buildAuthUser`. Add mappers when the same narrowing appears in three places, not before.                                                                                                                                                                                    |
 | `shared/decorators/`                | a decorator is needed by two layers                                 | Nothing is shared yet. Context decorators live in `core/context/decorators/`, rate limiting in `core/rate-limit/decorators/`, CSRF in `core/csrf/decorators/` — each with the subsystem that gives it meaning, which is where they should stay unless a genuinely generic one appears.                                                                                                         |
 
 `core/context/index.ts` carries a note of the same kind for fields that arrive

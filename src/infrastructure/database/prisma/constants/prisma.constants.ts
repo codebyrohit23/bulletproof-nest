@@ -23,7 +23,10 @@ export const PRISMA_ERROR_CODE = {
   UNIQUE_CONSTRAINT: 'P2002',
 } as const;
 
-export const SOFT_DELETABLE_MODELS = ['User'] as const satisfies readonly Prisma.ModelName[];
+export const SOFT_DELETABLE_MODELS = [
+  'User',
+  'Admin',
+] as const satisfies readonly Prisma.ModelName[];
 
 export const SOFT_DELETE_FIELD = 'deletedAt';
 

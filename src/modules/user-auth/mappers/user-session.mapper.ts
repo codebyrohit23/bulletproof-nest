@@ -16,10 +16,6 @@ interface SessionEnding {
   readonly endReason: SessionEndReason | null;
 }
 
-/**
- * Revocation wins over expiry: a session signed out before it would have
- * expired ended when it was signed out, for the reason it was.
- */
 function resolveEnding(row: SessionSummaryRow, now: Date): SessionEnding {
   if (row.revokedAt !== null) {
     return {

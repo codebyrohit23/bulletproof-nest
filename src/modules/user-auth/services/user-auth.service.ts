@@ -70,8 +70,9 @@ import {
   type PasswordResetTokenOutcome,
   type SessionRevocation,
 } from '../interfaces/index.js';
+import { toAuthUser, toUserSession } from '../mappers/index.js';
 import type { AuthUser } from '../schemas/index.js';
-import { resolveDeviceContext, toUserSession } from '../utils/index.js';
+import { resolveDeviceContext } from '../utils/index.js';
 
 import { UserCredentialService } from './user-credential.service.js';
 import { UserIdentityService } from './user-identity.service.js';
@@ -410,10 +411,11 @@ export class UserAuthService {
     return null;
   }
 
-  async changePassword(payload: ChangePasswordInput): Promise<null> {
-    const userId = this.requireUserId('change-password');
-    const sessionId = this.requireSessionId('change-password');
-
+  async changePassword(
+    userId: string,
+    sessionId: string,
+    payload: ChangePasswordInput,
+  ): Promise<null> {
     const credential = await this.userCredentialService.findCredentialByUserId(userId);
 
     if (!credential) {
@@ -449,10 +451,11 @@ export class UserAuthService {
     return null;
   }
 
-  async listSessions(query: ListSessionsQuery): Promise<UserSessionPage> {
-    const userId = this.requireUserId('list-sessions');
-    const currentSessionId = this.requireSessionId('list-sessions');
-
+  async listSessions(
+    userId: string,
+    currentSessionId: string,
+    query: ListSessionsQuery,
+  ): Promise<UserSessionPage> {
     const now = new Date();
 
     const { rows, total } = await this.userSessionService.listForUser(userId, query, now);
@@ -467,10 +470,11 @@ export class UserAuthService {
    * 404 for a session that is not the caller's, never 403: a 403 would confirm
    * that the id belongs to someone.
    */
-  async revokeSession(sessionId: string): Promise<SessionRevocation> {
-    const userId = this.requireUserId('revoke-session');
-    const currentSessionId = this.requireSessionId('revoke-session');
-
+  async revokeSession(
+    userId: string,
+    currentSessionId: string,
+    sessionId: string,
+  ): Promise<SessionRevocation> {
     const revoked = await this.userSessionService.revokeOwned(userId, sessionId);
 
     if (!revoked) {
@@ -480,10 +484,7 @@ export class UserAuthService {
     return { wasCurrent: sessionId === currentSessionId };
   }
 
-  async revokeOtherSessions(): Promise<RevokedSessions> {
-    const userId = this.requireUserId('revoke-other-sessions');
-    const currentSessionId = this.requireSessionId('revoke-other-sessions');
-
+  async revokeOtherSessions(userId: string, currentSessionId: string): Promise<RevokedSessions> {
     const revoked = await this.userSessionService.revokeAllForUser(
       userId,
       SessionRevokeReason.USER_REVOKED,
@@ -493,9 +494,7 @@ export class UserAuthService {
     return { revoked };
   }
 
-  async logout(): Promise<void> {
-    const sessionId = this.requireSessionId('logout');
-
+  async logout(sessionId: string): Promise<void> {
     await this.userSessionService.revoke(sessionId, SessionRevokeReason.LOGOUT);
   }
 
@@ -550,36 +549,6 @@ export class UserAuthService {
     }
 
     return user.id;
-  }
-
-  private requireUserId(operation: string): string {
-    const userId = this.requestContext.userId;
-
-    if (userId === undefined) {
-      this.refuseUnidentified(operation);
-    }
-
-    return userId;
-  }
-
-  private requireSessionId(operation: string): string {
-    const sessionId = this.requestContext.sessionId;
-
-    if (sessionId === undefined) {
-      this.refuseUnidentified(operation);
-    }
-
-    return sessionId;
-  }
-
-  private refuseUnidentified(operation: string): never {
-    this.logger.warn('Handled a request that reached a guarded route with no identity', {
-      context: USER_AUTH_LOG_CONTEXT,
-      operation,
-      metadata: { reason: AUTH_FAILURE_REASON.IDENTITY_MISSING },
-    });
-
-    throw new UnauthorizedException(AUTH_ERROR_MESSAGE.UNAUTHORIZED);
   }
 
   private requireDeviceId(operation: string): string {
@@ -785,11 +754,6 @@ export class UserAuthService {
       throw new BadRequestException(VERIFICATION_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
 
-    return {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName ?? undefined,
-      displayName: user.displayName,
-    };
+    return toAuthUser(user);
   }
 }

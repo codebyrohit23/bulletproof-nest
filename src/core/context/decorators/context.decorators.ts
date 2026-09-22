@@ -1,21 +1,29 @@
 import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
 
+import { IdentityMissingException } from '../exceptions/index.js';
 import type { RequestContext } from '../interfaces/index.js';
 import { requestContextStorage } from '../storage/request-context.storage.js';
+
+const requireIdentity = (field: 'userId' | 'adminId' | 'sessionId') =>
+  createParamDecorator((_data: unknown, _ctx: ExecutionContext): string => {
+    const value = requestContextStorage.getStore()?.[field];
+
+    if (value === undefined) {
+      throw new IdentityMissingException(field);
+    }
+
+    return value;
+  });
+
+export const CurrentUserId = requireIdentity('userId');
+
+export const CurrentAdminId = requireIdentity('adminId');
+
+export const CurrentSessionId = requireIdentity('sessionId');
 
 export const CurrentContext = createParamDecorator(
   (_data: unknown, _ctx: ExecutionContext): Readonly<RequestContext> | undefined =>
     requestContextStorage.getStore(),
-);
-
-export const CurrentUserId = createParamDecorator(
-  (_data: unknown, _ctx: ExecutionContext): string | undefined =>
-    requestContextStorage.getStore()?.userId,
-);
-
-export const CurrentAdminId = createParamDecorator(
-  (_data: unknown, _ctx: ExecutionContext): string | undefined =>
-    requestContextStorage.getStore()?.adminId,
 );
 
 export const CurrentWorkspaceId = createParamDecorator(
