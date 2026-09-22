@@ -23,14 +23,6 @@ export const SEED_KIND = {
 
 export type SeedKind = (typeof SEED_KIND)[keyof typeof SEED_KIND];
 
-/**
- * The order seeders run in, supplied by the composition root.
- *
- * A token rather than a field on each seeder: ordering is a statement about how
- * seeders relate to each other — roles reference permissions, so permissions go
- * first — and that is readable in one list and not in numbers scattered across
- * files.
- */
-export const SEED_ORDER = 'seeding:order';
+export const SEEDERS = 'seeding:seeders';
 
 export const SEEDING_LOG_CONTEXT = 'Seeding';

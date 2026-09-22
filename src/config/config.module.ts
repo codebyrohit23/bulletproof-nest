@@ -7,6 +7,7 @@ import { EmailConfigService, emailConfig } from './email/index.js';
 import { JwtConfigService, jwtConfig } from './jwt/index.js';
 import { RedisConfigService, redisConfig } from './redis/index.js';
 import { SecurityConfigService, securityConfig } from './security/index.js';
+import { SeedConfigService, seedConfig } from './seed/index.js';
 
 @Global()
 @Module({
@@ -15,7 +16,15 @@ import { SecurityConfigService, securityConfig } from './security/index.js';
       isGlobal: true,
       cache: true,
       expandVariables: true,
-      load: [appConfig, databaseConfig, emailConfig, jwtConfig, redisConfig, securityConfig],
+      load: [
+        appConfig,
+        databaseConfig,
+        emailConfig,
+        jwtConfig,
+        redisConfig,
+        seedConfig,
+        securityConfig,
+      ],
     }),
   ],
   providers: [
@@ -24,6 +33,7 @@ import { SecurityConfigService, securityConfig } from './security/index.js';
     EmailConfigService,
     JwtConfigService,
     RedisConfigService,
+    SeedConfigService,
     SecurityConfigService,
   ],
   exports: [
@@ -32,6 +42,7 @@ import { SecurityConfigService, securityConfig } from './security/index.js';
     EmailConfigService,
     JwtConfigService,
     RedisConfigService,
+    SeedConfigService,
     SecurityConfigService,
   ],
 })

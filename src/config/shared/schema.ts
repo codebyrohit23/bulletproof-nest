@@ -6,6 +6,7 @@ import { emailSchema } from '../email/email.schema.js';
 import { jwtSchema } from '../jwt/jwt.schema.js';
 import { redisSchema } from '../redis/redis.schema.js';
 import { securitySchema } from '../security/security.schema.js';
+import { seedSchema } from '../seed/seed.schema.js';
 
 export const envSchema = z.object({
   ...appSchema.shape,
@@ -13,5 +14,6 @@ export const envSchema = z.object({
   ...emailSchema.shape,
   ...jwtSchema.shape,
   ...redisSchema.shape,
+  ...seedSchema.shape,
   ...securitySchema.shape,
 });

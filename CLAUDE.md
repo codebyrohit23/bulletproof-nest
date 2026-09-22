@@ -451,18 +451,21 @@ asks `SeedRunner` to run the registered seeders. `prisma.config.ts` points its
 seed hook at the same script, so `prisma migrate reset` leaves a usable
 environment rather than an empty one.
 
-**A seeder lives with the table it seeds** — `modules/<x>/seeds/` — and is
-registered as `{ provide: Seeder, useExisting: XSeeder, multi: true }`. `core`
-declares the `Seeder` port for the usual reason: it needs seeders, the tables
-belong to feature modules, and `core` may not import one.
+**A seeder lives with the table it seeds** — `modules/<x>/seeds/` — extends the
+`Seeder` port from `core`, and is exported by its module. `core` declares the
+port for the usual reason: it needs seeders, the tables belong to feature
+modules, and `core` may not import one. `modules/admins` is the example.
 
 **`SeedModule` is not `AppModule`.** `AppModule` starts the BullMQ workers,
 which in a seed script means a process that never exits — a CI job that hangs
 rather than one that fails. It lists only what a seeder needs.
 
-**Order is declared once**, in `SeedingModule.forRoot({ order })`. A seeder that
-is registered but unlisted, or listed but unregistered, refuses to run and says
-which — provider registration order is not an order anybody chose.
+**Order is the list**, in `SeedingModule.forRoot({ imports, seeders })`: the
+seeders run in the order they are named there, and that is the one place to
+read what runs before what. **Nest has no multi-provider** — a second
+`{ provide: Seeder }` replaces the first rather than joining it — so the
+seeders are listed as classes and collected by a factory. Discovery by
+decorator was the alternative, and it gives no order at all.
 
 **Each seeder declares a `kind`,** because the word covers things with different
 rules: `reference` (permissions, roles — every environment, every deploy,
