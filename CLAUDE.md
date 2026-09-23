@@ -30,7 +30,7 @@ This is the rule the whole `src` tree is arranged around. It is enforced by
 `pnpm lint`, not review.
 
 ```
-modules/          features: user-auth, users, verification, communication, health
+modules/          features: user-auth, users, admin-auth, admins, communication, health
    │
    ├──→ core/            policy: auth, cache, csrf, rate-limit, jwt,
    │                     logger, context, exceptions, documentation, …
@@ -274,6 +274,16 @@ which is what still holds if the path dispatch is ever wrong and the table
 lookup never gets its chance. The dispatch itself is the outermost and the
 weakest, because it is our code. `typ` stays `access` for both: it discriminates
 token _kind_, not audience. One keypair serves both.
+
+**Every auth table is per audience — one-time codes included.** Credentials,
+sessions, refresh tokens, reset tokens and verification codes each exist as a
+`user_*` and an `admin_*` table. `verification_codes` was once shared, keyed by
+address and purpose, so a code mailed for a user's reset would have answered an
+admin's reset for the same address. A shared table with an audience column was
+rejected for the same reason as per-controller guards: it is safe only while
+every query remembers the filter. A code is keyed by what it proves —
+`user_verification_codes` by identity, so a code sent to a user's email cannot
+verify their phone; admin codes by admin, whose one address is on the row.
 
 **`core/jwt` knows token kinds; it does not know actors.** A method per token
 kind, because each has its own payload schema; the audience is a required

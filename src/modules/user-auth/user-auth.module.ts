@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 
 import { UserSessionValidator } from '#/core/auth/index.js';
 import { UsersModule } from '#/modules/users/index.js';
-import { VerificationModule } from '#/modules/verification/index.js';
 
 import { UserSessionCacheService } from './cache/user-session.cache.js';
 import { UserAuthController } from './controllers/user-auth.controller.js';
@@ -12,6 +11,7 @@ import {
   UserPasswordResetTokenRepository,
   UserRefreshTokenRepository,
   UserSessionRepository,
+  UserVerificationCodeRepository,
 } from './repositories/index.js';
 import { AuthTokenDeliveryService } from './services/auth-token-delivery.service.js';
 import { UserAuthService } from './services/user-auth.service.js';
@@ -20,8 +20,9 @@ import { UserIdentityService } from './services/user-identity.service.js';
 import { UserPasswordResetTokenService } from './services/user-password-reset-token.service.js';
 import { UserRefreshTokenService } from './services/user-refresh-token.service.js';
 import { UserSessionService } from './services/user-session.service.js';
+import { UserVerificationCodeService } from './services/user-verification-code.service.js';
 @Module({
-  imports: [UsersModule, VerificationModule],
+  imports: [UsersModule],
   controllers: [UserAuthController],
   providers: [
     UserIdentityRepository,
@@ -29,6 +30,7 @@ import { UserSessionService } from './services/user-session.service.js';
     UserRefreshTokenRepository,
     UserPasswordResetTokenRepository,
     UserSessionRepository,
+    UserVerificationCodeRepository,
 
     UserSessionCacheService,
 
@@ -37,6 +39,7 @@ import { UserSessionService } from './services/user-session.service.js';
     UserRefreshTokenService,
     UserPasswordResetTokenService,
     UserSessionService,
+    UserVerificationCodeService,
     UserAuthService,
     AuthTokenDeliveryService,
 

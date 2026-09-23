@@ -13,3 +13,5 @@ export * from './user-session.interface.js';
 export * from './token-delivery.interface.js';
 
 export * from './code-delivery.interface.js';
+
+export * from './verification-code.interface.js';

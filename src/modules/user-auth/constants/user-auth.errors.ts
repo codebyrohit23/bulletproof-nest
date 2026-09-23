@@ -16,6 +16,10 @@ export const USER_AUTH_ERROR_MESSAGE = {
   ACCOUNT_DEACTIVATED:
     'Your account has been deactivated. Please contact support to restore access.',
 
+  INVALID_OR_EXPIRED_CODE: 'That verification code is invalid or has expired.',
+
+  TOO_MANY_CODE_ATTEMPTS: 'Too many incorrect attempts for this code.',
+
   INVALID_OR_EXPIRED_RESET_TOKEN: 'The password reset token is invalid or has expired.',
 
   SESSION_NOT_FOUND: 'That session was not found.',

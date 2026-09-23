@@ -219,6 +219,12 @@ model UserIdentity {
 
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  verificationCodes UserVerificationCode[] @relation("UserIdentityToUserVerificationCode")
+
   @@unique([userId, identifierType])
   @@unique([identifierValue, identifierType])
   @@map("user_identities")
@@ -573,14 +579,25 @@ model AdminPasswordResetToken {
 }
 
 // ======================================================
-// Verification Code Model
+// User Verification Code Model
 // ======================================================
-model VerificationCode {
+/// A one-time code proving control of one identity — this email, this phone.
+///
+/// Keyed by the identity, not the user: a user may hold an email and a phone,
+/// and a code sent to one must not verify the other. Keyed by the row, not the
+/// address string: every flow that issues a code has already found the identity
+/// (registration creates it in the same transaction). Admin codes are a
+/// separate table, so a code issued here can never answer an admin flow.
+///
+/// Defined in the migration, not expressible here:
+///   user_verification_codes_active_key
+///     UNIQUE (user_identity_id, purpose) WHERE status = 'ACTIVE'
+model UserVerificationCode {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
-  identifierType IdentifierType @map("identifier_type")
+  userIdentityId String @map("user_identity_id") @db.Uuid
 
-  identifierValue String @map("identifier_value") @db.VarChar(320)
+  userIdentity UserIdentity @relation("UserIdentityToUserVerificationCode", fields: [userIdentityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   purpose VerificationPurpose
 
@@ -596,8 +613,8 @@ model VerificationCode {
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@index([identifierValue, identifierType, purpose, createdAt(sort: Desc)], map: "verification_codes_lookup_idx")
-  @@map("verification_codes")
+  @@index([userIdentityId, purpose, createdAt(sort: Desc)], map: "user_verification_codes_lookup_idx")
+  @@map("user_verification_codes")
 }
 
 // ======================================================

@@ -6,9 +6,10 @@ import { IdentifierType, VerificationPurpose } from '@prisma/client';
  * There is no separate "registration" purpose. Registering and later proving an
  * address you added are the same act — a code sent to a mailbox, answered from
  * that mailbox — and giving them two names bought nothing while costing
- * something real: `verification_codes_active_key` is unique per identifier *and
- * purpose*, so two names meant two codes could be live for one address at once,
- * both valid, and a user reading their inbox had no way to tell which was which.
+ * something real: `user_verification_codes_active_key` is unique per identity
+ * *and purpose*, so two names meant two codes could be live for one address at
+ * once, both valid, and a user reading their inbox had no way to tell which was
+ * which.
  *
  * Derived rather than passed in, because every caller would otherwise have to
  * remember the mapping, and the one that got it wrong would issue a code the

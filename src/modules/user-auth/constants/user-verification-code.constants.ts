@@ -1,5 +1,8 @@
-export const VERIFICATION_LOG_CONTEXT = 'Verification';
-
+/**
+ * Policy for user codes. The code's *shape* is not here — it lives in
+ * `shared/constants` because the generator and every DTO must agree on it.
+ * These are free to differ from the admin console's.
+ */
 export const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
 
 export const VERIFICATION_CODE_TTL_MINUTES = VERIFICATION_CODE_TTL_MS / 60_000;

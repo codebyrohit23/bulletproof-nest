@@ -26,13 +26,6 @@ import { JWT_AUDIENCE, JwtSignerService, TOKEN_TTL_SECONDS } from '#/core/jwt/in
 import { AppLoggerService } from '#/core/logger/index.js';
 import { TransactionService } from '#/infrastructure/database/prisma/index.js';
 import { UserService } from '#/modules/users/index.js';
-import {
-  VERIFICATION_CODE_TTL_MINUTES,
-  VERIFICATION_ERROR_MESSAGE,
-  VerificationCodeService,
-  verificationPurposeFor,
-  type IssuedVerificationCode,
-} from '#/modules/verification/index.js';
 import { buildOffsetPagination, paginate } from '#/shared/pagination/index.js';
 import type { IdentifierInput } from '#/shared/schemas/index.js';
 
@@ -41,6 +34,7 @@ import {
   PASSWORD_RESET_TOKEN_TTL_SECONDS,
   USER_AUTH_ERROR_MESSAGE,
   USER_AUTH_LOG_CONTEXT,
+  VERIFICATION_CODE_TTL_MINUTES,
 } from '../constants/index.js';
 import type {
   AuthResult,
@@ -65,20 +59,23 @@ import {
   PASSWORD_RESET_TOKEN_OUTCOME,
   REFRESH_TOKEN_OUTCOME,
   type CodeEmailTemplate,
+  type CodeRecipient,
   type DeclaredDevice,
+  type IssuedVerificationCode,
   type PasswordChangeMethod,
   type PasswordResetTokenOutcome,
   type SessionRevocation,
 } from '../interfaces/index.js';
 import { toAuthUser, toUserSession } from '../mappers/index.js';
 import type { AuthUser } from '../schemas/index.js';
-import { resolveDeviceContext } from '../utils/index.js';
+import { resolveDeviceContext, verificationPurposeFor } from '../utils/index.js';
 
 import { UserCredentialService } from './user-credential.service.js';
 import { UserIdentityService } from './user-identity.service.js';
 import { UserPasswordResetTokenService } from './user-password-reset-token.service.js';
 import { UserRefreshTokenService } from './user-refresh-token.service.js';
 import { UserSessionService } from './user-session.service.js';
+import { UserVerificationCodeService } from './user-verification-code.service.js';
 
 @Injectable()
 export class UserAuthService {
@@ -87,7 +84,7 @@ export class UserAuthService {
     private readonly userService: UserService,
     private readonly userIdentityService: UserIdentityService,
     private readonly userCredentialService: UserCredentialService,
-    private readonly verificationCodeService: VerificationCodeService,
+    private readonly verificationCodeService: UserVerificationCodeService,
     private readonly transaction: TransactionService,
     private readonly userSessionService: UserSessionService,
     private readonly refreshTokenService: UserRefreshTokenService,
@@ -110,17 +107,16 @@ export class UserAuthService {
     }
 
     return this.transaction.run<RegisterResponse>(async () => {
-      const userId = await this.createAccount(payload);
+      const recipient = await this.createAccount(payload);
 
       await this.issueAndDeliver(
         EMAIL_TEMPLATE.OTP_VERIFICATION,
-        identifier,
         verificationPurposeFor(identifier.type),
-        userId,
+        recipient,
         'register-user',
       );
 
-      return { userId, identifier, verificationRequired: true };
+      return { userId: recipient.userId, identifier, verificationRequired: true };
     });
   }
 
@@ -135,11 +131,11 @@ export class UserAuthService {
     );
 
     if (target === null) {
-      throw new BadRequestException(VERIFICATION_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
+      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
 
     const codeId = await this.verificationCodeService.verify(
-      identifier,
+      target.id,
       verificationPurposeFor(identifier.type),
       code,
     );
@@ -159,7 +155,6 @@ export class UserAuthService {
 
   async resendVerification(payload: ResendVerificationInput): Promise<null> {
     const { identifier } = payload;
-    const purpose = verificationPurposeFor(identifier.type);
 
     const existing = await this.userIdentityService.findIdentityWithUser(
       identifier.type,
@@ -174,9 +169,8 @@ export class UserAuthService {
 
     await this.issueAndDeliver(
       EMAIL_TEMPLATE.OTP_VERIFICATION,
-      identifier,
-      purpose,
-      existing.userId,
+      verificationPurposeFor(identifier.type),
+      { identityId: existing.id, userId: existing.userId, identifier },
       'resend-verification',
     );
 
@@ -206,9 +200,10 @@ export class UserAuthService {
     this.assertAccountCanSignIn(existing.user.status, existing.userId, 'login');
 
     if (existing.verifiedAt === null) {
-      return this.challengeForVerification(existing.userId, {
-        type: IdentifierType.EMAIL,
-        value: existing.identifierValue,
+      return this.challengeForVerification({
+        identityId: existing.id,
+        userId: existing.userId,
+        identifier: { type: IdentifierType.EMAIL, value: existing.identifierValue },
       });
     }
 
@@ -229,9 +224,8 @@ export class UserAuthService {
 
     await this.issueAndDeliver(
       EMAIL_TEMPLATE.LOGIN_OTP,
-      identifier,
       VerificationPurpose.LOGIN,
-      existing.userId,
+      { identityId: existing.id, userId: existing.userId, identifier },
       'request-login-otp',
     );
 
@@ -249,11 +243,11 @@ export class UserAuthService {
     );
 
     if (target === null) {
-      throw new BadRequestException(VERIFICATION_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
+      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
 
     const codeId = await this.verificationCodeService.verify(
-      identifier,
+      target.id,
       VerificationPurpose.LOGIN,
       code,
     );
@@ -335,13 +329,14 @@ export class UserAuthService {
       return null;
     }
 
-    const identifier = { type: IdentifierType.EMAIL, value: email };
-
     await this.issueAndDeliver(
       EMAIL_TEMPLATE.PASSWORD_RESET,
-      identifier,
       VerificationPurpose.PASSWORD_RESET,
-      existing.userId,
+      {
+        identityId: existing.id,
+        userId: existing.userId,
+        identifier: { type: IdentifierType.EMAIL, value: email },
+      },
       'request-password-reset-otp',
     );
 
@@ -354,11 +349,11 @@ export class UserAuthService {
     const target = await this.userIdentityService.findIdentityWithUser(IdentifierType.EMAIL, email);
 
     if (target === null || target.user.status !== UserStatus.ACTIVE) {
-      throw new BadRequestException(VERIFICATION_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
+      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
 
     const codeId = await this.verificationCodeService.verify(
-      { type: IdentifierType.EMAIL, value: email },
+      target.id,
       VerificationPurpose.PASSWORD_RESET,
       code,
     );
@@ -529,7 +524,8 @@ export class UserAuthService {
     });
   }
 
-  private async createAccount(payload: RegisterInput): Promise<string> {
+  /** Returns the new account's identity as a recipient, since registering always sends it a code. */
+  private async createAccount(payload: RegisterInput): Promise<CodeRecipient> {
     const { identifier, firstName, lastName, password } = payload;
 
     const user = await this.userService.createUser({
@@ -538,7 +534,7 @@ export class UserAuthService {
       displayName: this.buildDisplayName(firstName, lastName),
     });
 
-    await this.userIdentityService.createIdentity({
+    const identity = await this.userIdentityService.createIdentity({
       userId: user.id,
       identifierType: identifier.type,
       identifierValue: identifier.value,
@@ -548,7 +544,7 @@ export class UserAuthService {
       await this.userCredentialService.createCredential(user.id, password);
     }
 
-    return user.id;
+    return { identityId: identity.id, userId: user.id, identifier };
   }
 
   private requireDeviceId(operation: string): string {
@@ -625,38 +621,33 @@ export class UserAuthService {
     };
   }
 
-  private async challengeForVerification(
-    userId: string,
-    identifier: IdentifierInput,
-  ): Promise<AuthResult> {
+  private async challengeForVerification(recipient: CodeRecipient): Promise<AuthResult> {
     await this.issueAndDeliver(
       EMAIL_TEMPLATE.OTP_VERIFICATION,
-      identifier,
-      verificationPurposeFor(identifier.type),
-      userId,
+      verificationPurposeFor(recipient.identifier.type),
+      recipient,
       'login-verification-challenge',
     );
 
     return {
       status: AUTH_RESULT_STATUS.VERIFICATION_REQUIRED,
 
-      user: await this.buildAuthUser(userId),
+      user: await this.buildAuthUser(recipient.userId),
 
       tokens: null,
     };
   }
   private issueAndDeliver(
     template: CodeEmailTemplate,
-    identifier: IdentifierInput,
     purpose: VerificationPurpose,
-    userId: string,
+    recipient: CodeRecipient,
     operation: string,
   ): Promise<void> {
     return this.transaction.run(async () => {
-      const issued = await this.verificationCodeService.issueIfDue(identifier, purpose);
+      const issued = await this.verificationCodeService.issueIfDue(recipient.identityId, purpose);
 
       if (issued !== null) {
-        await this.deliverCode(template, identifier, issued, userId, operation);
+        await this.deliverCode(template, recipient, issued, operation);
       }
     });
   }
@@ -713,11 +704,12 @@ export class UserAuthService {
 
   private async deliverCode(
     template: CodeEmailTemplate,
-    identifier: IdentifierInput,
+    recipient: CodeRecipient,
     issued: IssuedVerificationCode,
-    userId: string,
     operation: string,
   ): Promise<void> {
+    const { identifier, userId } = recipient;
+
     if (identifier.type !== IdentifierType.EMAIL) {
       this.logger.debug('No SMS transport yet — code not delivered', {
         context: USER_AUTH_LOG_CONTEXT,
@@ -751,7 +743,7 @@ export class UserAuthService {
     const user = await this.userService.getUserById(userId);
 
     if (user === null) {
-      throw new BadRequestException(VERIFICATION_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
+      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
 
     return toAuthUser(user);

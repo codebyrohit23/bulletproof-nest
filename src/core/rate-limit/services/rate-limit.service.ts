@@ -31,11 +31,10 @@ import { RateLimitMetricsService } from './rate-limit-metrics.service.js';
  * ---------------------------------------------------------------------------
  * THIS IS NOT INJECTED INTO FEATURE SERVICES DIRECTLY
  * ---------------------------------------------------------------------------
- * Same convention as `core/cache`: each module owns a small policy service
- * holding its own key builders, rule constants and version, exposing methods
- * named for outcomes rather than for keys.
+ * Each module declares its budgets in one file and binds them to routes with
+ * `@RateLimit`:
  *
- *     modules/verification/policies/verification-dispatch.policy.ts
+ *     modules/user-auth/rate-limit/user-auth-limits.constants.ts
  *
  * Why: the limits for a feature end up in one reviewable file instead of
  * scattered as literals, `core` never learns what an identifier or a purpose

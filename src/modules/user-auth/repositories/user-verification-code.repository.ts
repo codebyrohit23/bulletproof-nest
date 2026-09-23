@@ -1,51 +1,43 @@
 import { Injectable } from '@nestjs/common';
 import {
   VerificationCodeStatus,
-  type IdentifierType,
-  type VerificationCode,
+  type UserVerificationCode,
   type VerificationPurpose,
 } from '@prisma/client';
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
-import { normalizeIdentifier } from '#/shared/utils/index.js';
 
 import { VERIFICATION_CODE_TTL_MS } from '../constants/index.js';
-import type { IssueVerificationCodeInput } from '../interfaces/index.js';
+import type { CreateVerificationCodeInput } from '../interfaces/index.js';
 
+/**
+ * Every resolution clears `codeHash`. A code that can no longer be answered
+ * has no reason to keep the one thing that could answer it.
+ */
 @Injectable()
-export class VerificationCodeRepository {
+export class UserVerificationCodeRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async retireActive(
-    identifierType: IdentifierType,
-    identifierValue: string,
-    purpose: VerificationPurpose,
-  ): Promise<void> {
+  async retireActive(userIdentityId: string, purpose: VerificationPurpose): Promise<void> {
     const now = new Date();
 
-    const live = {
-      identifierValue: normalizeIdentifier(identifierType, identifierValue),
-      identifierType,
-      purpose,
-      status: VerificationCodeStatus.ACTIVE,
-    };
+    const live = { userIdentityId, purpose, status: VerificationCodeStatus.ACTIVE };
 
-    await this.prisma.db.verificationCode.updateMany({
+    await this.prisma.db.userVerificationCode.updateMany({
       where: { ...live, expiresAt: { lte: now } },
       data: { status: VerificationCodeStatus.EXPIRED, resolvedAt: now, codeHash: null },
     });
 
-    await this.prisma.db.verificationCode.updateMany({
+    await this.prisma.db.userVerificationCode.updateMany({
       where: live,
       data: { status: VerificationCodeStatus.SUPERSEDED, resolvedAt: now, codeHash: null },
     });
   }
 
-  async create(input: IssueVerificationCodeInput): Promise<VerificationCode> {
-    return this.prisma.db.verificationCode.create({
+  async create(input: CreateVerificationCodeInput): Promise<UserVerificationCode> {
+    return this.prisma.db.userVerificationCode.create({
       data: {
-        identifierValue: normalizeIdentifier(input.identifierType, input.identifierValue),
-        identifierType: input.identifierType,
+        userIdentityId: input.userIdentityId,
         purpose: input.purpose,
         codeHash: input.codeHash,
         expiresAt: new Date(Date.now() + VERIFICATION_CODE_TTL_MS),
@@ -54,28 +46,22 @@ export class VerificationCodeRepository {
   }
 
   async findActive(
-    identifierType: IdentifierType,
-    identifierValue: string,
+    userIdentityId: string,
     purpose: VerificationPurpose,
-  ): Promise<VerificationCode | null> {
-    return this.prisma.db.verificationCode.findFirst({
-      where: {
-        identifierValue: normalizeIdentifier(identifierType, identifierValue),
-        identifierType,
-        purpose,
-        status: VerificationCodeStatus.ACTIVE,
-      },
+  ): Promise<UserVerificationCode | null> {
+    return this.prisma.db.userVerificationCode.findFirst({
+      where: { userIdentityId, purpose, status: VerificationCodeStatus.ACTIVE },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async recordFailedAttempt(id: string, maxAttempts: number): Promise<boolean> {
-    await this.prisma.db.verificationCode.updateMany({
+    await this.prisma.db.userVerificationCode.updateMany({
       where: { id, status: VerificationCodeStatus.ACTIVE },
       data: { attempts: { increment: 1 } },
     });
 
-    const { count } = await this.prisma.db.verificationCode.updateMany({
+    const { count } = await this.prisma.db.userVerificationCode.updateMany({
       where: {
         id,
         status: VerificationCodeStatus.ACTIVE,
@@ -104,7 +90,7 @@ export class VerificationCodeRepository {
   }
 
   private async resolve(id: string, status: VerificationCodeStatus): Promise<boolean> {
-    const { count } = await this.prisma.db.verificationCode.updateMany({
+    const { count } = await this.prisma.db.userVerificationCode.updateMany({
       where: { id, status: VerificationCodeStatus.ACTIVE },
       data: { status, resolvedAt: new Date(), codeHash: null },
     });

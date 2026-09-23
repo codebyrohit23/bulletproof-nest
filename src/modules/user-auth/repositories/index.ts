@@ -7,3 +7,5 @@ export { UserPasswordResetTokenRepository } from './user-password-reset-token.re
 export { UserRefreshTokenRepository } from './user-refresh-token.repository.js';
 
 export { UserSessionRepository } from './user-session.repository.js';
+
+export { UserVerificationCodeRepository } from './user-verification-code.repository.js';

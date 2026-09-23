@@ -1,55 +1,55 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { VerificationCode, VerificationPurpose } from '@prisma/client';
+import type { UserVerificationCode, VerificationPurpose } from '@prisma/client';
 
 import { TokenService } from '#/core/security/index.js';
 import { TransactionService } from '#/infrastructure/database/prisma/index.js';
-import type { IdentifierInput } from '#/shared/schemas/index.js';
 
 import {
+  USER_AUTH_ERROR_MESSAGE,
   VERIFICATION_CODE_MAX_ATTEMPTS,
   VERIFICATION_CODE_MIN_RESEND_INTERVAL_MS,
-  VERIFICATION_ERROR_MESSAGE,
 } from '../constants/index.js';
 import type { IssuedVerificationCode } from '../interfaces/index.js';
-import { VerificationCodeRepository } from '../repositories/index.js';
+import { UserVerificationCodeRepository } from '../repositories/index.js';
 
+/**
+ * Codes are addressed by identity id, never by address. A caller must have
+ * found the identity first — which every flow already does, to refuse an
+ * unknown address — and a code can then only ever answer for the identity it
+ * was sent to: a code mailed to a user's email cannot verify their phone.
+ */
 @Injectable()
-export class VerificationCodeService {
+export class UserVerificationCodeService {
   constructor(
-    private readonly verificationCodeRepo: VerificationCodeRepository,
+    private readonly verificationCodeRepo: UserVerificationCodeRepository,
     private readonly tokenService: TokenService,
     private readonly transaction: TransactionService,
   ) {}
 
   async issueIfDue(
-    identifier: IdentifierInput,
+    identityId: string,
     purpose: VerificationPurpose,
   ): Promise<IssuedVerificationCode | null> {
-    const live = await this.verificationCodeRepo.findActive(
-      identifier.type,
-      identifier.value,
-      purpose,
-    );
+    const live = await this.verificationCodeRepo.findActive(identityId, purpose);
 
     if (live !== null && isFresh(live)) {
       return null;
     }
 
-    return this.issue(identifier, purpose);
+    return this.issue(identityId, purpose);
   }
 
   private async issue(
-    identifier: IdentifierInput,
+    identityId: string,
     purpose: VerificationPurpose,
   ): Promise<IssuedVerificationCode> {
     const code = this.tokenService.generateVerificationCode();
 
     const record = await this.transaction.run(async () => {
-      await this.verificationCodeRepo.retireActive(identifier.type, identifier.value, purpose);
+      await this.verificationCodeRepo.retireActive(identityId, purpose);
 
       return this.verificationCodeRepo.create({
-        identifierType: identifier.type,
-        identifierValue: identifier.value,
+        userIdentityId: identityId,
         purpose,
         codeHash: this.tokenService.hash(code),
       });
@@ -58,25 +58,17 @@ export class VerificationCodeService {
     return { id: record.id, code, expiresAt: record.expiresAt };
   }
 
-  async verify(
-    identifier: IdentifierInput,
-    purpose: VerificationPurpose,
-    code: string,
-  ): Promise<string> {
-    const record = await this.verificationCodeRepo.findActive(
-      identifier.type,
-      identifier.value,
-      purpose,
-    );
+  async verify(identityId: string, purpose: VerificationPurpose, code: string): Promise<string> {
+    const record = await this.verificationCodeRepo.findActive(identityId, purpose);
 
     if (record === null) {
-      throw new BadRequestException(VERIFICATION_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
+      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
 
     if (record.expiresAt.getTime() <= Date.now()) {
       await this.verificationCodeRepo.markExpired(record.id);
 
-      throw new BadRequestException(VERIFICATION_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
+      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
 
     if (record.attempts >= VERIFICATION_CODE_MAX_ATTEMPTS) {
@@ -95,7 +87,7 @@ export class VerificationCodeService {
         throw this.tooManyAttempts();
       }
 
-      throw new BadRequestException(VERIFICATION_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
+      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
 
     return record.id;
@@ -105,18 +97,18 @@ export class VerificationCodeService {
     const spent = await this.verificationCodeRepo.markConsumed(id);
 
     if (!spent) {
-      throw new BadRequestException(VERIFICATION_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
+      throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
   }
 
   private tooManyAttempts(): HttpException {
     return new HttpException(
-      VERIFICATION_ERROR_MESSAGE.TOO_MANY_CODE_ATTEMPTS,
+      USER_AUTH_ERROR_MESSAGE.TOO_MANY_CODE_ATTEMPTS,
       HttpStatus.TOO_MANY_REQUESTS,
     );
   }
 }
 
-function isFresh(record: VerificationCode): boolean {
+function isFresh(record: UserVerificationCode): boolean {
   return Date.now() - record.createdAt.getTime() < VERIFICATION_CODE_MIN_RESEND_INTERVAL_MS;
 }
