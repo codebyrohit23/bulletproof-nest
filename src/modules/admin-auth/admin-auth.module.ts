@@ -9,12 +9,14 @@ import {
   AdminCredentialRepository,
   AdminRefreshTokenRepository,
   AdminSessionRepository,
+  AdminVerificationCodeRepository,
 } from './repositories/index.js';
 import { AdminAuthService } from './services/admin-auth.service.js';
 import { AdminCredentialService } from './services/admin-credential.service.js';
 import { AdminRefreshTokenService } from './services/admin-refresh-token.service.js';
 import { AdminSessionService } from './services/admin-session.service.js';
 import { AdminTokenDeliveryService } from './services/admin-token-delivery.service.js';
+import { AdminVerificationCodeService } from './services/admin-verification-code.service.js';
 
 @Module({
   imports: [AdminsModule],
@@ -23,6 +25,7 @@ import { AdminTokenDeliveryService } from './services/admin-token-delivery.servi
     AdminCredentialRepository,
     AdminRefreshTokenRepository,
     AdminSessionRepository,
+    AdminVerificationCodeRepository,
 
     AdminSessionCacheService,
 
@@ -30,6 +33,7 @@ import { AdminTokenDeliveryService } from './services/admin-token-delivery.servi
     AdminRefreshTokenService,
     AdminSessionService,
     AdminTokenDeliveryService,
+    AdminVerificationCodeService,
     AdminAuthService,
 
     { provide: AdminSessionValidator, useExisting: AdminSessionService },

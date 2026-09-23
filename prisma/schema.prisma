@@ -445,6 +445,8 @@ model Admin {
 
   passwordResetTokens AdminPasswordResetToken[] @relation("AdminToAdminPasswordResetToken")
 
+  verificationCodes AdminVerificationCode[] @relation("AdminToAdminVerificationCode")
+
   outboundMessages OutboundMessage[] @relation("AdminToOutboundMessage")
 
   @@index([status])
@@ -576,6 +578,47 @@ model AdminPasswordResetToken {
   @@index([adminId, status])
   @@index([expiresAt])
   @@map("admin_password_reset_tokens")
+}
+
+// ======================================================
+// Admin Verification Code Model
+// ======================================================
+/// A one-time code proving control of an admin's mailbox.
+///
+/// Keyed by the admin, because the admin row is the identity: an admin has one
+/// address and it lives on `admins`. Separate from `user_verification_codes`
+/// so a code issued for a user can never answer an admin flow — the table, not
+/// a filter, is the separation.
+///
+/// Only `PASSWORD_RESET` and `LOGIN` are issued here; `AdminCodePurpose` in
+/// `modules/admin-auth` narrows the shared enum at compile time.
+///
+/// Defined in the migration, not expressible here:
+///   admin_verification_codes_active_key
+///     UNIQUE (admin_id, purpose) WHERE status = 'ACTIVE'
+model AdminVerificationCode {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  adminId String @map("admin_id") @db.Uuid
+
+  admin Admin @relation("AdminToAdminVerificationCode", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  purpose VerificationPurpose
+
+  codeHash String? @map("code_hash") @db.VarChar(64)
+
+  attempts Int @default(0)
+
+  status VerificationCodeStatus @default(ACTIVE)
+
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([adminId, purpose, createdAt(sort: Desc)], map: "admin_verification_codes_lookup_idx")
+  @@map("admin_verification_codes")
 }
 
 // ======================================================
