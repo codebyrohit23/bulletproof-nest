@@ -23,6 +23,10 @@ export class AppConfigService {
     return this.app.webUrl;
   }
 
+  get adminWebAppUrl() {
+    return this.app.adminWebAppUrl;
+  }
+
   get host() {
     return this.app.host;
   }

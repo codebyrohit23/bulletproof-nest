@@ -11,6 +11,8 @@ export const appConfig = registerAs('app', (): AppConfig => ({
 
   webUrl: env.APP_WEB_URL,
 
+  adminWebAppUrl: env.ADMIN_WEB_APP_URL,
+
   host: env.HOST,
 
   port: env.PORT,

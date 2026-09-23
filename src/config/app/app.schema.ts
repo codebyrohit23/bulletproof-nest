@@ -24,6 +24,12 @@ export const appSchema = z.object({
   /** The web app users sign in to. Emails link here, so it must be absolute. */
   APP_WEB_URL: z.url(),
 
+  /**
+   * The admin console. Separate from `APP_WEB_URL` because admin emails must
+   * never send an admin to the user app, or a user to the console.
+   */
+  ADMIN_WEB_APP_URL: z.url(),
+
   HOST: z.string(),
 
   PORT: z.coerce.number().int().positive(),

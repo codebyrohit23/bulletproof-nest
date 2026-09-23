@@ -9,6 +9,8 @@ export interface AppConfig {
 
   readonly webUrl: string;
 
+  readonly adminWebAppUrl: string;
+
   readonly host: string;
 
   readonly port: number;
