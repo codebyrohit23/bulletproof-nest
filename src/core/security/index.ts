@@ -4,4 +4,4 @@ export { PasswordService } from './services/password.service.js';
 
 export { TokenService } from './services/token.service.js';
 
-export { NUMERIC_CODE_LENGTH, TOKEN_BYTE_LENGTH } from './constants/index.js';
+export { TOKEN_BYTE_LENGTH } from './constants/index.js';

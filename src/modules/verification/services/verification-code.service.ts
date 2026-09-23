@@ -42,7 +42,7 @@ export class VerificationCodeService {
     identifier: IdentifierInput,
     purpose: VerificationPurpose,
   ): Promise<IssuedVerificationCode> {
-    const code = this.tokenService.generateNumericCode();
+    const code = this.tokenService.generateVerificationCode();
 
     const record = await this.transaction.run(async () => {
       await this.verificationCodeRepo.retireActive(identifier.type, identifier.value, purpose);

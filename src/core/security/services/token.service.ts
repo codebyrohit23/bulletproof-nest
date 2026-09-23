@@ -2,11 +2,9 @@ import { createHash } from 'node:crypto';
 
 import { Injectable } from '@nestjs/common';
 
-import {
-  NUMERIC_CODE_LENGTH,
-  TOKEN_BYTE_LENGTH,
-  TOKEN_HASH_ALGORITHM,
-} from '../constants/security.constants.js';
+import { VERIFICATION_CODE_LENGTH } from '#/shared/constants/index.js';
+
+import { TOKEN_BYTE_LENGTH, TOKEN_HASH_ALGORITHM } from '../constants/security.constants.js';
 import { timingSafeCompare, randomDigits, randomToken } from '../utils/index.js';
 
 @Injectable()
@@ -15,8 +13,8 @@ export class TokenService {
     return randomToken(byteLength);
   }
 
-  generateNumericCode(length: number = NUMERIC_CODE_LENGTH): string {
-    return randomDigits(length);
+  generateVerificationCode(): string {
+    return randomDigits(VERIFICATION_CODE_LENGTH);
   }
 
   hash(token: string): string {

@@ -9,8 +9,6 @@ export const PASSWORD_HASH_OPTIONS = {
 
 export const TOKEN_BYTE_LENGTH = 32;
 
-export const NUMERIC_CODE_LENGTH = 6;
-
 export const TOKEN_HASH_ALGORITHM = 'sha256';
 
 export const DUMMY_PASSWORD = 'leadflow-enumeration-resistance-placeholder';

@@ -11,3 +11,5 @@ export {
 export { passwordSchema, currentPasswordSchema } from './password.schema.js';
 
 export { lookupPhoneSchema, phoneSchema } from './phone.schema.js';
+
+export { verificationCodeSchema } from './verification-code.schema.js';

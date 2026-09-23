@@ -181,8 +181,8 @@ that resolves a provider goes through `dist`, as `start:prod` and `db:seed` do.
 A module's `index.ts` is its public API. Everything else is internal.
 
 ```ts
-import { VERIFICATION_CODE_PATTERN } from '#/modules/verification/index.js'; // ✓
-import { VERIFICATION_CODE_PATTERN } from '#/modules/verification/constants/index.js'; // ✗
+import { AdminService } from '#/modules/admins/index.js'; // ✓
+import { AdminService } from '#/modules/admins/services/admin.service.js'; // ✗
 ```
 
 Within your own module use **relative** paths, never `#/modules/<self>/…`.

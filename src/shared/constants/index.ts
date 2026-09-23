@@ -11,3 +11,5 @@ export * from './user-api-tags.constants.js';
 export * from './identity.constants.js';
 
 export * from './password.constants.js';
+
+export * from './verification-code.constants.js';

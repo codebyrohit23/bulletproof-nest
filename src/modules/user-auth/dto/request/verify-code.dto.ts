@@ -2,8 +2,7 @@ import { DevicePlatform } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-import { VERIFICATION_CODE_PATTERN } from '#/modules/verification/index.js';
-import { lookupIdentifierSchema } from '#/shared/schemas/index.js';
+import { lookupIdentifierSchema, verificationCodeSchema } from '#/shared/schemas/index.js';
 
 import { DECLARED_DEVICE_DESCRIPTION, declaredDeviceSchema } from '../../schemas/index.js';
 
@@ -11,7 +10,7 @@ const verifyCodeSchema = z
   .object({
     identifier: lookupIdentifierSchema,
 
-    code: z.string().trim().regex(VERIFICATION_CODE_PATTERN, 'Verification code must be 6 digits'),
+    code: verificationCodeSchema,
 
     platform: z.enum(DevicePlatform).default(DevicePlatform.WEB),
 

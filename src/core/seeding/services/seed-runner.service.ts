@@ -64,11 +64,6 @@ export class SeedRunner {
     return summary;
   }
 
-  /**
-   * `--only` names seeders explicitly and overrides the kind filter, so an
-   * operator can re-run one seeder without also having to know what a kind
-   * means. With neither, everything registered runs.
-   */
   private select(options: SeedRunOptions): readonly Seeder[] {
     const registered = this.registered();
     const only = options.only ?? [];

@@ -1,7 +1,5 @@
 export const VERIFICATION_LOG_CONTEXT = 'Verification';
 
-export const VERIFICATION_CODE_PATTERN = /^\d{6}$/;
-
 export const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
 
 export const VERIFICATION_CODE_TTL_MINUTES = VERIFICATION_CODE_TTL_MS / 60_000;
