@@ -384,6 +384,45 @@ model UserPasswordResetToken {
 }
 
 // ======================================================
+// User Verification Code Model
+// ======================================================
+/// A one-time code proving control of one identity — this email, this phone.
+///
+/// Keyed by the identity, not the user: a user may hold an email and a phone,
+/// and a code sent to one must not verify the other. Keyed by the row, not the
+/// address string: every flow that issues a code has already found the identity
+/// (registration creates it in the same transaction). Admin codes are a
+/// separate table, so a code issued here can never answer an admin flow.
+///
+/// Defined in the migration, not expressible here:
+///   user_verification_codes_active_key
+///     UNIQUE (user_identity_id, purpose) WHERE status = 'ACTIVE'
+model UserVerificationCode {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  userIdentityId String @map("user_identity_id") @db.Uuid
+
+  userIdentity UserIdentity @relation("UserIdentityToUserVerificationCode", fields: [userIdentityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  purpose VerificationPurpose
+
+  codeHash String? @map("code_hash") @db.VarChar(64)
+
+  attempts Int @default(0)
+
+  status VerificationCodeStatus @default(ACTIVE)
+
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userIdentityId, purpose, createdAt(sort: Desc)], map: "user_verification_codes_lookup_idx")
+  @@map("user_verification_codes")
+}
+
+// ======================================================
 // User Push Token Model
 // ======================================================
 model UserPushToken {
@@ -619,45 +658,6 @@ model AdminVerificationCode {
 
   @@index([adminId, purpose, createdAt(sort: Desc)], map: "admin_verification_codes_lookup_idx")
   @@map("admin_verification_codes")
-}
-
-// ======================================================
-// User Verification Code Model
-// ======================================================
-/// A one-time code proving control of one identity — this email, this phone.
-///
-/// Keyed by the identity, not the user: a user may hold an email and a phone,
-/// and a code sent to one must not verify the other. Keyed by the row, not the
-/// address string: every flow that issues a code has already found the identity
-/// (registration creates it in the same transaction). Admin codes are a
-/// separate table, so a code issued here can never answer an admin flow.
-///
-/// Defined in the migration, not expressible here:
-///   user_verification_codes_active_key
-///     UNIQUE (user_identity_id, purpose) WHERE status = 'ACTIVE'
-model UserVerificationCode {
-  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
-
-  userIdentityId String @map("user_identity_id") @db.Uuid
-
-  userIdentity UserIdentity @relation("UserIdentityToUserVerificationCode", fields: [userIdentityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  purpose VerificationPurpose
-
-  codeHash String? @map("code_hash") @db.VarChar(64)
-
-  attempts Int @default(0)
-
-  status VerificationCodeStatus @default(ACTIVE)
-
-  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
-
-  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@index([userIdentityId, purpose, createdAt(sort: Desc)], map: "user_verification_codes_lookup_idx")
-  @@map("user_verification_codes")
 }
 
 // ======================================================

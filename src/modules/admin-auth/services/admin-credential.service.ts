@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import type { AdminCredential } from '@prisma/client';
 
 import { PasswordService } from '#/core/security/index.js';
 
@@ -24,6 +25,12 @@ export class AdminCredentialService {
     await this.passwordService.verify(null, password);
 
     return new UnauthorizedException(ADMIN_AUTH_ERROR_MESSAGE.INVALID_CREDENTIALS);
+  }
+
+  async setCredential(adminId: string, password: string): Promise<AdminCredential> {
+    const passwordHash = await this.passwordService.hash(password);
+
+    return this.credentialRepo.upsert(adminId, passwordHash);
   }
 
   async findByAdminId(adminId: string) {

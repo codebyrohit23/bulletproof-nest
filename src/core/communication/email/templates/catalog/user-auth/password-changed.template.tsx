@@ -2,7 +2,12 @@ import { z } from 'zod';
 
 import { EMAIL_BRAND, EMAIL_CATEGORY, EMAIL_TEMPLATE } from '../../../constants/index.js';
 import type { EmailTemplate } from '../../../interfaces/index.js';
-import { EmailButton, EmailLayout, EmailText } from '../../components/index.js';
+import {
+  EmailButton,
+  EmailLayout,
+  EmailText,
+  formatEmailDateTime,
+} from '../../components/index.js';
 
 const schema = z.object({
   firstName: z.string().min(1),
@@ -13,17 +18,6 @@ const schema = z.object({
 
   signInUrl: z.url(),
 });
-
-/** UTC, stated as such: the time zone of whoever reads this is unknown. */
-function formatChangedAt(iso: string): string {
-  const formatted = new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'UTC',
-  }).format(new Date(iso));
-
-  return `${formatted} UTC`;
-}
 
 export const passwordChangedTemplate: EmailTemplate<z.infer<typeof schema>> = {
   id: EMAIL_TEMPLATE.PASSWORD_CHANGED,
@@ -38,7 +32,7 @@ export const passwordChangedTemplate: EmailTemplate<z.infer<typeof schema>> = {
     <EmailLayout preview={`Your ${EMAIL_BRAND.NAME} password was changed`}>
       <EmailText>
         Hi {data.firstName}, the password for your {EMAIL_BRAND.NAME} account was{' '}
-        {data.method === 'reset' ? 'reset' : 'changed'} on {formatChangedAt(data.changedAt)}.
+        {data.method === 'reset' ? 'reset' : 'changed'} on {formatEmailDateTime(data.changedAt)}.
       </EmailText>
 
       <EmailText>

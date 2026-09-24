@@ -19,6 +19,10 @@ export class AdminService {
     return this.adminRepo.findSnapshotByEmail(email);
   }
 
+  async markEmailVerified(id: string): Promise<void> {
+    await this.adminRepo.markEmailVerified(id);
+  }
+
   async hasAny(): Promise<boolean> {
     return (await this.adminRepo.count()) > 0;
   }

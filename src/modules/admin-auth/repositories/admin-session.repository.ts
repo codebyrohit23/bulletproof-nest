@@ -68,6 +68,24 @@ export class AdminSessionRepository {
     return count > 0 ? now : null;
   }
 
+  async revokeAllForAdmin(
+    adminId: string,
+    reason: SessionRevokeReason,
+    exceptSessionId?: string,
+  ): Promise<string[]> {
+    const revoked = await this.prisma.db.adminSession.updateManyAndReturn({
+      where: {
+        adminId,
+        revokedAt: null,
+        ...(exceptSessionId !== undefined ? { id: { not: exceptSessionId } } : {}),
+      },
+      data: { revokedAt: new Date(), revokedReason: reason },
+      select: { id: true },
+    });
+
+    return revoked.map((session) => session.id);
+  }
+
   async revoke(id: string, reason: SessionRevokeReason): Promise<boolean> {
     const { count } = await this.prisma.db.adminSession.updateMany({
       where: { id, revokedAt: null },

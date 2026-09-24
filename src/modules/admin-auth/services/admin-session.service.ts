@@ -102,6 +102,35 @@ export class AdminSessionService extends AdminSessionValidator {
     return { ok: true, session: { id: session.id, adminId: session.adminId } };
   }
 
+  /**
+   * Every live session but `exceptSessionId`, its refresh tokens, and — only
+   * once the transaction commits — its cache entry. Evicting earlier would let
+   * a concurrent request re-cache the session as live from a read that has not
+   * yet seen the revoke.
+   */
+  async revokeAllForAdmin(
+    adminId: string,
+    reason: SessionRevokeReason,
+    exceptSessionId?: string,
+  ): Promise<number> {
+    return this.transaction.run(async () => {
+      const revokedIds = await this.sessionRepo.revokeAllForAdmin(adminId, reason, exceptSessionId);
+
+      if (revokedIds.length === 0) {
+        return 0;
+      }
+
+      await this.refreshTokenService.revokeSessionTokens(
+        revokedIds,
+        TokenRevokeReason.SESSION_REVOKED,
+      );
+
+      await this.evictAfterCommit(revokedIds);
+
+      return revokedIds.length;
+    });
+  }
+
   private async supersedeAndCreate(input: CreateAdminSessionInput): Promise<AdminSession> {
     return this.transaction.run(async () => {
       const supersededId = await this.sessionRepo.findLiveIdByDevice(

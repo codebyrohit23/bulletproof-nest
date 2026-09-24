@@ -127,26 +127,16 @@ export class UserSessionRepository {
     reason: SessionRevokeReason,
     exceptSessionId?: string,
   ): Promise<string[]> {
-    const live = await this.prisma.db.userSession.findMany({
+    const revoked = await this.prisma.db.userSession.updateManyAndReturn({
       where: {
         userId,
         revokedAt: null,
         ...(exceptSessionId !== undefined ? { id: { not: exceptSessionId } } : {}),
       },
+      data: { revokedAt: new Date(), revokedReason: reason },
       select: { id: true },
     });
 
-    if (live.length === 0) {
-      return [];
-    }
-
-    const ids = live.map((session) => session.id);
-
-    await this.prisma.db.userSession.updateMany({
-      where: { id: { in: ids }, revokedAt: null },
-      data: { revokedAt: new Date(), revokedReason: reason },
-    });
-
-    return ids;
+    return revoked.map((session) => session.id);
   }
 }

@@ -4,11 +4,13 @@ import { EMAIL_TEMPLATE, type EmailTemplateId } from '../constants/index.js';
 import { InvalidTemplateDataError, UnknownEmailTemplateError } from '../errors/index.js';
 import type { EmailTemplate } from '../interfaces/index.js';
 
-import { loginOtpTemplate } from './catalog/auth/login-otp.template.js';
-import { otpVerificationTemplate } from './catalog/auth/otp-verification.template.js';
-import { passwordChangedTemplate } from './catalog/auth/password-changed.template.js';
-import { passwordResetTemplate } from './catalog/auth/password-reset.template.js';
-import { welcomeTemplate } from './catalog/auth/welcome.template.js';
+import { adminPasswordChangedTemplate } from './catalog/admin-auth/password-changed.template.js';
+import { adminPasswordResetTemplate } from './catalog/admin-auth/password-reset.template.js';
+import { loginOtpTemplate } from './catalog/user-auth/login-otp.template.js';
+import { otpVerificationTemplate } from './catalog/user-auth/otp-verification.template.js';
+import { passwordChangedTemplate } from './catalog/user-auth/password-changed.template.js';
+import { passwordResetTemplate } from './catalog/user-auth/password-reset.template.js';
+import { welcomeTemplate } from './catalog/user-auth/welcome.template.js';
 
 export const EMAIL_TEMPLATES = {
   [EMAIL_TEMPLATE.OTP_VERIFICATION]: otpVerificationTemplate,
@@ -16,6 +18,8 @@ export const EMAIL_TEMPLATES = {
   [EMAIL_TEMPLATE.PASSWORD_RESET]: passwordResetTemplate,
   [EMAIL_TEMPLATE.WELCOME]: welcomeTemplate,
   [EMAIL_TEMPLATE.PASSWORD_CHANGED]: passwordChangedTemplate,
+  [EMAIL_TEMPLATE.ADMIN_PASSWORD_RESET]: adminPasswordResetTemplate,
+  [EMAIL_TEMPLATE.ADMIN_PASSWORD_CHANGED]: adminPasswordChangedTemplate,
 } satisfies Record<EmailTemplateId, Pick<EmailTemplate<never>, 'id' | 'category'>>;
 
 export type RegisteredEmailTemplate = (typeof EMAIL_TEMPLATES)[EmailTemplateId];

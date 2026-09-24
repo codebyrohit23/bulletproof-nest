@@ -1,5 +1,7 @@
 export { AdminCredentialRepository } from './admin-credential.repository.js';
 
+export { AdminPasswordResetTokenRepository } from './admin-password-reset-token.repository.js';
+
 export { AdminRefreshTokenRepository } from './admin-refresh-token.repository.js';
 
 export { AdminSessionRepository } from './admin-session.repository.js';

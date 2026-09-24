@@ -38,6 +38,14 @@ export class AdminRepository {
     return toAdminSnapshot(admin);
   }
 
+  /** Only the first proof is recorded; a later one does not move the date. */
+  async markEmailVerified(id: string): Promise<void> {
+    await this.prisma.db.admin.updateMany({
+      where: { id, emailVerifiedAt: null },
+      data: { emailVerifiedAt: new Date() },
+    });
+  }
+
   /** Counts live admins only — the soft-delete extension filters the rest. */
   async count(): Promise<number> {
     return this.prisma.db.admin.count();

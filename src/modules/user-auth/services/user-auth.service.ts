@@ -15,11 +15,7 @@ import {
 } from '@prisma/client';
 
 import { AppConfigService } from '#/config/app/index.js';
-import {
-  AUTH_ERROR_MESSAGE,
-  AUTH_FAILURE_REASON,
-  type AuthFailureReason,
-} from '#/core/auth/index.js';
+import { AUTH_ERROR_MESSAGE, AUTH_FAILURE_REASON } from '#/core/auth/index.js';
 import { EMAIL_TEMPLATE, EmailService } from '#/core/communication/email/index.js';
 import { RequestContextService } from '#/core/context/index.js';
 import { JWT_AUDIENCE, JwtSignerService, TOKEN_TTL_SECONDS } from '#/core/jwt/index.js';
@@ -63,7 +59,6 @@ import {
   type DeclaredDevice,
   type IssuedVerificationCode,
   type PasswordChangeMethod,
-  type PasswordResetTokenOutcome,
   type SessionRevocation,
 } from '../interfaces/index.js';
 import { toAuthUser, toUserSession } from '../mappers/index.js';
@@ -268,13 +263,13 @@ export class UserAuthService {
     const deviceId = this.requireDeviceId('refresh-session');
 
     if (token === undefined) {
-      this.refuseRefresh(AUTH_FAILURE_REASON.REFRESH_TOKEN_MISSING);
+      this.refuseRefresh();
     }
 
     const verification = await this.refreshTokenService.verify(token);
 
     if (verification.outcome === REFRESH_TOKEN_OUTCOME.UNKNOWN) {
-      this.refuseRefresh(AUTH_FAILURE_REASON.REFRESH_TOKEN_UNKNOWN);
+      this.refuseRefresh();
     }
 
     const { sessionId } = verification.token;
@@ -282,23 +277,23 @@ export class UserAuthService {
     if (verification.outcome === REFRESH_TOKEN_OUTCOME.REUSED) {
       await this.revokeReusedSession(sessionId);
 
-      this.refuseRefresh(AUTH_FAILURE_REASON.REFRESH_TOKEN_REUSED, sessionId);
+      this.refuseRefresh();
     }
 
     if (verification.outcome === REFRESH_TOKEN_OUTCOME.EXPIRED) {
-      this.refuseRefresh(AUTH_FAILURE_REASON.REFRESH_TOKEN_EXPIRED, sessionId);
+      this.refuseRefresh();
     }
 
     const validation = await this.userSessionService.validate(sessionId, deviceId);
 
     if (!validation.ok) {
-      this.refuseRefresh(validation.reason, sessionId);
+      this.refuseRefresh();
     }
 
     const rotated = await this.refreshTokenService.rotate(verification.token);
 
     if (rotated === null) {
-      this.refuseRefresh(AUTH_FAILURE_REASON.REFRESH_ROTATION_LOST, sessionId);
+      this.refuseRefresh();
     }
 
     const { session } = validation;
@@ -377,7 +372,7 @@ export class UserAuthService {
     const verification = await this.passwordResetTokenService.verify(token);
 
     if (verification.outcome !== PASSWORD_RESET_TOKEN_OUTCOME.VALID) {
-      this.refusePasswordReset(verification.outcome);
+      this.refusePasswordReset();
     }
 
     const { id, userId, user } = verification.token;
@@ -388,7 +383,7 @@ export class UserAuthService {
       const spent = await this.passwordResetTokenService.consume(id);
 
       if (!spent) {
-        this.refusePasswordReset(PASSWORD_RESET_TOKEN_OUTCOME.CONSUMED, userId);
+        this.refusePasswordReset();
       }
 
       const credential = await this.userCredentialService.setCredential(userId, password);
@@ -493,23 +488,11 @@ export class UserAuthService {
     await this.userSessionService.revoke(sessionId, SessionRevokeReason.LOGOUT);
   }
 
-  private refusePasswordReset(outcome: PasswordResetTokenOutcome, userId?: string): never {
-    this.logger.warn('Refused a password reset', {
-      context: USER_AUTH_LOG_CONTEXT,
-      operation: 'reset-password',
-      metadata: { outcome, ...(userId !== undefined ? { userId } : {}) },
-    });
-
+  private refusePasswordReset(): never {
     throw new UnauthorizedException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_RESET_TOKEN);
   }
 
-  private refuseRefresh(reason: AuthFailureReason, sessionId?: string): never {
-    this.logger.warn('Refused a refresh', {
-      context: USER_AUTH_LOG_CONTEXT,
-      operation: 'refresh-session',
-      metadata: { reason, ...(sessionId !== undefined ? { sessionId } : {}) },
-    });
-
+  private refuseRefresh(): never {
     throw new UnauthorizedException(USER_AUTH_ERROR_MESSAGE.INVALID_REFRESH_TOKEN);
   }
 

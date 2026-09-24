@@ -449,8 +449,12 @@ Rules that are not visible from the code that follows them:
 `outbound_messages` inside the caller's transaction, then dispatches. The record
 never holds the body — a code travels in it. Status only moves forward
 (`MESSAGE_STATUS_RANK`), because provider webhooks arrive out of order. A flow
-that issues a one-time code uses `issueAndDeliver` in `UserAuthService`, so the
-code and its email commit together.
+that issues a one-time code uses `issueAndDeliver` in `UserAuthService` or
+`AdminAuthService`, so the code and its email commit together. Admin emails use
+their own `admin-auth.*` templates (in `catalog/admin-auth/`, beside the user's
+in `catalog/user-auth/`) and job ids (`admin-verification-<codeId>`), so an
+admin can tell which account a message is about and no id can collide with a
+user's.
 
 ---
 
