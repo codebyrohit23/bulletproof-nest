@@ -16,10 +16,10 @@ import { ADMIN_AUTH_API_TAG, ApiVersion } from '#/shared/constants/index.js';
 import {
   AdminAuthResultDto,
   AdminLoginDto,
-  AdminPasswordResetRequestDto,
+  AdminRequestPasswordResetDto,
   AdminPasswordResetTokenDto,
   AdminResetPasswordDto,
-  AdminVerifyResetOtpDto,
+  AdminVerifyPasswordResetCodeDto,
   type AdminAuthResult,
   type AdminPasswordResetToken,
 } from '../dto/index.js';
@@ -94,8 +94,8 @@ export class AdminAuthController {
   })
   @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.TOO_MANY_REQUESTS)
   @ResponseMessage('If an admin account exists with this email, a verification code has been sent.')
-  resetPasswordRequest(@Body() body: AdminPasswordResetRequestDto): Promise<null> {
-    return this.adminAuthService.resetPasswordRequest(body);
+  requestPasswordReset(@Body() body: AdminRequestPasswordResetDto): Promise<null> {
+    return this.adminAuthService.requestPasswordReset(body);
   }
 
   /**
@@ -103,7 +103,7 @@ export class AdminAuthController {
    */
   @Post('password-reset/verify-otp')
   @Public()
-  @RateLimit(...ADMIN_AUTH_RATE_LIMIT.VERIFY_RESET_OTP)
+  @RateLimit(...ADMIN_AUTH_RATE_LIMIT.VERIFY_PASSWORD_RESET_CODE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Exchange an admin password reset code for a reset token',
@@ -124,8 +124,10 @@ export class AdminAuthController {
     HttpStatus.TOO_MANY_REQUESTS,
   )
   @ResponseMessage('Verification code accepted')
-  verifyResetOtp(@Body() body: AdminVerifyResetOtpDto): Promise<AdminPasswordResetToken> {
-    return this.adminAuthService.verifyResetOtp(body);
+  verifyPasswordResetCode(
+    @Body() body: AdminVerifyPasswordResetCodeDto,
+  ): Promise<AdminPasswordResetToken> {
+    return this.adminAuthService.verifyPasswordResetCode(body);
   }
 
   /**

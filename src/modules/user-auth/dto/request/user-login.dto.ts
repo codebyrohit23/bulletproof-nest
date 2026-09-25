@@ -6,7 +6,7 @@ import { lookupEmailSchema, currentPasswordSchema } from '#/shared/schemas/index
 
 import { DECLARED_DEVICE_DESCRIPTION, declaredDeviceSchema } from '../../schemas/index.js';
 
-const loginSchema = z
+const userLoginSchema = z
   .object({
     email: lookupEmailSchema,
 
@@ -18,6 +18,6 @@ const loginSchema = z
   })
   .strict();
 
-export class LoginDto extends createZodDto(loginSchema) {}
+export class UserLoginDto extends createZodDto(userLoginSchema) {}
 
-export type LoginInput = z.infer<typeof loginSchema>;
+export type UserLoginInput = z.infer<typeof userLoginSchema>;

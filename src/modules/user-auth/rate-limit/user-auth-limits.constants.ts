@@ -28,32 +28,35 @@ const perIp = (name: string, limit: number, windowMs = FIVE_MINUTES_MS): RateLim
   by: RATE_LIMIT_SUBJECT.IP,
 });
 
-const otpDispatchTotal = (bodyField: string): RateLimitDefinition => ({
-  name: 'otp-dispatch-total',
+const codeDispatchTotal = (bodyField: string): RateLimitDefinition => ({
+  name: 'code-dispatch-total',
   rule: { limit: 8, windowMs: FIVE_MINUTES_MS },
   by: { bodyField },
 });
 
-const OTP_DISPATCH_TOTAL = otpDispatchTotal('identifier.value');
+const CODE_DISPATCH_TOTAL = codeDispatchTotal('identifier.value');
 
-const OTP_DISPATCH_TOTAL_BY_EMAIL = otpDispatchTotal('email');
+const CODE_DISPATCH_TOTAL_BY_EMAIL = codeDispatchTotal('email');
 
-const OTP_DISPATCH_BY_IP = perIp('otp-dispatch-by-ip', 20);
+const CODE_DISPATCH_BY_IP = perIp('code-dispatch-by-ip', 20);
 
-export const AUTH_RATE_LIMIT = {
-  REGISTER: [OTP_DISPATCH_TOTAL, perIp('register-by-ip', 20, ONE_HOUR_MS), OTP_DISPATCH_BY_IP],
+export const USER_AUTH_RATE_LIMIT = {
+  REGISTER: [CODE_DISPATCH_TOTAL, perIp('register-by-ip', 20, ONE_HOUR_MS), CODE_DISPATCH_BY_IP],
 
-  RESEND_VERIFICATION: [OTP_DISPATCH_TOTAL, OTP_DISPATCH_BY_IP],
+  RESEND_VERIFICATION: [CODE_DISPATCH_TOTAL, CODE_DISPATCH_BY_IP],
 
-  REQUEST_LOGIN_OTP: [OTP_DISPATCH_TOTAL, OTP_DISPATCH_BY_IP],
+  REQUEST_LOGIN_CODE: [CODE_DISPATCH_TOTAL, CODE_DISPATCH_BY_IP],
 
-  REQUEST_PASSWORD_RESET: [OTP_DISPATCH_TOTAL_BY_EMAIL, OTP_DISPATCH_BY_IP],
+  REQUEST_PASSWORD_RESET: [CODE_DISPATCH_TOTAL_BY_EMAIL, CODE_DISPATCH_BY_IP],
 
   VERIFY_REGISTRATION: [perIdentifier('verify-registration', 10), perIp('verify-code-by-ip', 30)],
 
-  VERIFY_LOGIN_OTP: [perIdentifier('verify-login-otp', 10), perIp('verify-code-by-ip', 30)],
+  VERIFY_LOGIN_CODE: [perIdentifier('verify-login-code', 10), perIp('verify-code-by-ip', 30)],
 
-  VERIFY_RESET_OTP: [perEmail('verify-reset-otp', 10), perIp('verify-code-by-ip', 30)],
+  VERIFY_PASSWORD_RESET_CODE: [
+    perEmail('verify-password-reset-code', 10),
+    perIp('verify-code-by-ip', 30),
+  ],
 
   LOGIN: [
     perEmail('login', 10),

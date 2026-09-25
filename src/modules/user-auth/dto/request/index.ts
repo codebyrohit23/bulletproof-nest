@@ -1,26 +1,41 @@
-export { RegisterDto, type RegisterInput } from './register.dto.js';
-
-export { VerifyCodeDto, type VerifyCodeInput } from './verify-code.dto.js';
-
-export { ResendVerificationDto, type ResendVerificationInput } from './resend-verification.dto.js';
-
-export { LoginDto, type LoginInput } from './login.dto.js';
-
-export { OtpLoginRequestDto, type OtpLoginRequestInput } from './otp-login-request.dto.js';
-
-export { OtpLoginDto, type OtpLoginInput } from './otp-login.dto.js';
-
-export { RefreshTokenDto, type RefreshTokenInput } from './refresh-token.dto.js';
+export { UserRegisterDto, type UserRegisterInput } from './user-register.dto.js';
 
 export {
-  ResetPasswordRequestDto,
-  type ResetPasswordRequestInput,
-} from './reset-password-request.dto.js';
+  UserVerifyRegistrationDto,
+  type UserVerifyRegistrationInput,
+} from './user-verify-registration.dto.js';
 
-export { VerifyResetOtpDto, type VerifyResetOtpInput } from './verify-reset-otp.dto.js';
+export {
+  UserResendVerificationDto,
+  type UserResendVerificationInput,
+} from './user-resend-verification.dto.js';
 
-export { ResetPasswordDto, type ResetPasswordInput } from './reset-password.dto.js';
+export { UserLoginDto, type UserLoginInput } from './user-login.dto.js';
 
-export { ChangePasswordDto, type ChangePasswordInput } from './change-password.dto.js';
+export {
+  UserRequestLoginCodeDto,
+  type UserRequestLoginCodeInput,
+} from './user-request-login-code.dto.js';
 
-export { ListSessionsQueryDto, type ListSessionsQuery } from './list-sessions-query.dto.js';
+export { UserLoginWithCodeDto, type UserLoginWithCodeInput } from './user-login-with-code.dto.js';
+
+export { UserRefreshSessionDto, type UserRefreshSessionInput } from './user-refresh-session.dto.js';
+
+export {
+  UserRequestPasswordResetDto,
+  type UserRequestPasswordResetInput,
+} from './user-request-password-reset.dto.js';
+
+export {
+  UserVerifyPasswordResetCodeDto,
+  type UserVerifyPasswordResetCodeInput,
+} from './user-verify-password-reset-code.dto.js';
+
+export { UserResetPasswordDto, type UserResetPasswordInput } from './user-reset-password.dto.js';
+
+export { UserChangePasswordDto, type UserChangePasswordInput } from './user-change-password.dto.js';
+
+export {
+  UserListSessionsQueryDto,
+  type UserListSessionsQuery,
+} from './user-list-sessions-query.dto.js';

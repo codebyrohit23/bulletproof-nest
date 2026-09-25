@@ -3,20 +3,20 @@ import { z } from 'zod';
 
 import { passwordSchema } from '#/shared/schemas/index.js';
 
-import { PASSWORD_RESET_TOKEN_MAX_LENGTH } from '../../constants/index.js';
+import { USER_PASSWORD_RESET_TOKEN_MAX_LENGTH } from '../../constants/index.js';
 
-const resetPasswordSchema = z
+const userResetPasswordSchema = z
   .object({
     password: passwordSchema,
     token: z
       .string()
       .trim()
       .min(1, 'Token is required')
-      .max(PASSWORD_RESET_TOKEN_MAX_LENGTH)
+      .max(USER_PASSWORD_RESET_TOKEN_MAX_LENGTH)
       .describe('The `resetToken` returned by `/auth/password-reset/verify-otp`.'),
   })
   .strict();
 
-export class ResetPasswordDto extends createZodDto(resetPasswordSchema) {}
+export class UserResetPasswordDto extends createZodDto(userResetPasswordSchema) {}
 
-export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type UserResetPasswordInput = z.infer<typeof userResetPasswordSchema>;

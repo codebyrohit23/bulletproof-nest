@@ -26,30 +26,30 @@ import { buildOffsetPagination, paginate } from '#/shared/pagination/index.js';
 import type { IdentifierInput } from '#/shared/schemas/index.js';
 
 import {
-  AUTH_RESULT_STATUS,
-  PASSWORD_RESET_TOKEN_TTL_SECONDS,
+  USER_AUTH_RESULT_STATUS,
+  USER_PASSWORD_RESET_TOKEN_TTL_SECONDS,
   USER_AUTH_ERROR_MESSAGE,
   USER_AUTH_LOG_CONTEXT,
-  VERIFICATION_CODE_TTL_MINUTES,
+  USER_VERIFICATION_CODE_TTL_MINUTES,
 } from '../constants/index.js';
 import type {
-  AuthResult,
-  AuthTokens,
-  ChangePasswordInput,
-  ListSessionsQuery,
-  LoginInput,
-  OtpLoginInput,
-  OtpLoginRequestInput,
-  PasswordResetToken,
-  RegisterInput,
-  RegisterResponse,
-  ResendVerificationInput,
-  ResetPasswordInput,
-  ResetPasswordRequestInput,
-  RevokedSessions,
+  UserAuthResult,
+  UserAuthTokens,
+  UserChangePasswordInput,
+  UserListSessionsQuery,
+  UserLoginInput,
+  UserLoginWithCodeInput,
+  UserRequestLoginCodeInput,
+  UserPasswordResetToken,
+  UserRegisterInput,
+  UserRegisterResponse,
+  UserResendVerificationInput,
+  UserResetPasswordInput,
+  UserRequestPasswordResetInput,
+  UserRevokedSessions,
   UserSessionPage,
-  VerifyCodeInput,
-  VerifyResetOtpInput,
+  UserVerifyRegistrationInput,
+  UserVerifyPasswordResetCodeInput,
 } from '../dto/index.js';
 import {
   PASSWORD_RESET_TOKEN_OUTCOME,
@@ -89,7 +89,7 @@ export class UserAuthService {
     private readonly email: EmailService,
     private readonly appConfig: AppConfigService,
   ) {}
-  async registerUser(payload: RegisterInput): Promise<RegisterResponse> {
+  async registerUser(payload: UserRegisterInput): Promise<UserRegisterResponse> {
     const { identifier } = payload;
 
     const existing = await this.userIdentityService.findIdentityWithUser(
@@ -101,11 +101,11 @@ export class UserAuthService {
       throw new ConflictException(this.resolveConflictMessage(identifier.type));
     }
 
-    return this.transaction.run<RegisterResponse>(async () => {
+    return this.transaction.run<UserRegisterResponse>(async () => {
       const recipient = await this.createAccount(payload);
 
       await this.issueAndDeliver(
-        EMAIL_TEMPLATE.OTP_VERIFICATION,
+        EMAIL_TEMPLATE.USER_AUTH.VERIFICATION_CODE,
         verificationPurposeFor(identifier.type),
         recipient,
         'register-user',
@@ -115,7 +115,7 @@ export class UserAuthService {
     });
   }
 
-  async verifyRegistration(payload: VerifyCodeInput): Promise<AuthResult> {
+  async verifyRegistration(payload: UserVerifyRegistrationInput): Promise<UserAuthResult> {
     const { identifier, code, platform, device } = payload;
 
     const deviceId = this.requireDeviceId('verify-registration');
@@ -148,7 +148,7 @@ export class UserAuthService {
     return this.createSessionAndIssueTokens(target.userId, deviceId, platform, device);
   }
 
-  async resendVerification(payload: ResendVerificationInput): Promise<null> {
+  async resendVerification(payload: UserResendVerificationInput): Promise<null> {
     const { identifier } = payload;
 
     const existing = await this.userIdentityService.findIdentityWithUser(
@@ -163,7 +163,7 @@ export class UserAuthService {
     }
 
     await this.issueAndDeliver(
-      EMAIL_TEMPLATE.OTP_VERIFICATION,
+      EMAIL_TEMPLATE.USER_AUTH.VERIFICATION_CODE,
       verificationPurposeFor(identifier.type),
       { identityId: existing.id, userId: existing.userId, identifier },
       'resend-verification',
@@ -172,7 +172,7 @@ export class UserAuthService {
     return null;
   }
 
-  async login(payload: LoginInput): Promise<AuthResult> {
+  async login(payload: UserLoginInput): Promise<UserAuthResult> {
     const { email, password, platform, device } = payload;
 
     const deviceId = this.requireDeviceId('login');
@@ -205,7 +205,7 @@ export class UserAuthService {
     return this.createSessionAndIssueTokens(existing.userId, deviceId, platform, device);
   }
 
-  async requestLoginOtp(payload: OtpLoginRequestInput): Promise<null> {
+  async requestLoginCode(payload: UserRequestLoginCodeInput): Promise<null> {
     const { identifier } = payload;
 
     const existing = await this.userIdentityService.findIdentityWithUser(
@@ -218,19 +218,19 @@ export class UserAuthService {
     }
 
     await this.issueAndDeliver(
-      EMAIL_TEMPLATE.LOGIN_OTP,
+      EMAIL_TEMPLATE.USER_AUTH.LOGIN_CODE,
       VerificationPurpose.LOGIN,
       { identityId: existing.id, userId: existing.userId, identifier },
-      'request-login-otp',
+      'request-login-code',
     );
 
     return null;
   }
 
-  async loginWithOtp(payload: OtpLoginInput): Promise<AuthResult> {
+  async loginWithCode(payload: UserLoginWithCodeInput): Promise<UserAuthResult> {
     const { identifier, code, platform, device } = payload;
 
-    const deviceId = this.requireDeviceId('login-with-otp');
+    const deviceId = this.requireDeviceId('login-with-code');
 
     const target = await this.userIdentityService.findIdentityWithUser(
       identifier.type,
@@ -254,12 +254,12 @@ export class UserAuthService {
       }
     });
 
-    this.assertAccountCanSignIn(target.user.status, target.userId, 'login-with-otp');
+    this.assertAccountCanSignIn(target.user.status, target.userId, 'login-with-code');
 
     return this.createSessionAndIssueTokens(target.userId, deviceId, platform, device);
   }
 
-  async refreshSession(token?: string): Promise<AuthTokens> {
+  async refreshSession(token?: string): Promise<UserAuthTokens> {
     const deviceId = this.requireDeviceId('refresh-session');
 
     if (token === undefined) {
@@ -312,7 +312,7 @@ export class UserAuthService {
     };
   }
 
-  async resetPasswordRequest(payload: ResetPasswordRequestInput): Promise<null> {
+  async requestPasswordReset(payload: UserRequestPasswordResetInput): Promise<null> {
     const { email } = payload;
 
     const existing = await this.userIdentityService.findIdentityWithUser(
@@ -325,20 +325,22 @@ export class UserAuthService {
     }
 
     await this.issueAndDeliver(
-      EMAIL_TEMPLATE.PASSWORD_RESET,
+      EMAIL_TEMPLATE.USER_AUTH.PASSWORD_RESET_CODE,
       VerificationPurpose.PASSWORD_RESET,
       {
         identityId: existing.id,
         userId: existing.userId,
         identifier: { type: IdentifierType.EMAIL, value: email },
       },
-      'request-password-reset-otp',
+      'request-password-reset',
     );
 
     return null;
   }
 
-  async verifyResetOtp(payload: VerifyResetOtpInput): Promise<PasswordResetToken> {
+  async verifyPasswordResetCode(
+    payload: UserVerifyPasswordResetCodeInput,
+  ): Promise<UserPasswordResetToken> {
     const { email, code } = payload;
 
     const target = await this.userIdentityService.findIdentityWithUser(IdentifierType.EMAIL, email);
@@ -363,10 +365,10 @@ export class UserAuthService {
       return this.passwordResetTokenService.issue(target.userId);
     });
 
-    return { resetToken: issued.token, expiresIn: PASSWORD_RESET_TOKEN_TTL_SECONDS };
+    return { resetToken: issued.token, expiresIn: USER_PASSWORD_RESET_TOKEN_TTL_SECONDS };
   }
 
-  async resetPassword(payload: ResetPasswordInput): Promise<null> {
+  async resetPassword(payload: UserResetPasswordInput): Promise<null> {
     const { token, password } = payload;
 
     const verification = await this.passwordResetTokenService.verify(token);
@@ -404,7 +406,7 @@ export class UserAuthService {
   async changePassword(
     userId: string,
     sessionId: string,
-    payload: ChangePasswordInput,
+    payload: UserChangePasswordInput,
   ): Promise<null> {
     const credential = await this.userCredentialService.findCredentialByUserId(userId);
 
@@ -444,7 +446,7 @@ export class UserAuthService {
   async listSessions(
     userId: string,
     currentSessionId: string,
-    query: ListSessionsQuery,
+    query: UserListSessionsQuery,
   ): Promise<UserSessionPage> {
     const now = new Date();
 
@@ -474,7 +476,10 @@ export class UserAuthService {
     return { wasCurrent: sessionId === currentSessionId };
   }
 
-  async revokeOtherSessions(userId: string, currentSessionId: string): Promise<RevokedSessions> {
+  async revokeOtherSessions(
+    userId: string,
+    currentSessionId: string,
+  ): Promise<UserRevokedSessions> {
     const revoked = await this.userSessionService.revokeAllForUser(
       userId,
       SessionRevokeReason.USER_REVOKED,
@@ -508,7 +513,7 @@ export class UserAuthService {
   }
 
   /** Returns the new account's identity as a recipient, since registering always sends it a code. */
-  private async createAccount(payload: RegisterInput): Promise<CodeRecipient> {
+  private async createAccount(payload: UserRegisterInput): Promise<CodeRecipient> {
     const { identifier, firstName, lastName, password } = payload;
 
     const user = await this.userService.createUser({
@@ -577,7 +582,7 @@ export class UserAuthService {
     deviceId: string,
     platform: DevicePlatform,
     declared: DeclaredDevice | undefined,
-  ): Promise<AuthResult> {
+  ): Promise<UserAuthResult> {
     const device = resolveDeviceContext(deviceId, platform, declared, this.requestContext.get());
 
     const session = await this.userSessionService.startForDevice({ userId, device });
@@ -592,7 +597,7 @@ export class UserAuthService {
     this.requestContext.setIdentity({ userId, sessionId: session.id });
 
     return {
-      status: AUTH_RESULT_STATUS.AUTHENTICATED,
+      status: USER_AUTH_RESULT_STATUS.AUTHENTICATED,
 
       user: await this.buildAuthUser(userId),
 
@@ -604,16 +609,16 @@ export class UserAuthService {
     };
   }
 
-  private async challengeForVerification(recipient: CodeRecipient): Promise<AuthResult> {
+  private async challengeForVerification(recipient: CodeRecipient): Promise<UserAuthResult> {
     await this.issueAndDeliver(
-      EMAIL_TEMPLATE.OTP_VERIFICATION,
+      EMAIL_TEMPLATE.USER_AUTH.VERIFICATION_CODE,
       verificationPurposeFor(recipient.identifier.type),
       recipient,
       'login-verification-challenge',
     );
 
     return {
-      status: AUTH_RESULT_STATUS.VERIFICATION_REQUIRED,
+      status: USER_AUTH_RESULT_STATUS.VERIFICATION_REQUIRED,
 
       user: await this.buildAuthUser(recipient.userId),
 
@@ -653,7 +658,7 @@ export class UserAuthService {
       return;
     }
 
-    await this.email.send(EMAIL_TEMPLATE.PASSWORD_CHANGED, {
+    await this.email.send(EMAIL_TEMPLATE.USER_AUTH.PASSWORD_CHANGED, {
       to: address,
       data: {
         firstName: user.firstName,
@@ -677,7 +682,7 @@ export class UserAuthService {
       return;
     }
 
-    await this.email.send(EMAIL_TEMPLATE.WELCOME, {
+    await this.email.send(EMAIL_TEMPLATE.USER_AUTH.WELCOME, {
       to: identifier.value,
       data: { firstName: user.firstName, dashboardUrl: this.appConfig.webUrl },
       idempotencyKey: `welcome-${userId}`,
@@ -705,7 +710,7 @@ export class UserAuthService {
 
     await this.email.send(template, {
       to: identifier.value,
-      data: { code: issued.code, expiresInMinutes: VERIFICATION_CODE_TTL_MINUTES },
+      data: { code: issued.code, expiresInMinutes: USER_VERIFICATION_CODE_TTL_MINUTES },
       idempotencyKey: `verification-${issued.id}`,
       recipientRef: { userId },
       expiresAt: issued.expiresAt,

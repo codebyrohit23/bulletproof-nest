@@ -10,8 +10,8 @@ const schema = z.object({
   expiresInMinutes: z.number().int().positive(),
 });
 
-export const otpVerificationTemplate: EmailTemplate<z.infer<typeof schema>> = {
-  id: EMAIL_TEMPLATE.OTP_VERIFICATION,
+export const userVerificationCodeTemplate: EmailTemplate<z.infer<typeof schema>> = {
+  id: EMAIL_TEMPLATE.USER_AUTH.VERIFICATION_CODE,
 
   category: EMAIL_CATEGORY.TRANSACTIONAL,
 

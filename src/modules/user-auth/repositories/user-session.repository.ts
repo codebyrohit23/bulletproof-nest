@@ -5,8 +5,8 @@ import { PrismaService, toOffsetArgs } from '#/infrastructure/database/prisma/in
 import type { OffsetSlice } from '#/shared/pagination/index.js';
 
 import {
-  SESSION_ACTIVITY_THROTTLE_MS,
-  SESSION_SUMMARY_SELECT,
+  USER_SESSION_ACTIVITY_THROTTLE_MS,
+  USER_SESSION_SUMMARY_SELECT,
   USER_SESSION_TTL_MS,
 } from '../constants/index.js';
 import type {
@@ -65,7 +65,7 @@ export class UserSessionRepository {
 
   async touchActivity(id: string): Promise<Date | null> {
     const now = new Date();
-    const staleBefore = new Date(now.getTime() - SESSION_ACTIVITY_THROTTLE_MS);
+    const staleBefore = new Date(now.getTime() - USER_SESSION_ACTIVITY_THROTTLE_MS);
 
     const { count } = await this.prisma.db.userSession.updateMany({
       where: {
@@ -93,7 +93,7 @@ export class UserSessionRepository {
       this.prisma.db.userSession.count({ where }),
       this.prisma.db.userSession.findMany({
         where,
-        select: SESSION_SUMMARY_SELECT,
+        select: USER_SESSION_SUMMARY_SELECT,
         ...toOffsetArgs(query, [
           { lastActivityAt: { sort: 'desc', nulls: 'last' } },
           { createdAt: 'desc' },

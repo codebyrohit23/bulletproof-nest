@@ -7,7 +7,7 @@ import {
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 
-import { VERIFICATION_CODE_TTL_MS } from '../constants/index.js';
+import { USER_VERIFICATION_CODE_TTL_MS } from '../constants/index.js';
 import type { CreateVerificationCodeInput } from '../interfaces/index.js';
 
 /**
@@ -40,7 +40,7 @@ export class UserVerificationCodeRepository {
         userIdentityId: input.userIdentityId,
         purpose: input.purpose,
         codeHash: input.codeHash,
-        expiresAt: new Date(Date.now() + VERIFICATION_CODE_TTL_MS),
+        expiresAt: new Date(Date.now() + USER_VERIFICATION_CODE_TTL_MS),
       },
     });
   }

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { offsetPageSchema } from '#/shared/pagination/index.js';
 import { idSchema } from '#/shared/schemas/index.js';
 
-import { SESSION_END_REASON, SESSION_STATUS } from '../../constants/index.js';
+import { USER_SESSION_END_REASON, USER_SESSION_STATUS } from '../../constants/index.js';
 
 const userSessionSchema = z.object({
   id: idSchema,
@@ -13,13 +13,13 @@ const userSessionSchema = z.object({
   current: z.boolean().describe('True for the session that made this request.'),
 
   status: z
-    .enum(SESSION_STATUS)
+    .enum(USER_SESSION_STATUS)
     .describe('`ACTIVE` can make requests now. `ENDED` was signed out or expired.'),
 
   endedAt: z.iso.datetime().nullable().describe('When it ended. Null while active.'),
 
   endReason: z
-    .enum(SESSION_END_REASON)
+    .enum(USER_SESSION_END_REASON)
     .nullable()
     .describe(
       'Why it ended. Null while active. `SECURITY_ALERT` means it was ended because its ' +
@@ -61,10 +61,10 @@ export class UserSessionPageDto extends createZodDto(userSessionPageSchema) {}
 
 export type UserSessionPage = z.infer<typeof userSessionPageSchema>;
 
-const revokedSessionsSchema = z.object({
+const userRevokedSessionsSchema = z.object({
   revoked: z.number().int().nonnegative().describe('How many other devices were signed out.'),
 });
 
-export class RevokedSessionsDto extends createZodDto(revokedSessionsSchema) {}
+export class UserRevokedSessionsDto extends createZodDto(userRevokedSessionsSchema) {}
 
-export type RevokedSessions = z.infer<typeof revokedSessionsSchema>;
+export type UserRevokedSessions = z.infer<typeof userRevokedSessionsSchema>;

@@ -12,7 +12,7 @@ import type { OffsetSlice } from '#/shared/pagination/index.js';
 
 import { UserSessionCacheService } from '../cache/user-session.cache.js';
 import {
-  SESSION_ACTIVITY_THROTTLE_MS,
+  USER_SESSION_ACTIVITY_THROTTLE_MS,
   USER_AUTH_ERROR_MESSAGE,
   USER_AUTH_LOG_CONTEXT,
 } from '../constants/index.js';
@@ -172,7 +172,7 @@ export class UserSessionService extends UserSessionValidator {
 
     if (
       !session.lastActivityAtMs ||
-      session.lastActivityAtMs <= Date.now() - SESSION_ACTIVITY_THROTTLE_MS
+      session.lastActivityAtMs <= Date.now() - USER_SESSION_ACTIVITY_THROTTLE_MS
     ) {
       await this.stampActivity(sessionId);
     }

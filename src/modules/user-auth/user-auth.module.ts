@@ -13,13 +13,13 @@ import {
   UserSessionRepository,
   UserVerificationCodeRepository,
 } from './repositories/index.js';
-import { AuthTokenDeliveryService } from './services/auth-token-delivery.service.js';
 import { UserAuthService } from './services/user-auth.service.js';
 import { UserCredentialService } from './services/user-credential.service.js';
 import { UserIdentityService } from './services/user-identity.service.js';
 import { UserPasswordResetTokenService } from './services/user-password-reset-token.service.js';
 import { UserRefreshTokenService } from './services/user-refresh-token.service.js';
 import { UserSessionService } from './services/user-session.service.js';
+import { UserTokenDeliveryService } from './services/user-token-delivery.service.js';
 import { UserVerificationCodeService } from './services/user-verification-code.service.js';
 @Module({
   imports: [UsersModule],
@@ -41,7 +41,7 @@ import { UserVerificationCodeService } from './services/user-verification-code.s
     UserSessionService,
     UserVerificationCodeService,
     UserAuthService,
-    AuthTokenDeliveryService,
+    UserTokenDeliveryService,
 
     { provide: UserSessionValidator, useExisting: UserSessionService },
   ],

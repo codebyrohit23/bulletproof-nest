@@ -6,7 +6,7 @@ import { lookupIdentifierSchema, verificationCodeSchema } from '#/shared/schemas
 
 import { DECLARED_DEVICE_DESCRIPTION, declaredDeviceSchema } from '../../schemas/index.js';
 
-const otpLoginSchema = z
+const userLoginWithCodeSchema = z
   .object({
     identifier: lookupIdentifierSchema,
 
@@ -18,6 +18,6 @@ const otpLoginSchema = z
   })
   .strict();
 
-export class OtpLoginDto extends createZodDto(otpLoginSchema) {}
+export class UserLoginWithCodeDto extends createZodDto(userLoginWithCodeSchema) {}
 
-export type OtpLoginInput = z.infer<typeof otpLoginSchema>;
+export type UserLoginWithCodeInput = z.infer<typeof userLoginWithCodeSchema>;

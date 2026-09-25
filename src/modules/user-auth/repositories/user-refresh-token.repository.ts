@@ -3,7 +3,7 @@ import type { TokenRevokeReason, UserRefreshToken } from '@prisma/client';
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 
-import { REFRESH_TOKEN_TTL_MS } from '../constants/index.js';
+import { USER_REFRESH_TOKEN_TTL_MS } from '../constants/index.js';
 import type { CreateRefreshTokenInput, RefreshTokenWithSession } from '../interfaces/index.js';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class UserRefreshTokenRepository {
         userId: input.userId,
         sessionId: input.sessionId,
         tokenHash: input.tokenHash,
-        expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+        expiresAt: new Date(Date.now() + USER_REFRESH_TOKEN_TTL_MS),
       },
     });
   }

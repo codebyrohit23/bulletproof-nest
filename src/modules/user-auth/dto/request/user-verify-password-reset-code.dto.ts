@@ -3,7 +3,7 @@ import z from 'zod';
 
 import { lookupEmailSchema, verificationCodeSchema } from '#/shared/schemas/index.js';
 
-const verifyResetOtpSchema = z
+const userVerifyPasswordResetCodeSchema = z
   .object({
     email: lookupEmailSchema,
 
@@ -11,6 +11,8 @@ const verifyResetOtpSchema = z
   })
   .strict();
 
-export class VerifyResetOtpDto extends createZodDto(verifyResetOtpSchema) {}
+export class UserVerifyPasswordResetCodeDto extends createZodDto(
+  userVerifyPasswordResetCodeSchema,
+) {}
 
-export type VerifyResetOtpInput = z.infer<typeof verifyResetOtpSchema>;
+export type UserVerifyPasswordResetCodeInput = z.infer<typeof userVerifyPasswordResetCodeSchema>;

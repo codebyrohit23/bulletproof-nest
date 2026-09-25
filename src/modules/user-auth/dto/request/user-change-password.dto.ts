@@ -3,7 +3,7 @@ import z from 'zod';
 
 import { currentPasswordSchema, passwordSchema } from '#/shared/schemas/index.js';
 
-export const changePasswordSchema = z
+export const userChangePasswordSchema = z
   .object({
     currentPassword: currentPasswordSchema.describe('Current password of the user.'),
 
@@ -11,6 +11,6 @@ export const changePasswordSchema = z
   })
   .strict();
 
-export class ChangePasswordDto extends createZodDto(changePasswordSchema) {}
+export class UserChangePasswordDto extends createZodDto(userChangePasswordSchema) {}
 
-export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type UserChangePasswordInput = z.infer<typeof userChangePasswordSchema>;

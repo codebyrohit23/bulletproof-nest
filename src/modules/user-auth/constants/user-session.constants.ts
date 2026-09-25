@@ -1,7 +1,7 @@
 import { type Prisma, SessionRevokeReason } from '@prisma/client';
 
 /** What `GET /auth/sessions?status=` accepts. `active` is the default, so the list reads as it always has. */
-export const SESSION_LIST_STATUS = {
+export const USER_SESSION_LIST_STATUS = {
   ACTIVE: 'active',
 
   ENDED: 'ended',
@@ -9,17 +9,18 @@ export const SESSION_LIST_STATUS = {
   ALL: 'all',
 } as const;
 
-export type SessionListStatus = (typeof SESSION_LIST_STATUS)[keyof typeof SESSION_LIST_STATUS];
+export type UserSessionListStatus =
+  (typeof USER_SESSION_LIST_STATUS)[keyof typeof USER_SESSION_LIST_STATUS];
 
-export const SESSION_STATUS = {
+export const USER_SESSION_STATUS = {
   ACTIVE: 'ACTIVE',
 
   ENDED: 'ENDED',
 } as const;
 
-export type SessionStatus = (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS];
+export type UserSessionStatus = (typeof USER_SESSION_STATUS)[keyof typeof USER_SESSION_STATUS];
 
-export const SESSION_END_REASON = {
+export const USER_SESSION_END_REASON = {
   SIGNED_OUT: 'SIGNED_OUT',
 
   SIGNED_OUT_REMOTELY: 'SIGNED_OUT_REMOTELY',
@@ -37,27 +38,28 @@ export const SESSION_END_REASON = {
   EXPIRED: 'EXPIRED',
 } as const;
 
-export type SessionEndReason = (typeof SESSION_END_REASON)[keyof typeof SESSION_END_REASON];
+export type UserSessionEndReason =
+  (typeof USER_SESSION_END_REASON)[keyof typeof USER_SESSION_END_REASON];
 
 /**
  * A revoke reason added to the schema without a public name here fails the
  * build, rather than reaching a client as `null`.
  */
-export const SESSION_END_REASON_BY_REVOKE_REASON = {
-  [SessionRevokeReason.LOGOUT]: SESSION_END_REASON.SIGNED_OUT,
+export const USER_SESSION_END_REASON_BY_REVOKE_REASON = {
+  [SessionRevokeReason.LOGOUT]: USER_SESSION_END_REASON.SIGNED_OUT,
 
-  [SessionRevokeReason.USER_REVOKED]: SESSION_END_REASON.SIGNED_OUT_REMOTELY,
+  [SessionRevokeReason.USER_REVOKED]: USER_SESSION_END_REASON.SIGNED_OUT_REMOTELY,
 
-  [SessionRevokeReason.ADMIN_REVOKED]: SESSION_END_REASON.ENDED_BY_SUPPORT,
+  [SessionRevokeReason.ADMIN_REVOKED]: USER_SESSION_END_REASON.ENDED_BY_SUPPORT,
 
-  [SessionRevokeReason.PASSWORD_CHANGED]: SESSION_END_REASON.PASSWORD_CHANGED,
+  [SessionRevokeReason.PASSWORD_CHANGED]: USER_SESSION_END_REASON.PASSWORD_CHANGED,
 
-  [SessionRevokeReason.PASSWORD_RESET]: SESSION_END_REASON.PASSWORD_RESET,
+  [SessionRevokeReason.PASSWORD_RESET]: USER_SESSION_END_REASON.PASSWORD_RESET,
 
-  [SessionRevokeReason.TOKEN_REUSE_DETECTED]: SESSION_END_REASON.SECURITY_ALERT,
+  [SessionRevokeReason.TOKEN_REUSE_DETECTED]: USER_SESSION_END_REASON.SECURITY_ALERT,
 
-  [SessionRevokeReason.SUPERSEDED]: SESSION_END_REASON.REPLACED,
-} as const satisfies Record<SessionRevokeReason, SessionEndReason>;
+  [SessionRevokeReason.SUPERSEDED]: USER_SESSION_END_REASON.REPLACED,
+} as const satisfies Record<SessionRevokeReason, UserSessionEndReason>;
 
 /**
  * How far back ended sessions are listed.
@@ -67,14 +69,14 @@ export const SESSION_END_REASON_BY_REVOKE_REASON = {
  * across every sign-in is a movement pattern, and this list is visible to
  * anyone holding a stolen session — the same reason it carries no IP address.
  */
-export const SESSION_HISTORY_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
+export const USER_SESSION_HISTORY_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
  * The columns the sessions list reads. `ipAddress` is deliberately absent — see
- * `SESSION_HISTORY_WINDOW_MS`. Must stay in step with `SessionSummaryRow`; the
+ * `USER_SESSION_HISTORY_WINDOW_MS`. Must stay in step with `SessionSummaryRow`; the
  * repository's return type is where a mismatch fails to compile.
  */
-export const SESSION_SUMMARY_SELECT = {
+export const USER_SESSION_SUMMARY_SELECT = {
   id: true,
   deviceName: true,
   deviceType: true,

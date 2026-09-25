@@ -6,7 +6,7 @@ import { lookupIdentifierSchema, verificationCodeSchema } from '#/shared/schemas
 
 import { DECLARED_DEVICE_DESCRIPTION, declaredDeviceSchema } from '../../schemas/index.js';
 
-const verifyCodeSchema = z
+const userVerifyRegistrationSchema = z
   .object({
     identifier: lookupIdentifierSchema,
 
@@ -18,6 +18,6 @@ const verifyCodeSchema = z
   })
   .strict();
 
-export class VerifyCodeDto extends createZodDto(verifyCodeSchema) {}
+export class UserVerifyRegistrationDto extends createZodDto(userVerifyRegistrationSchema) {}
 
-export type VerifyCodeInput = z.infer<typeof verifyCodeSchema>;
+export type UserVerifyRegistrationInput = z.infer<typeof userVerifyRegistrationSchema>;

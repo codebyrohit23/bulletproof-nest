@@ -1,16 +1,22 @@
-export { AuthResultDto, type AuthResult } from './auth-result.dto.js';
+export { UserAuthResultDto, type UserAuthResult } from './user-auth-result.dto.js';
 
-export { AuthTokensDto, type AuthTokens } from './auth-tokens.dto.js';
-
-export { RegisterResponseDto, type RegisterResponse } from './register.dto.js';
-
-export { PasswordResetTokenDto, type PasswordResetToken } from './password-reset-token.dto.js';
+export { UserAuthTokensDto, type UserAuthTokens } from './user-auth-tokens.dto.js';
 
 export {
-  RevokedSessionsDto,
+  UserRegisterResponseDto,
+  type UserRegisterResponse,
+} from './user-register-response.dto.js';
+
+export {
+  UserPasswordResetTokenDto,
+  type UserPasswordResetToken,
+} from './user-password-reset-token.dto.js';
+
+export {
+  UserRevokedSessionsDto,
   UserSessionDto,
   UserSessionPageDto,
-  type RevokedSessions,
+  type UserRevokedSessions,
   type UserSession,
   type UserSessionPage,
 } from './user-session.dto.js';

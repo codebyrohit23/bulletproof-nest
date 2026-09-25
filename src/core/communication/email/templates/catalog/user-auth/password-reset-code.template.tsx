@@ -10,8 +10,8 @@ const schema = z.object({
   expiresInMinutes: z.number().int().positive(),
 });
 
-export const passwordResetTemplate: EmailTemplate<z.infer<typeof schema>> = {
-  id: EMAIL_TEMPLATE.PASSWORD_RESET,
+export const userPasswordResetCodeTemplate: EmailTemplate<z.infer<typeof schema>> = {
+  id: EMAIL_TEMPLATE.USER_AUTH.PASSWORD_RESET_CODE,
 
   category: EMAIL_CATEGORY.TRANSACTIONAL,
 

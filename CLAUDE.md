@@ -450,11 +450,23 @@ Rules that are not visible from the code that follows them:
 never holds the body — a code travels in it. Status only moves forward
 (`MESSAGE_STATUS_RANK`), because provider webhooks arrive out of order. A flow
 that issues a one-time code uses `issueAndDeliver` in `UserAuthService` or
-`AdminAuthService`, so the code and its email commit together. Admin emails use
-their own `admin-auth.*` templates (in `catalog/admin-auth/`, beside the user's
-in `catalog/user-auth/`) and job ids (`admin-verification-<codeId>`), so an
-admin can tell which account a message is about and no id can collide with a
-user's.
+`AdminAuthService`, so the code and its email commit together.
+
+**Templates are named once, by the module that sends them.** The group in
+`EMAIL_TEMPLATE` (`USER_AUTH`, `ADMIN_AUTH`), the id's prefix
+(`user-auth.…`, `admin-auth.…`) and the folder under `catalog/` are the same
+word; the file is the id's second half, and a code-bearing email ends in
+`-code`. Admin emails therefore never share a template with users, and their
+job ids (`admin-verification-<codeId>`) cannot collide either.
+
+**A template id is data, not a label.** It is stored in queued jobs and in
+`outbound_messages`, and the worker resolves it at send time — a job queued
+under an id that a deploy then renamed fails with `UnknownEmailTemplateError`
+and the email never goes. The ids were renamed freely while nothing was
+deployed. Once the service is live, a rename must map the old id to the new
+one in the registry lookup for one release, then drop the mapping: the email
+queue keeps no completed jobs and the outbox purges finished rows after a day.
+Changing a template's content or design needs none of this — only its id.
 
 ---
 

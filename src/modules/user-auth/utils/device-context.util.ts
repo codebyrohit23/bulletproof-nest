@@ -2,7 +2,7 @@ import { DevicePlatform, DeviceType } from '@prisma/client';
 
 import type { RequestContext } from '#/core/context/index.js';
 
-import { DEVICE_FIELD_MAX_LENGTH } from '../constants/index.js';
+import { USER_DEVICE_FIELD_MAX_LENGTH } from '../constants/index.js';
 import type { DeclaredDevice, DeviceContext, ParsedUserAgent } from '../interfaces/index.js';
 
 import { parseUserAgent } from './user-agent.util.js';
@@ -55,10 +55,10 @@ function resolveNativeDevice(
   parsed: ParsedUserAgent,
   declared: DeclaredDevice | undefined,
 ): Partial<DeviceContext> {
-  const deviceName = clip(declared?.name, DEVICE_FIELD_MAX_LENGTH.NAME) ?? parsed.model;
+  const deviceName = clip(declared?.name, USER_DEVICE_FIELD_MAX_LENGTH.NAME) ?? parsed.model;
 
   const osVersion =
-    clip(declared?.osVersion, DEVICE_FIELD_MAX_LENGTH.OS_VERSION) ?? parsed.osVersion;
+    clip(declared?.osVersion, USER_DEVICE_FIELD_MAX_LENGTH.OS_VERSION) ?? parsed.osVersion;
 
   const deviceType = declared?.type ?? parsed.deviceType ?? DeviceType.MOBILE;
 
@@ -74,7 +74,7 @@ function buildWebDeviceName(parsed: ParsedUserAgent): string | undefined {
   const { browserName, osName } = parsed;
 
   if (browserName !== undefined && osName !== undefined) {
-    return clip(`${browserName} on ${osName}`, DEVICE_FIELD_MAX_LENGTH.NAME);
+    return clip(`${browserName} on ${osName}`, USER_DEVICE_FIELD_MAX_LENGTH.NAME);
   }
 
   return browserName ?? osName;

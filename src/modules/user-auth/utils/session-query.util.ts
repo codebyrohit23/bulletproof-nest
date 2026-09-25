@@ -1,12 +1,12 @@
 import type { Prisma } from '@prisma/client';
 
-import { SESSION_HISTORY_WINDOW_MS, type SessionListStatus } from '../constants/index.js';
+import { USER_SESSION_HISTORY_WINDOW_MS, type UserSessionListStatus } from '../constants/index.js';
 
 export function buildSessionStatusWhere(
-  status: SessionListStatus,
+  status: UserSessionListStatus,
   now: Date,
 ): Prisma.UserSessionWhereInput {
-  const since = new Date(now.getTime() - SESSION_HISTORY_WINDOW_MS);
+  const since = new Date(now.getTime() - USER_SESSION_HISTORY_WINDOW_MS);
 
   const active = { revokedAt: null, expiresAt: { gt: now } } satisfies Prisma.UserSessionWhereInput;
 
@@ -18,7 +18,7 @@ export function buildSessionStatusWhere(
     active,
     ended,
     all: { OR: [active, ended] },
-  } satisfies Record<SessionListStatus, Prisma.UserSessionWhereInput>;
+  } satisfies Record<UserSessionListStatus, Prisma.UserSessionWhereInput>;
 
   return byStatus[status];
 }

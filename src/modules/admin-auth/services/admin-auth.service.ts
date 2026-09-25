@@ -20,10 +20,10 @@ import {
 import type {
   AdminAuthResult,
   AdminLoginInput,
-  AdminPasswordResetRequestInput,
+  AdminRequestPasswordResetInput,
   AdminPasswordResetToken,
   AdminResetPasswordInput,
-  AdminVerifyResetOtpInput,
+  AdminVerifyPasswordResetCodeInput,
 } from '../dto/index.js';
 import {
   ADMIN_PASSWORD_RESET_TOKEN_OUTCOME,
@@ -104,7 +104,7 @@ export class AdminAuthService {
     };
   }
 
-  async resetPasswordRequest(payload: AdminPasswordResetRequestInput): Promise<null> {
+  async requestPasswordReset(payload: AdminRequestPasswordResetInput): Promise<null> {
     const admin = await this.adminService.findByEmail(payload.email);
 
     if (admin === null || admin.status !== AdminStatus.ACTIVE) {
@@ -112,7 +112,7 @@ export class AdminAuthService {
     }
 
     await this.issueAndDeliver(
-      EMAIL_TEMPLATE.ADMIN_PASSWORD_RESET,
+      EMAIL_TEMPLATE.ADMIN_AUTH.PASSWORD_RESET_CODE,
       VerificationPurpose.PASSWORD_RESET,
       admin,
       'request-password-reset',
@@ -121,7 +121,9 @@ export class AdminAuthService {
     return null;
   }
 
-  async verifyResetOtp(payload: AdminVerifyResetOtpInput): Promise<AdminPasswordResetToken> {
+  async verifyPasswordResetCode(
+    payload: AdminVerifyPasswordResetCodeInput,
+  ): Promise<AdminPasswordResetToken> {
     const { email, code } = payload;
 
     const admin = await this.adminService.findByEmail(email);
@@ -238,7 +240,7 @@ export class AdminAuthService {
     changedAt: Date,
     idempotencyKey: string,
   ): Promise<void> {
-    await this.email.send(EMAIL_TEMPLATE.ADMIN_PASSWORD_CHANGED, {
+    await this.email.send(EMAIL_TEMPLATE.ADMIN_AUTH.PASSWORD_CHANGED, {
       to: admin.email,
       data: {
         firstName: admin.firstName,

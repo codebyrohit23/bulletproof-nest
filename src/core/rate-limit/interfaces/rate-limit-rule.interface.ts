@@ -6,7 +6,7 @@ import type { RateLimitStoreFailurePolicy } from '../constants/index.js';
  * Rules are owned by the module that needs them and should be **named
  * constants**, never inline literals. `{ limit: 3, windowMs: 300_000 }`
  * scattered across a controller is a set of limits nobody can audit;
- * `AUTH_RATE_LIMIT.REGISTER` puts every number for a feature in one reviewable
+ * `USER_AUTH_RATE_LIMIT.REGISTER` puts every number for a feature in one reviewable
  * file.
  *
  * A rule counts requests. It is not the tool for "leave the thing you just

@@ -1,14 +1,14 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-import { REFRESH_TOKEN_MAX_LENGTH } from '../../constants/index.js';
+import { USER_REFRESH_TOKEN_MAX_LENGTH } from '../../constants/index.js';
 
-const refreshTokenSchema = z
+const userRefreshSessionSchema = z
   .object({
     refreshToken: z
       .string()
       .min(1)
-      .max(REFRESH_TOKEN_MAX_LENGTH)
+      .max(USER_REFRESH_TOKEN_MAX_LENGTH)
       .optional()
       .describe(
         'Native clients only. Web clients omit this entirely — their refresh token travels ' +
@@ -17,6 +17,6 @@ const refreshTokenSchema = z
   })
   .strict();
 
-export class RefreshTokenDto extends createZodDto(refreshTokenSchema) {}
+export class UserRefreshSessionDto extends createZodDto(userRefreshSessionSchema) {}
 
-export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
+export type UserRefreshSessionInput = z.infer<typeof userRefreshSessionSchema>;

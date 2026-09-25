@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { identifierSchema } from '#/shared/schemas/index.js';
 import { passwordSchema } from '#/shared/schemas/index.js';
 
-const registerSchema = z
+const userRegisterSchema = z
   .object({
     identifier: identifierSchema,
 
@@ -45,6 +45,6 @@ const registerSchema = z
     }
   });
 
-export class RegisterDto extends createZodDto(registerSchema) {}
+export class UserRegisterDto extends createZodDto(userRegisterSchema) {}
 
-export type RegisterInput = z.infer<typeof registerSchema>;
+export type UserRegisterInput = z.infer<typeof userRegisterSchema>;

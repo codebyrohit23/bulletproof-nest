@@ -3,7 +3,7 @@ import { PasswordResetTokenStatus, type UserPasswordResetToken } from '@prisma/c
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 
-import { PASSWORD_RESET_TOKEN_TTL_MS } from '../constants/index.js';
+import { USER_PASSWORD_RESET_TOKEN_TTL_MS } from '../constants/index.js';
 import type {
   CreatePasswordResetTokenInput,
   PasswordResetTokenWithUser,
@@ -34,7 +34,7 @@ export class UserPasswordResetTokenRepository {
       data: {
         userId: input.userId,
         tokenHash: input.tokenHash,
-        expiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS),
+        expiresAt: new Date(Date.now() + USER_PASSWORD_RESET_TOKEN_TTL_MS),
       },
     });
   }

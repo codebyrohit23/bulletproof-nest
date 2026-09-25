@@ -19,9 +19,9 @@ export interface CodeRecipient {
 
 /** The templates that carry a one-time code. */
 export type CodeEmailTemplate =
-  | typeof EMAIL_TEMPLATE.OTP_VERIFICATION
-  | typeof EMAIL_TEMPLATE.LOGIN_OTP
-  | typeof EMAIL_TEMPLATE.PASSWORD_RESET;
+  | typeof EMAIL_TEMPLATE.USER_AUTH.VERIFICATION_CODE
+  | typeof EMAIL_TEMPLATE.USER_AUTH.LOGIN_CODE
+  | typeof EMAIL_TEMPLATE.USER_AUTH.PASSWORD_RESET_CODE;
 
 /** How a password came to change — the notice words it differently. */
 export type PasswordChangeMethod = 'changed' | 'reset';

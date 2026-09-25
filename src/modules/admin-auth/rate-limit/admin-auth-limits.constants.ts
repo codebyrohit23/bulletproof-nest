@@ -28,7 +28,7 @@ export const ADMIN_AUTH_RATE_LIMIT = {
   /*
    * Every accepted request can send an email, so the budget is per address as
    * well as per IP: a rotating-IP script aimed at one admin still stops. Named
-   * apart from the user's `otp-dispatch-*` buckets so a flood on the user reset
+   * apart from the user's `code-dispatch-*` buckets so a flood on the user reset
    * cannot lock an admin out of theirs, or the reverse.
    */
   REQUEST_PASSWORD_RESET: [
@@ -53,14 +53,14 @@ export const ADMIN_AUTH_RATE_LIMIT = {
    * A code already dies after five wrong answers; this bounds how fast a
    * guesser can burn through fresh ones, and caps an IP spraying many admins.
    */
-  VERIFY_RESET_OTP: [
+  VERIFY_PASSWORD_RESET_CODE: [
     {
-      name: 'admin-verify-reset-otp',
+      name: 'admin-verify-password-reset-code',
       rule: { limit: 10, windowMs: FIVE_MINUTES_MS },
       by: { bodyField: 'email' },
     },
     {
-      name: 'admin-verify-reset-otp-by-ip',
+      name: 'admin-verify-password-reset-code-by-ip',
       rule: { limit: 20, windowMs: FIVE_MINUTES_MS },
       by: RATE_LIMIT_SUBJECT.IP,
     },

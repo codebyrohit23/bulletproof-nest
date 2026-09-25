@@ -1,40 +1,42 @@
 import {
-  SESSION_END_REASON,
-  SESSION_END_REASON_BY_REVOKE_REASON,
-  SESSION_STATUS,
-  type SessionEndReason,
-  type SessionStatus,
+  USER_SESSION_END_REASON,
+  USER_SESSION_END_REASON_BY_REVOKE_REASON,
+  USER_SESSION_STATUS,
+  type UserSessionEndReason,
+  type UserSessionStatus,
 } from '../constants/index.js';
 import type { UserSession } from '../dto/index.js';
 import type { SessionSnapshot, SessionSummaryRow } from '../interfaces/index.js';
 
 interface SessionEnding {
-  readonly status: SessionStatus;
+  readonly status: UserSessionStatus;
 
   readonly endedAt: string | null;
 
-  readonly endReason: SessionEndReason | null;
+  readonly endReason: UserSessionEndReason | null;
 }
 
 function resolveEnding(row: SessionSummaryRow, now: Date): SessionEnding {
   if (row.revokedAt !== null) {
     return {
-      status: SESSION_STATUS.ENDED,
+      status: USER_SESSION_STATUS.ENDED,
       endedAt: row.revokedAt.toISOString(),
       endReason:
-        row.revokedReason === null ? null : SESSION_END_REASON_BY_REVOKE_REASON[row.revokedReason],
+        row.revokedReason === null
+          ? null
+          : USER_SESSION_END_REASON_BY_REVOKE_REASON[row.revokedReason],
     };
   }
 
   if (row.expiresAt <= now) {
     return {
-      status: SESSION_STATUS.ENDED,
+      status: USER_SESSION_STATUS.ENDED,
       endedAt: row.expiresAt.toISOString(),
-      endReason: SESSION_END_REASON.EXPIRED,
+      endReason: USER_SESSION_END_REASON.EXPIRED,
     };
   }
 
-  return { status: SESSION_STATUS.ACTIVE, endedAt: null, endReason: null };
+  return { status: USER_SESSION_STATUS.ACTIVE, endedAt: null, endReason: null };
 }
 
 export function toUserSession(

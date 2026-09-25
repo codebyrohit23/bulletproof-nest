@@ -21,7 +21,7 @@ const schema = z.object({
 });
 
 export const adminPasswordChangedTemplate: EmailTemplate<z.infer<typeof schema>> = {
-  id: EMAIL_TEMPLATE.ADMIN_PASSWORD_CHANGED,
+  id: EMAIL_TEMPLATE.ADMIN_AUTH.PASSWORD_CHANGED,
 
   category: EMAIL_CATEGORY.TRANSACTIONAL,
 

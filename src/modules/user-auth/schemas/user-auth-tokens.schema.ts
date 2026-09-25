@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const authTokensSchema = z.object({
+export const userAuthTokensSchema = z.object({
   accessToken: z.string(),
 
   refreshToken: z.string().optional(),

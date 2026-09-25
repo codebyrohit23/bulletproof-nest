@@ -6,8 +6,8 @@ import { TransactionService } from '#/infrastructure/database/prisma/index.js';
 
 import {
   USER_AUTH_ERROR_MESSAGE,
-  VERIFICATION_CODE_MAX_ATTEMPTS,
-  VERIFICATION_CODE_MIN_RESEND_INTERVAL_MS,
+  USER_VERIFICATION_CODE_MAX_ATTEMPTS,
+  USER_VERIFICATION_CODE_MIN_RESEND_INTERVAL_MS,
 } from '../constants/index.js';
 import type { IssuedVerificationCode } from '../interfaces/index.js';
 import { UserVerificationCodeRepository } from '../repositories/index.js';
@@ -71,7 +71,7 @@ export class UserVerificationCodeService {
       throw new BadRequestException(USER_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_CODE);
     }
 
-    if (record.attempts >= VERIFICATION_CODE_MAX_ATTEMPTS) {
+    if (record.attempts >= USER_VERIFICATION_CODE_MAX_ATTEMPTS) {
       await this.verificationCodeRepo.markBlocked(record.id);
 
       throw this.tooManyAttempts();
@@ -80,7 +80,7 @@ export class UserVerificationCodeService {
     if (record.codeHash === null || !this.tokenService.compare(code, record.codeHash)) {
       const blocked = await this.verificationCodeRepo.recordFailedAttempt(
         record.id,
-        VERIFICATION_CODE_MAX_ATTEMPTS,
+        USER_VERIFICATION_CODE_MAX_ATTEMPTS,
       );
 
       if (blocked) {
@@ -110,5 +110,5 @@ export class UserVerificationCodeService {
 }
 
 function isFresh(record: UserVerificationCode): boolean {
-  return Date.now() - record.createdAt.getTime() < VERIFICATION_CODE_MIN_RESEND_INTERVAL_MS;
+  return Date.now() - record.createdAt.getTime() < USER_VERIFICATION_CODE_MIN_RESEND_INTERVAL_MS;
 }

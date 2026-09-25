@@ -5,21 +5,24 @@ import { InvalidTemplateDataError, UnknownEmailTemplateError } from '../errors/i
 import type { EmailTemplate } from '../interfaces/index.js';
 
 import { adminPasswordChangedTemplate } from './catalog/admin-auth/password-changed.template.js';
-import { adminPasswordResetTemplate } from './catalog/admin-auth/password-reset.template.js';
-import { loginOtpTemplate } from './catalog/user-auth/login-otp.template.js';
-import { otpVerificationTemplate } from './catalog/user-auth/otp-verification.template.js';
-import { passwordChangedTemplate } from './catalog/user-auth/password-changed.template.js';
-import { passwordResetTemplate } from './catalog/user-auth/password-reset.template.js';
-import { welcomeTemplate } from './catalog/user-auth/welcome.template.js';
+import { adminPasswordResetCodeTemplate } from './catalog/admin-auth/password-reset-code.template.js';
+import { userLoginCodeTemplate } from './catalog/user-auth/login-code.template.js';
+import { userPasswordChangedTemplate } from './catalog/user-auth/password-changed.template.js';
+import { userPasswordResetCodeTemplate } from './catalog/user-auth/password-reset-code.template.js';
+import { userVerificationCodeTemplate } from './catalog/user-auth/verification-code.template.js';
+import { userWelcomeTemplate } from './catalog/user-auth/welcome.template.js';
+
+const { USER_AUTH, ADMIN_AUTH } = EMAIL_TEMPLATE;
 
 export const EMAIL_TEMPLATES = {
-  [EMAIL_TEMPLATE.OTP_VERIFICATION]: otpVerificationTemplate,
-  [EMAIL_TEMPLATE.LOGIN_OTP]: loginOtpTemplate,
-  [EMAIL_TEMPLATE.PASSWORD_RESET]: passwordResetTemplate,
-  [EMAIL_TEMPLATE.WELCOME]: welcomeTemplate,
-  [EMAIL_TEMPLATE.PASSWORD_CHANGED]: passwordChangedTemplate,
-  [EMAIL_TEMPLATE.ADMIN_PASSWORD_RESET]: adminPasswordResetTemplate,
-  [EMAIL_TEMPLATE.ADMIN_PASSWORD_CHANGED]: adminPasswordChangedTemplate,
+  [USER_AUTH.VERIFICATION_CODE]: userVerificationCodeTemplate,
+  [USER_AUTH.LOGIN_CODE]: userLoginCodeTemplate,
+  [USER_AUTH.PASSWORD_RESET_CODE]: userPasswordResetCodeTemplate,
+  [USER_AUTH.WELCOME]: userWelcomeTemplate,
+  [USER_AUTH.PASSWORD_CHANGED]: userPasswordChangedTemplate,
+
+  [ADMIN_AUTH.PASSWORD_RESET_CODE]: adminPasswordResetCodeTemplate,
+  [ADMIN_AUTH.PASSWORD_CHANGED]: adminPasswordChangedTemplate,
 } satisfies Record<EmailTemplateId, Pick<EmailTemplate<never>, 'id' | 'category'>>;
 
 export type RegisteredEmailTemplate = (typeof EMAIL_TEMPLATES)[EmailTemplateId];

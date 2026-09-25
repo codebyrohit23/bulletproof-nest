@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { identifierSchema } from '#/shared/schemas/index.js';
 
-const registerResponseSchema = z.object({
+const userRegisterResponseSchema = z.object({
   userId: z.uuid(),
 
   identifier: identifierSchema,
@@ -11,6 +11,6 @@ const registerResponseSchema = z.object({
   verificationRequired: z.literal(true),
 });
 
-export class RegisterResponseDto extends createZodDto(registerResponseSchema) {}
+export class UserRegisterResponseDto extends createZodDto(userRegisterResponseSchema) {}
 
-export type RegisterResponse = z.infer<typeof registerResponseSchema>;
+export type UserRegisterResponse = z.infer<typeof userRegisterResponseSchema>;

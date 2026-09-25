@@ -14,8 +14,8 @@ const schema = z.object({
  * Separate from the user's reset email so an admin can tell at a glance which
  * account the code is for — the same person may hold both, at one address.
  */
-export const adminPasswordResetTemplate: EmailTemplate<z.infer<typeof schema>> = {
-  id: EMAIL_TEMPLATE.ADMIN_PASSWORD_RESET,
+export const adminPasswordResetCodeTemplate: EmailTemplate<z.infer<typeof schema>> = {
+  id: EMAIL_TEMPLATE.ADMIN_AUTH.PASSWORD_RESET_CODE,
 
   category: EMAIL_CATEGORY.TRANSACTIONAL,
 

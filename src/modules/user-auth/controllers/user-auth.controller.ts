@@ -27,55 +27,55 @@ import { RateLimit } from '#/core/rate-limit/index.js';
 import { ParseIdPipe } from '#/core/validation/index.js';
 import { ApiVersion, USER_AUTH_API_TAG } from '#/shared/constants/index.js';
 
-import { TOKEN_DELIVERY } from '../constants/index.js';
+import { USER_TOKEN_DELIVERY } from '../constants/index.js';
 import {
-  AuthResultDto,
-  AuthTokensDto,
-  ChangePasswordDto,
-  ListSessionsQueryDto,
-  LoginDto,
-  OtpLoginDto,
-  OtpLoginRequestDto,
-  PasswordResetTokenDto,
-  RefreshTokenDto,
-  RegisterDto,
-  RegisterResponseDto,
-  ResendVerificationDto,
-  ResetPasswordDto,
-  ResetPasswordRequestDto,
-  RevokedSessionsDto,
+  UserAuthResultDto,
+  UserAuthTokensDto,
+  UserChangePasswordDto,
+  UserListSessionsQueryDto,
+  UserLoginDto,
+  UserLoginWithCodeDto,
+  UserRequestLoginCodeDto,
+  UserPasswordResetTokenDto,
+  UserRefreshSessionDto,
+  UserRegisterDto,
+  UserRegisterResponseDto,
+  UserResendVerificationDto,
+  UserResetPasswordDto,
+  UserRequestPasswordResetDto,
+  UserRevokedSessionsDto,
   UserSessionPageDto,
-  VerifyCodeDto,
-  VerifyResetOtpDto,
-  type AuthResult,
-  type AuthTokens,
-  type PasswordResetToken,
-  type RegisterResponse,
-  type RevokedSessions,
+  UserVerifyRegistrationDto,
+  UserVerifyPasswordResetCodeDto,
+  type UserAuthResult,
+  type UserAuthTokens,
+  type UserPasswordResetToken,
+  type UserRegisterResponse,
+  type UserRevokedSessions,
   type UserSessionPage,
 } from '../dto/index.js';
-import { AUTH_RATE_LIMIT } from '../rate-limit/user-auth-limits.constants.js';
-import { AuthTokenDeliveryService } from '../services/auth-token-delivery.service.js';
+import { USER_AUTH_RATE_LIMIT } from '../rate-limit/user-auth-limits.constants.js';
 import { UserAuthService } from '../services/user-auth.service.js';
+import { UserTokenDeliveryService } from '../services/user-token-delivery.service.js';
 
 @ApiTags(USER_AUTH_API_TAG.name)
 @Controller({ path: 'auth', version: ApiVersion.V1 })
 export class UserAuthController {
   constructor(
     private readonly userAuthService: UserAuthService,
-    private readonly delivery: AuthTokenDeliveryService,
+    private readonly delivery: UserTokenDeliveryService,
   ) {}
 
   @Post('register')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.REGISTER)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.REGISTER)
   @ApiOperation({
     summary: 'Register a new user',
     description:
       'Creates a pending account and sends a verification code. No session is established here ' +
       '— the client signs in at `/auth/verification/verify`.',
   })
-  @ApiSuccessResponse(RegisterResponseDto, {
+  @ApiSuccessResponse(UserRegisterResponseDto, {
     status: HttpStatus.CREATED,
     description:
       'The account was created and a verification code sent. An identifier that already belongs ' +
@@ -87,12 +87,12 @@ export class UserAuthController {
     HttpStatus.TOO_MANY_REQUESTS,
   )
   @ResponseMessage('User registered successfully')
-  registerUser(@Body() body: RegisterDto): Promise<RegisterResponse> {
+  registerUser(@Body() body: UserRegisterDto): Promise<UserRegisterResponse> {
     return this.userAuthService.registerUser(body);
   }
   @Post('verification/verify')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.VERIFY_REGISTRATION)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.VERIFY_REGISTRATION)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verify a registration code and sign in',
@@ -101,7 +101,7 @@ export class UserAuthController {
       'A suspended or deactivated account is marked verified but refused a session with a `401`.',
   })
   @ApiDeviceIdHeader()
-  @ApiSuccessResponse(AuthResultDto, {
+  @ApiSuccessResponse(UserAuthResultDto, {
     status: HttpStatus.OK,
     description:
       'The identifier was proven and a device session established. `status` is always ' +
@@ -116,9 +116,9 @@ export class UserAuthController {
   )
   @ResponseMessage('Account verified successfully')
   async verifyRegistration(
-    @Body() body: VerifyCodeDto,
+    @Body() body: UserVerifyRegistrationDto,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<AuthResult> {
+  ): Promise<UserAuthResult> {
     const result = await this.userAuthService.verifyRegistration(body);
     return this.delivery.applyToAuthResult(result, this.delivery.resolve(body.platform), reply);
   }
@@ -128,7 +128,7 @@ export class UserAuthController {
    */
   @Post('verification/resend')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.RESEND_VERIFICATION)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.RESEND_VERIFICATION)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Resend the registration verification code',
@@ -144,7 +144,7 @@ export class UserAuthController {
   })
   @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.TOO_MANY_REQUESTS)
   @ResponseMessage('If the account requires verification, a new verification code has been sent.')
-  resendVerification(@Body() body: ResendVerificationDto): Promise<null> {
+  resendVerification(@Body() body: UserResendVerificationDto): Promise<null> {
     return this.userAuthService.resendVerification(body);
   }
 
@@ -153,7 +153,7 @@ export class UserAuthController {
    */
   @Post('login')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.LOGIN)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.LOGIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Log in to the account',
@@ -162,7 +162,7 @@ export class UserAuthController {
       'supersedes the previous one. Branch on `status`, not on the HTTP code.',
   })
   @ApiDeviceIdHeader()
-  @ApiSuccessResponse(AuthResultDto, {
+  @ApiSuccessResponse(UserAuthResultDto, {
     status: HttpStatus.OK,
     description:
       '`AUTHENTICATED` carries tokens and a live session. `VERIFICATION_REQUIRED` carries neither ' +
@@ -177,19 +177,19 @@ export class UserAuthController {
   )
   @ResponseMessage('Login successful')
   async login(
-    @Body() body: LoginDto,
+    @Body() body: UserLoginDto,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<AuthResult> {
+  ): Promise<UserAuthResult> {
     const result = await this.userAuthService.login(body);
     return this.delivery.applyToAuthResult(result, this.delivery.resolve(body.platform), reply);
   }
 
   /**
-   * OTP Request For Login
+   * Request Login Code
    */
   @Post('otp/request')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.REQUEST_LOGIN_OTP)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.REQUEST_LOGIN_CODE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Request a one-time login code',
@@ -205,16 +205,16 @@ export class UserAuthController {
   })
   @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.TOO_MANY_REQUESTS)
   @ResponseMessage('If the account exists, a login code has been sent.')
-  requestLoginOtp(@Body() body: OtpLoginRequestDto): Promise<null> {
-    return this.userAuthService.requestLoginOtp(body);
+  requestLoginCode(@Body() body: UserRequestLoginCodeDto): Promise<null> {
+    return this.userAuthService.requestLoginCode(body);
   }
 
   /**
-   * Login With OTP
+   * Login With Code
    */
   @Post('otp/verify')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.VERIFY_LOGIN_OTP)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.VERIFY_LOGIN_CODE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Exchange a one-time login code for a session',
@@ -223,7 +223,7 @@ export class UserAuthController {
       '`X-Device-Id`. A wrong, expired, misdirected or unknown code is answered identically.',
   })
   @ApiDeviceIdHeader()
-  @ApiSuccessResponse(AuthResultDto, {
+  @ApiSuccessResponse(UserAuthResultDto, {
     status: HttpStatus.OK,
     description:
       'The code was correct and a device session established. `status` is always ' +
@@ -237,11 +237,11 @@ export class UserAuthController {
     HttpStatus.TOO_MANY_REQUESTS,
   )
   @ResponseMessage('Login successful')
-  async loginWithOtp(
-    @Body() body: OtpLoginDto,
+  async loginWithCode(
+    @Body() body: UserLoginWithCodeDto,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<AuthResult> {
-    const result = await this.userAuthService.loginWithOtp(body);
+  ): Promise<UserAuthResult> {
+    const result = await this.userAuthService.loginWithCode(body);
     return this.delivery.applyToAuthResult(result, this.delivery.resolve(body.platform), reply);
   }
 
@@ -250,7 +250,7 @@ export class UserAuthController {
    */
   @Post('refresh')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.REFRESH)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.REFRESH)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Refresh an expired access token',
@@ -259,8 +259,8 @@ export class UserAuthController {
       'refresh cookie; native clients send and receive `refreshToken` in the body.',
   })
   @ApiDeviceIdHeader()
-  @ApiBody({ type: RefreshTokenDto, required: false })
-  @ApiSuccessResponse(AuthTokensDto, {
+  @ApiBody({ type: UserRefreshSessionDto, required: false })
+  @ApiSuccessResponse(UserAuthTokensDto, {
     status: HttpStatus.OK,
     description: '`refreshToken` is returned to native clients only — web receives it as a cookie.',
   })
@@ -273,9 +273,9 @@ export class UserAuthController {
   async refresh(
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<AuthTokens> {
+  ): Promise<UserAuthTokens> {
     const presented = this.delivery.read(request);
-    const delivery = presented?.delivery ?? TOKEN_DELIVERY.COOKIE;
+    const delivery = presented?.delivery ?? USER_TOKEN_DELIVERY.COOKIE;
 
     try {
       const tokens = await this.userAuthService.refreshSession(presented?.token);
@@ -283,7 +283,7 @@ export class UserAuthController {
       return this.delivery.applyToTokens(tokens, delivery, reply);
     } catch (error) {
       /* A refusal makes the cookie worthless — drop it so the browser stops replaying it. */
-      if (delivery === TOKEN_DELIVERY.COOKIE) {
+      if (delivery === USER_TOKEN_DELIVERY.COOKIE) {
         this.delivery.clear(reply);
       }
 
@@ -296,7 +296,7 @@ export class UserAuthController {
    */
   @Post('password-reset/request')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.REQUEST_PASSWORD_RESET)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.REQUEST_PASSWORD_RESET)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Request a password reset code',
@@ -312,8 +312,8 @@ export class UserAuthController {
   })
   @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.TOO_MANY_REQUESTS)
   @ResponseMessage('If an account exists with this email, a verification code has been sent.')
-  resetPasswordRequest(@Body() body: ResetPasswordRequestDto): Promise<null> {
-    return this.userAuthService.resetPasswordRequest(body);
+  requestPasswordReset(@Body() body: UserRequestPasswordResetDto): Promise<null> {
+    return this.userAuthService.requestPasswordReset(body);
   }
 
   /**
@@ -321,7 +321,7 @@ export class UserAuthController {
    */
   @Post('password-reset/verify-otp')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.VERIFY_RESET_OTP)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.VERIFY_PASSWORD_RESET_CODE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Exchange a password reset code for a reset token',
@@ -329,7 +329,7 @@ export class UserAuthController {
       'Spends the code and returns a short-lived token. Send it back as `token` in the body at ' +
       '`/auth/password-reset` — a wrong, expired, misdirected or unknown code answers identically.',
   })
-  @ApiSuccessResponse(PasswordResetTokenDto, {
+  @ApiSuccessResponse(UserPasswordResetTokenDto, {
     status: HttpStatus.OK,
     description:
       'The code was correct and is now spent. `expiresIn` is the life of `resetToken` in seconds; ' +
@@ -341,8 +341,10 @@ export class UserAuthController {
     HttpStatus.TOO_MANY_REQUESTS,
   )
   @ResponseMessage('Verification code accepted')
-  verifyResetOtp(@Body() body: VerifyResetOtpDto): Promise<PasswordResetToken> {
-    return this.userAuthService.verifyResetOtp(body);
+  verifyPasswordResetCode(
+    @Body() body: UserVerifyPasswordResetCodeDto,
+  ): Promise<UserPasswordResetToken> {
+    return this.userAuthService.verifyPasswordResetCode(body);
   }
 
   /**
@@ -350,7 +352,7 @@ export class UserAuthController {
    */
   @Post('password-reset')
   @Public()
-  @RateLimit(...AUTH_RATE_LIMIT.RESET_PASSWORD)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.RESET_PASSWORD)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Set a new password with a reset token',
@@ -370,7 +372,7 @@ export class UserAuthController {
     HttpStatus.TOO_MANY_REQUESTS,
   )
   @ResponseMessage('Password reset successfully')
-  resetPassword(@Body() body: ResetPasswordDto): Promise<null> {
+  resetPassword(@Body() body: UserResetPasswordDto): Promise<null> {
     return this.userAuthService.resetPassword(body);
   }
 
@@ -378,7 +380,7 @@ export class UserAuthController {
    * Change Password
    */
   @Post('password-change')
-  @RateLimit(...AUTH_RATE_LIMIT.CHANGE_PASSWORD)
+  @RateLimit(...USER_AUTH_RATE_LIMIT.CHANGE_PASSWORD)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Change the current password',
@@ -403,7 +405,7 @@ export class UserAuthController {
   changePassword(
     @CurrentUserId() userId: string,
     @CurrentSessionId() sessionId: string,
-    @Body() body: ChangePasswordDto,
+    @Body() body: UserChangePasswordDto,
   ): Promise<null> {
     return this.userAuthService.changePassword(userId, sessionId, body);
   }
@@ -459,7 +461,7 @@ export class UserAuthController {
   listSessions(
     @CurrentUserId() userId: string,
     @CurrentSessionId() currentSessionId: string,
-    @Query() query: ListSessionsQueryDto,
+    @Query() query: UserListSessionsQueryDto,
   ): Promise<UserSessionPage> {
     return this.userAuthService.listSessions(userId, currentSessionId, query);
   }
@@ -475,7 +477,7 @@ export class UserAuthController {
       'Revokes every live session except the current one, with their refresh tokens. Takes ' +
       'effect on the next request those devices make.',
   })
-  @ApiSuccessResponse(RevokedSessionsDto, {
+  @ApiSuccessResponse(UserRevokedSessionsDto, {
     status: HttpStatus.OK,
     description: 'How many other sessions were revoked. Zero is a success.',
   })
@@ -485,7 +487,7 @@ export class UserAuthController {
   revokeOtherSessions(
     @CurrentUserId() userId: string,
     @CurrentSessionId() currentSessionId: string,
-  ): Promise<RevokedSessions> {
+  ): Promise<UserRevokedSessions> {
     return this.userAuthService.revokeOtherSessions(userId, currentSessionId);
   }
 

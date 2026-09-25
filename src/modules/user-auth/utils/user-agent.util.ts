@@ -3,7 +3,7 @@ import Bowser from 'bowser';
 
 import type { ClientHints } from '#/core/context/index.js';
 
-import { DEVICE_FIELD_MAX_LENGTH } from '../constants/index.js';
+import { USER_DEVICE_FIELD_MAX_LENGTH } from '../constants/index.js';
 import type { ParsedUserAgent } from '../interfaces/index.js';
 
 export function parseUserAgent(
@@ -11,17 +11,20 @@ export function parseUserAgent(
   hints: ClientHints | undefined,
 ): ParsedUserAgent {
   const parsed = parseWithBowser(userAgent);
-  const osName = truncate(hints?.platform ?? parsed.osName, DEVICE_FIELD_MAX_LENGTH.OS_NAME);
+  const osName = truncate(hints?.platform ?? parsed.osName, USER_DEVICE_FIELD_MAX_LENGTH.OS_NAME);
   const osVersion = truncate(
     hints?.platformVersion ?? parsed.osVersion,
-    DEVICE_FIELD_MAX_LENGTH.OS_VERSION,
+    USER_DEVICE_FIELD_MAX_LENGTH.OS_VERSION,
   );
 
   const deviceType = resolveDeviceType(parsed.deviceType, hints?.mobile);
   const model = hints?.model ?? parsed.model;
 
-  const browserName = truncate(parsed.browserName, DEVICE_FIELD_MAX_LENGTH.BROWSER_NAME);
-  const browserVersion = truncate(parsed.browserVersion, DEVICE_FIELD_MAX_LENGTH.BROWSER_VERSION);
+  const browserName = truncate(parsed.browserName, USER_DEVICE_FIELD_MAX_LENGTH.BROWSER_NAME);
+  const browserVersion = truncate(
+    parsed.browserVersion,
+    USER_DEVICE_FIELD_MAX_LENGTH.BROWSER_VERSION,
+  );
 
   return {
     ...(browserName !== undefined ? { browserName } : {}),

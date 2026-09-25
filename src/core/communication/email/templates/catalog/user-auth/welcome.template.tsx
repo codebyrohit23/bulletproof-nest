@@ -10,8 +10,8 @@ const schema = z.object({
   dashboardUrl: z.url(),
 });
 
-export const welcomeTemplate: EmailTemplate<z.infer<typeof schema>> = {
-  id: EMAIL_TEMPLATE.WELCOME,
+export const userWelcomeTemplate: EmailTemplate<z.infer<typeof schema>> = {
+  id: EMAIL_TEMPLATE.USER_AUTH.WELCOME,
 
   category: EMAIL_CATEGORY.TRANSACTIONAL,
 

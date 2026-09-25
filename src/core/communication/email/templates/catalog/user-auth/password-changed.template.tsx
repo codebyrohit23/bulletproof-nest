@@ -19,8 +19,8 @@ const schema = z.object({
   signInUrl: z.url(),
 });
 
-export const passwordChangedTemplate: EmailTemplate<z.infer<typeof schema>> = {
-  id: EMAIL_TEMPLATE.PASSWORD_CHANGED,
+export const userPasswordChangedTemplate: EmailTemplate<z.infer<typeof schema>> = {
+  id: EMAIL_TEMPLATE.USER_AUTH.PASSWORD_CHANGED,
 
   category: EMAIL_CATEGORY.TRANSACTIONAL,
 

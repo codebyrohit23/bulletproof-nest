@@ -1,13 +1,13 @@
 export { AdminLoginDto, type AdminLoginInput } from './admin-login.dto.js';
 
 export {
-  AdminPasswordResetRequestDto,
-  type AdminPasswordResetRequestInput,
-} from './admin-password-reset-request.dto.js';
+  AdminRequestPasswordResetDto,
+  type AdminRequestPasswordResetInput,
+} from './admin-request-password-reset.dto.js';
 
 export { AdminResetPasswordDto, type AdminResetPasswordInput } from './admin-reset-password.dto.js';
 
 export {
-  AdminVerifyResetOtpDto,
-  type AdminVerifyResetOtpInput,
-} from './admin-verify-reset-otp.dto.js';
+  AdminVerifyPasswordResetCodeDto,
+  type AdminVerifyPasswordResetCodeInput,
+} from './admin-verify-password-reset-code.dto.js';
