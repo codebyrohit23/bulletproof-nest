@@ -12,32 +12,18 @@ datasource db {
 }
 
 // ======================================================
-// Enums
+// Shared Enums
 // ======================================================
-
-enum UserStatus {
-  ACTIVE
-  DEACTIVATED
-  SUSPENDED
-}
-
-enum AdminStatus {
-  ACTIVE
-  SUSPENDED
-  DEACTIVATED
-}
-
-enum IdentifierType {
-  EMAIL
-  PHONE
-}
-
-enum VerificationPurpose {
-  EMAIL_VERIFICATION
-  PHONE_VERIFICATION
-  LOGIN
-  PASSWORD_RESET
-}
+//
+// Only enums used by more than one model live here. An enum with a single
+// owner is declared directly above that model, so its values are read beside
+// the column that stores them.
+//
+// An enum used by both a user_* and an admin_* table is shared only while
+// the two value sets are the same by nature — a lifecycle, a revoke reason.
+// When the values differ by audience, as verification purposes do, each
+// audience gets its own enum: the database then refuses a value that one
+// audience never issues, instead of TypeScript narrowing a shared type.
 
 enum VerificationCodeStatus {
   ACTIVE
@@ -52,12 +38,6 @@ enum PasswordResetTokenStatus {
   CONSUMED
   SUPERSEDED
   EXPIRED
-}
-
-enum UserAuthProvider {
-  GOOGLE
-  APPLE
-  FACEBOOK
 }
 
 enum SessionRevokeReason {
@@ -77,19 +57,19 @@ enum TokenRevokeReason {
   SESSION_REVOKED
 }
 
-enum DeviceType {
-  DESKTOP
-  LAPTOP
-  TABLET
-  MOBILE
-  OTHER
-}
-
 enum DevicePlatform {
   WEB
   ANDROID
   IOS
 }
+
+// ======================================================
+// Reserved Enums — no model yet
+// ======================================================
+//
+// Created by the init migration for the workspace/membership schema, which is
+// designed but not built. Kept rather than dropped so that schema does not
+// have to recreate them; move each above its model when the model lands.
 
 enum WorkspaceStatus {
   ACTIVE
@@ -117,38 +97,15 @@ enum RoleSource {
   CUSTOM
 }
 
-enum OutboxStatus {
-  PENDING
-  DISPATCHED
-  EXPIRED
-  FAILED
-}
-
-enum MessageChannel {
-  EMAIL
-  SMS
-}
-
-enum MessageCategory {
-  TRANSACTIONAL
-  MARKETING
-}
-
-/// Delivery state only, and it only moves forward. OPENED / CLICKED are events, not states.
-enum MessageStatus {
-  QUEUED
-  SENT
-  DELIVERED
-  BOUNCED
-  COMPLAINED
-  FAILED
-  SUPPRESSED
-  EXPIRED
-}
-
 // ======================================================
 // User Model
 // ======================================================
+
+enum UserStatus {
+  ACTIVE
+  DEACTIVATED
+  SUSPENDED
+}
 
 model User {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
@@ -202,6 +159,12 @@ model User {
 // ======================================================
 // User Identity Model
 // ======================================================
+
+enum IdentifierType {
+  EMAIL
+  PHONE
+}
+
 model UserIdentity {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -252,6 +215,13 @@ model UserCredential {
 // ======================================================
 // User Auth Account Model
 // ======================================================
+
+enum UserAuthProvider {
+  GOOGLE
+  APPLE
+  FACEBOOK
+}
+
 model UserAuthAccount {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -275,6 +245,15 @@ model UserAuthAccount {
 // ======================================================
 // User Session Model
 // ======================================================
+
+enum DeviceType {
+  DESKTOP
+  LAPTOP
+  TABLET
+  MOBILE
+  OTHER
+}
+
 model UserSession {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -386,6 +365,17 @@ model UserPasswordResetToken {
 // ======================================================
 // User Verification Code Model
 // ======================================================
+
+/// What a user's one-time code proves. Separate from `AdminVerificationPurpose`
+/// because the value sets differ: a user holds an email and a phone and signs
+/// in by code; an admin does neither.
+enum UserVerificationPurpose {
+  EMAIL_VERIFICATION
+  PHONE_VERIFICATION
+  LOGIN
+  PASSWORD_RESET
+}
+
 /// A one-time code proving control of one identity — this email, this phone.
 ///
 /// Keyed by the identity, not the user: a user may hold an email and a phone,
@@ -404,7 +394,7 @@ model UserVerificationCode {
 
   userIdentity UserIdentity @relation("UserIdentityToUserVerificationCode", fields: [userIdentityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  purpose VerificationPurpose
+  purpose UserVerificationPurpose
 
   codeHash String? @map("code_hash") @db.VarChar(64)
 
@@ -421,6 +411,49 @@ model UserVerificationCode {
   @@index([userIdentityId, purpose, createdAt(sort: Desc)], map: "user_verification_codes_lookup_idx")
   @@map("user_verification_codes")
 }
+
+// ======================================================
+// User Two Factor Model
+// ======================================================
+
+// enum UserTwoFactorMethod {
+//   EMAIL_OTP
+//   TOTP
+// }
+
+// enum UserTwoFactorStatus {
+//   PENDING
+//   ACTIVE
+//   REVOKED
+// }
+
+// model UserTwoFactor {
+//   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+//   userId String @map("user_id") @db.Uuid
+
+//   user User @relation("UserToUserTwoFactor", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+//   method UserTwoFactorMethod
+
+//   status UserTwoFactorStatus @default(PENDING)
+
+//   name String? @db.VarChar(100)
+
+//   // TOTP only.
+//   // MUST be encrypted at rest.
+//   secretEncrypted String? @map("secret_encrypted") @db.Text
+
+//   lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(6)
+
+//   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+//   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+//   @@index([userId, status])
+//   @@index([userId, method])
+//   @@map("user_two_factors")
+// }
 
 // ======================================================
 // User Push Token Model
@@ -451,6 +484,13 @@ model UserPushToken {
 // ======================================================
 // Admin
 // ======================================================
+
+enum AdminStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
 model Admin {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -622,15 +662,23 @@ model AdminPasswordResetToken {
 // ======================================================
 // Admin Verification Code Model
 // ======================================================
+
+/// What an admin's one-time code proves. Only what a flow issues today: an
+/// admin has no phone, and proves their address by resetting the password.
+///
+/// Add a value when the flow that issues it ships — admin 2FA will need one,
+/// and its name is that feature's decision. Adding is one `ADD VALUE`;
+/// removing a value Postgres already has means recreating the type.
+enum AdminVerificationPurpose {
+  PASSWORD_RESET
+}
+
 /// A one-time code proving control of an admin's mailbox.
 ///
 /// Keyed by the admin, because the admin row is the identity: an admin has one
 /// address and it lives on `admins`. Separate from `user_verification_codes`
 /// so a code issued for a user can never answer an admin flow — the table, not
 /// a filter, is the separation.
-///
-/// Only `PASSWORD_RESET` and `LOGIN` are issued here; `AdminCodePurpose` in
-/// `modules/admin-auth` narrows the shared enum at compile time.
 ///
 /// Defined in the migration, not expressible here:
 ///   admin_verification_codes_active_key
@@ -642,7 +690,7 @@ model AdminVerificationCode {
 
   admin Admin @relation("AdminToAdminVerificationCode", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  purpose VerificationPurpose
+  purpose AdminVerificationPurpose
 
   codeHash String? @map("code_hash") @db.VarChar(64)
 
@@ -663,6 +711,13 @@ model AdminVerificationCode {
 // ======================================================
 // Outbox Message Model
 // ======================================================
+
+enum OutboxStatus {
+  PENDING
+  DISPATCHED
+  EXPIRED
+  FAILED
+}
 
 /// Intent to enqueue a job, written in the same transaction as the change that
 /// caused it. Short-lived: `payload` is cleared on dispatch, rows removed after a day.
@@ -706,6 +761,28 @@ model OutboxMessage {
 // ======================================================
 // Outbound Message Model
 // ======================================================
+
+enum MessageChannel {
+  EMAIL
+  SMS
+}
+
+enum MessageCategory {
+  TRANSACTIONAL
+  MARKETING
+}
+
+/// Delivery state only, and it only moves forward. OPENED / CLICKED are events, not states.
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+  FAILED
+  SUPPRESSED
+  EXPIRED
+}
 
 /// Every email and SMS the platform sends. Never stores the body — an OTP lives in it.
 ///

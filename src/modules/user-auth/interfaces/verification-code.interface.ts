@@ -1,9 +1,9 @@
-import type { VerificationPurpose } from '@prisma/client';
+import type { UserVerificationPurpose } from '@prisma/client';
 
 export interface CreateVerificationCodeInput {
   readonly userIdentityId: string;
 
-  readonly purpose: VerificationPurpose;
+  readonly purpose: UserVerificationPurpose;
 
   readonly codeHash: string;
 }

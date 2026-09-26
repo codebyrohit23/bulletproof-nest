@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import {
   AdminStatus,
+  AdminVerificationPurpose,
   SessionRevokeReason,
   TokenRevokeReason,
-  VerificationPurpose,
 } from '@prisma/client';
 
 import { AppConfigService } from '#/config/app/index.js';
@@ -45,7 +45,6 @@ import {
   ADMIN_PASSWORD_RESET_TOKEN_OUTCOME,
   ADMIN_REFRESH_TOKEN_OUTCOME,
   type AdminCodeEmailTemplate,
-  type AdminCodePurpose,
   type AdminPasswordChangeMethod,
   type AdminSessionRevocation,
 } from '../interfaces/index.js';
@@ -187,7 +186,7 @@ export class AdminAuthService {
 
     await this.issueAndDeliver(
       EMAIL_TEMPLATE.ADMIN_AUTH.PASSWORD_RESET_CODE,
-      VerificationPurpose.PASSWORD_RESET,
+      AdminVerificationPurpose.PASSWORD_RESET,
       admin,
       'request-password-reset',
     );
@@ -208,7 +207,7 @@ export class AdminAuthService {
 
     const codeId = await this.verificationCodeService.verify(
       admin.id,
-      VerificationPurpose.PASSWORD_RESET,
+      AdminVerificationPurpose.PASSWORD_RESET,
       code,
     );
 
@@ -373,7 +372,7 @@ export class AdminAuthService {
 
   private issueAndDeliver(
     template: AdminCodeEmailTemplate,
-    purpose: AdminCodePurpose,
+    purpose: AdminVerificationPurpose,
     admin: AdminSnapshot,
     operation: string,
   ): Promise<void> {

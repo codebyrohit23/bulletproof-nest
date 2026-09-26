@@ -11,7 +11,7 @@ import {
   SessionRevokeReason,
   TokenRevokeReason,
   UserStatus,
-  VerificationPurpose,
+  UserVerificationPurpose,
 } from '@prisma/client';
 
 import { AppConfigService } from '#/config/app/index.js';
@@ -219,7 +219,7 @@ export class UserAuthService {
 
     await this.issueAndDeliver(
       EMAIL_TEMPLATE.USER_AUTH.LOGIN_CODE,
-      VerificationPurpose.LOGIN,
+      UserVerificationPurpose.LOGIN,
       { identityId: existing.id, userId: existing.userId, identifier },
       'request-login-code',
     );
@@ -243,7 +243,7 @@ export class UserAuthService {
 
     const codeId = await this.verificationCodeService.verify(
       target.id,
-      VerificationPurpose.LOGIN,
+      UserVerificationPurpose.LOGIN,
       code,
     );
 
@@ -326,7 +326,7 @@ export class UserAuthService {
 
     await this.issueAndDeliver(
       EMAIL_TEMPLATE.USER_AUTH.PASSWORD_RESET_CODE,
-      VerificationPurpose.PASSWORD_RESET,
+      UserVerificationPurpose.PASSWORD_RESET,
       {
         identityId: existing.id,
         userId: existing.userId,
@@ -351,7 +351,7 @@ export class UserAuthService {
 
     const codeId = await this.verificationCodeService.verify(
       target.id,
-      VerificationPurpose.PASSWORD_RESET,
+      UserVerificationPurpose.PASSWORD_RESET,
       code,
     );
 
@@ -627,7 +627,7 @@ export class UserAuthService {
   }
   private issueAndDeliver(
     template: CodeEmailTemplate,
-    purpose: VerificationPurpose,
+    purpose: UserVerificationPurpose,
     recipient: CodeRecipient,
     operation: string,
   ): Promise<void> {

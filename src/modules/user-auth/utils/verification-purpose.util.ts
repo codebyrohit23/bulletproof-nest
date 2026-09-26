@@ -1,4 +1,4 @@
-import { IdentifierType, VerificationPurpose } from '@prisma/client';
+import { IdentifierType, UserVerificationPurpose } from '@prisma/client';
 
 /**
  * Which kind of proof a code is asking for, decided by the identifier itself.
@@ -20,8 +20,8 @@ import { IdentifierType, VerificationPurpose } from '@prisma/client';
  * chosen by the flow, not by the identifier: an email address can carry any of
  * the three, and only the caller knows which question it is asking.
  */
-export function verificationPurposeFor(identifierType: IdentifierType): VerificationPurpose {
+export function verificationPurposeFor(identifierType: IdentifierType): UserVerificationPurpose {
   return identifierType === IdentifierType.EMAIL
-    ? VerificationPurpose.EMAIL_VERIFICATION
-    : VerificationPurpose.PHONE_VERIFICATION;
+    ? UserVerificationPurpose.EMAIL_VERIFICATION
+    : UserVerificationPurpose.PHONE_VERIFICATION;
 }

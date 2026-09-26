@@ -1,5 +1,5 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { AdminVerificationCode } from '@prisma/client';
+import type { AdminVerificationCode, AdminVerificationPurpose } from '@prisma/client';
 
 import { TokenService } from '#/core/security/index.js';
 import { TransactionService } from '#/infrastructure/database/prisma/index.js';
@@ -9,7 +9,7 @@ import {
   ADMIN_VERIFICATION_CODE_MAX_ATTEMPTS,
   ADMIN_VERIFICATION_CODE_MIN_RESEND_INTERVAL_MS,
 } from '../constants/index.js';
-import type { AdminCodePurpose, IssuedAdminVerificationCode } from '../interfaces/index.js';
+import type { IssuedAdminVerificationCode } from '../interfaces/index.js';
 import { AdminVerificationCodeRepository } from '../repositories/index.js';
 
 /**
@@ -30,7 +30,7 @@ export class AdminVerificationCodeService {
 
   async issueIfDue(
     adminId: string,
-    purpose: AdminCodePurpose,
+    purpose: AdminVerificationPurpose,
   ): Promise<IssuedAdminVerificationCode | null> {
     const live = await this.verificationCodeRepo.findActive(adminId, purpose);
 
@@ -43,7 +43,7 @@ export class AdminVerificationCodeService {
 
   private async issue(
     adminId: string,
-    purpose: AdminCodePurpose,
+    purpose: AdminVerificationPurpose,
   ): Promise<IssuedAdminVerificationCode> {
     const code = this.tokenService.generateVerificationCode();
 
@@ -60,7 +60,7 @@ export class AdminVerificationCodeService {
     return { id: record.id, code, expiresAt: record.expiresAt };
   }
 
-  async verify(adminId: string, purpose: AdminCodePurpose, code: string): Promise<string> {
+  async verify(adminId: string, purpose: AdminVerificationPurpose, code: string): Promise<string> {
     const record = await this.verificationCodeRepo.findActive(adminId, purpose);
 
     if (record === null) {

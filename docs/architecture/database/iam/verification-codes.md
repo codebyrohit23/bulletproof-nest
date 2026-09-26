@@ -75,19 +75,19 @@ Future
 
 # Columns
 
-| Column           | Type                | Required | Description                       |
-| ---------------- | ------------------- | -------- | --------------------------------- |
-| id               | UUID v7             | ✅       | Primary Key                       |
-| identifier_type  | TargetType          | ✅       | EMAIL or PHONE                    |
-| identifier_value | varchar(255)        | ✅       | Normalized email or phone         |
-| purpose          | VerificationPurpose | ✅       | Purpose of verification           |
-| channel          | VerificationChannel | ✅       | EMAIL, SMS                        |
-| code_hash        | varchar(255)        | ✅       | Hashed verification code          |
-| attempts         | integer             | ✅       | Current verification attempts     |
-| max_attempts     | integer             | ✅       | Maximum allowed attempts          |
-| expires_at       | timestamptz         | ✅       | Expiration timestamp              |
-| verified_at      | timestamptz         | ❌       | Successful verification timestamp |
-| created_at       | timestamptz         | ✅       | Creation timestamp                |
+| Column           | Type                    | Required | Description                       |
+| ---------------- | ----------------------- | -------- | --------------------------------- |
+| id               | UUID v7                 | ✅       | Primary Key                       |
+| identifier_type  | TargetType              | ✅       | EMAIL or PHONE                    |
+| identifier_value | varchar(255)            | ✅       | Normalized email or phone         |
+| purpose          | UserVerificationPurpose | ✅       | Purpose of verification           |
+| channel          | VerificationChannel     | ✅       | EMAIL, SMS                        |
+| code_hash        | varchar(255)            | ✅       | Hashed verification code          |
+| attempts         | integer                 | ✅       | Current verification attempts     |
+| max_attempts     | integer                 | ✅       | Maximum allowed attempts          |
+| expires_at       | timestamptz             | ✅       | Expiration timestamp              |
+| verified_at      | timestamptz             | ❌       | Successful verification timestamp |
+| created_at       | timestamptz             | ✅       | Creation timestamp                |
 
 ---
 

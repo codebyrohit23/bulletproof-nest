@@ -1,5 +1,5 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { UserVerificationCode, VerificationPurpose } from '@prisma/client';
+import type { UserVerificationCode, UserVerificationPurpose } from '@prisma/client';
 
 import { TokenService } from '#/core/security/index.js';
 import { TransactionService } from '#/infrastructure/database/prisma/index.js';
@@ -28,7 +28,7 @@ export class UserVerificationCodeService {
 
   async issueIfDue(
     identityId: string,
-    purpose: VerificationPurpose,
+    purpose: UserVerificationPurpose,
   ): Promise<IssuedVerificationCode | null> {
     const live = await this.verificationCodeRepo.findActive(identityId, purpose);
 
@@ -41,7 +41,7 @@ export class UserVerificationCodeService {
 
   private async issue(
     identityId: string,
-    purpose: VerificationPurpose,
+    purpose: UserVerificationPurpose,
   ): Promise<IssuedVerificationCode> {
     const code = this.tokenService.generateVerificationCode();
 
@@ -58,7 +58,11 @@ export class UserVerificationCodeService {
     return { id: record.id, code, expiresAt: record.expiresAt };
   }
 
-  async verify(identityId: string, purpose: VerificationPurpose, code: string): Promise<string> {
+  async verify(
+    identityId: string,
+    purpose: UserVerificationPurpose,
+    code: string,
+  ): Promise<string> {
     const record = await this.verificationCodeRepo.findActive(identityId, purpose);
 
     if (record === null) {

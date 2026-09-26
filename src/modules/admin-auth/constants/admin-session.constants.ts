@@ -49,10 +49,6 @@ export const ADMIN_SESSION_END_REASON = {
 export type AdminSessionEndReason =
   (typeof ADMIN_SESSION_END_REASON)[keyof typeof ADMIN_SESSION_END_REASON];
 
-/**
- * A revoke reason added to the schema without a public name here fails the
- * build, rather than reaching the console as `null`.
- */
 export const ADMIN_SESSION_END_REASON_BY_REVOKE_REASON = {
   [SessionRevokeReason.LOGOUT]: ADMIN_SESSION_END_REASON.SIGNED_OUT,
 
@@ -69,18 +65,8 @@ export const ADMIN_SESSION_END_REASON_BY_REVOKE_REASON = {
   [SessionRevokeReason.SUPERSEDED]: ADMIN_SESSION_END_REASON.REPLACED,
 } as const satisfies Record<SessionRevokeReason, AdminSessionEndReason>;
 
-/**
- * How far back ended sessions are listed — the same bound, for the same
- * reasons, as `USER_SESSION_HISTORY_WINDOW_MS`: history that never ends, and a
- * movement pattern visible to anyone holding a stolen session.
- */
 export const ADMIN_SESSION_HISTORY_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
 
-/**
- * The columns the sessions list reads. `ipAddress` is deliberately absent — see
- * `ADMIN_SESSION_HISTORY_WINDOW_MS`. Must stay in step with `AdminSessionSummaryRow`;
- * the repository's return type is where a mismatch fails to compile.
- */
 export const ADMIN_SESSION_SUMMARY_SELECT = {
   id: true,
   deviceName: true,

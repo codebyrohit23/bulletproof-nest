@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { VerificationCodeStatus, type AdminVerificationCode } from '@prisma/client';
+import {
+  VerificationCodeStatus,
+  type AdminVerificationCode,
+  type AdminVerificationPurpose,
+} from '@prisma/client';
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 
 import { ADMIN_VERIFICATION_CODE_TTL_MS } from '../constants/index.js';
-import type { AdminCodePurpose, CreateAdminVerificationCodeInput } from '../interfaces/index.js';
+import type { CreateAdminVerificationCodeInput } from '../interfaces/index.js';
 
 /**
  * Every resolution clears `codeHash`. A code that can no longer be answered
@@ -14,7 +18,7 @@ import type { AdminCodePurpose, CreateAdminVerificationCodeInput } from '../inte
 export class AdminVerificationCodeRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async retireActive(adminId: string, purpose: AdminCodePurpose): Promise<void> {
+  async retireActive(adminId: string, purpose: AdminVerificationPurpose): Promise<void> {
     const now = new Date();
 
     const live = { adminId, purpose, status: VerificationCodeStatus.ACTIVE };
@@ -43,7 +47,7 @@ export class AdminVerificationCodeRepository {
 
   async findActive(
     adminId: string,
-    purpose: AdminCodePurpose,
+    purpose: AdminVerificationPurpose,
   ): Promise<AdminVerificationCode | null> {
     return this.prisma.db.adminVerificationCode.findFirst({
       where: { adminId, purpose, status: VerificationCodeStatus.ACTIVE },

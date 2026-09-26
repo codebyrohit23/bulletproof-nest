@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   VerificationCodeStatus,
   type UserVerificationCode,
-  type VerificationPurpose,
+  type UserVerificationPurpose,
 } from '@prisma/client';
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
@@ -18,7 +18,7 @@ import type { CreateVerificationCodeInput } from '../interfaces/index.js';
 export class UserVerificationCodeRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async retireActive(userIdentityId: string, purpose: VerificationPurpose): Promise<void> {
+  async retireActive(userIdentityId: string, purpose: UserVerificationPurpose): Promise<void> {
     const now = new Date();
 
     const live = { userIdentityId, purpose, status: VerificationCodeStatus.ACTIVE };
@@ -47,7 +47,7 @@ export class UserVerificationCodeRepository {
 
   async findActive(
     userIdentityId: string,
-    purpose: VerificationPurpose,
+    purpose: UserVerificationPurpose,
   ): Promise<UserVerificationCode | null> {
     return this.prisma.db.userVerificationCode.findFirst({
       where: { userIdentityId, purpose, status: VerificationCodeStatus.ACTIVE },
