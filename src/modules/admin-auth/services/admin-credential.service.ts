@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { AdminCredential } from '@prisma/client';
 
 import { PasswordService } from '#/core/security/index.js';
@@ -16,6 +16,19 @@ export class AdminCredentialService {
   async verifyPassword(adminId: string, password: string, passwordHash: string | null) {
     if (!(await this.passwordService.verify(passwordHash, password))) {
       throw new UnauthorizedException(ADMIN_AUTH_ERROR_MESSAGE.INVALID_CREDENTIALS);
+    }
+
+    await this.upgradeHashIfNeeded(adminId, password, passwordHash);
+  }
+
+  /**
+   * The signed-in admin re-proving their password. A `400`, not a `401`: the
+   * session is fine, and a console that signs out on any `401` would drop an
+   * admin who merely mistyped.
+   */
+  async verifyCurrentPassword(adminId: string, password: string, passwordHash: string | null) {
+    if (!(await this.passwordService.verify(passwordHash, password))) {
+      throw new BadRequestException(ADMIN_AUTH_ERROR_MESSAGE.INVALID_CURRENT_PASSWORD);
     }
 
     await this.upgradeHashIfNeeded(adminId, password, passwordHash);

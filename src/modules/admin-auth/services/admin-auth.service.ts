@@ -1,14 +1,25 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { AdminStatus, SessionRevokeReason, VerificationPurpose } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  AdminStatus,
+  SessionRevokeReason,
+  TokenRevokeReason,
+  VerificationPurpose,
+} from '@prisma/client';
 
 import { AppConfigService } from '#/config/app/index.js';
-import { AUTH_FAILURE_REASON } from '#/core/auth/index.js';
+import { AUTH_ERROR_MESSAGE, AUTH_FAILURE_REASON } from '#/core/auth/index.js';
 import { EMAIL_TEMPLATE, EmailService } from '#/core/communication/email/index.js';
 import { RequestContextService } from '#/core/context/index.js';
 import { JWT_AUDIENCE, JwtSignerService, TOKEN_TTL_SECONDS } from '#/core/jwt/index.js';
 import { AppLoggerService } from '#/core/logger/index.js';
 import { TransactionService } from '#/infrastructure/database/prisma/index.js';
 import { AdminService, type AdminSnapshot } from '#/modules/admins/index.js';
+import { buildOffsetPagination, paginate } from '#/shared/pagination/index.js';
 
 import {
   ADMIN_AUTH_ERROR_MESSAGE,
@@ -19,19 +30,26 @@ import {
 } from '../constants/index.js';
 import type {
   AdminAuthResult,
+  AdminAuthTokens,
+  AdminChangePasswordInput,
+  AdminListSessionsQuery,
   AdminLoginInput,
   AdminRequestPasswordResetInput,
   AdminPasswordResetToken,
   AdminResetPasswordInput,
+  AdminRevokedSessions,
+  AdminSessionPage,
   AdminVerifyPasswordResetCodeInput,
 } from '../dto/index.js';
 import {
   ADMIN_PASSWORD_RESET_TOKEN_OUTCOME,
+  ADMIN_REFRESH_TOKEN_OUTCOME,
   type AdminCodeEmailTemplate,
   type AdminCodePurpose,
   type AdminPasswordChangeMethod,
+  type AdminSessionRevocation,
 } from '../interfaces/index.js';
-import { toAuthAdmin } from '../mappers/index.js';
+import { toAdminSession, toAuthAdmin } from '../mappers/index.js';
 import { resolveAdminDeviceContext } from '../utils/index.js';
 
 import { AdminCredentialService } from './admin-credential.service.js';
@@ -101,6 +119,62 @@ export class AdminAuthService {
         tokens: { accessToken, expiresIn: TOKEN_TTL_SECONDS.ACCESS },
       },
       refreshToken: refreshToken.token,
+    };
+  }
+
+  /** Rotates on use: the presented token is spent and a replacement returned for the cookie. */
+  async refreshSession(token: string | undefined): Promise<{
+    tokens: AdminAuthTokens;
+    refreshToken: string;
+  }> {
+    const deviceId = this.requireDeviceId('refresh-session');
+
+    if (token === undefined) {
+      this.refuseRefresh();
+    }
+
+    const verification = await this.refreshTokenService.verify(token);
+
+    if (verification.outcome === ADMIN_REFRESH_TOKEN_OUTCOME.UNKNOWN) {
+      this.refuseRefresh();
+    }
+
+    const { sessionId } = verification.token;
+
+    if (verification.outcome === ADMIN_REFRESH_TOKEN_OUTCOME.REUSED) {
+      await this.revokeReusedSession(sessionId);
+
+      this.refuseRefresh();
+    }
+
+    if (verification.outcome === ADMIN_REFRESH_TOKEN_OUTCOME.EXPIRED) {
+      this.refuseRefresh();
+    }
+
+    const validation = await this.sessionService.validate(sessionId, deviceId);
+
+    if (!validation.ok) {
+      this.refuseRefresh();
+    }
+
+    const rotated = await this.refreshTokenService.rotate(verification.token);
+
+    if (rotated === null) {
+      this.refuseRefresh();
+    }
+
+    const { session } = validation;
+
+    const accessToken = await this.jwtSigner.signAccessToken(
+      { sub: session.adminId, sid: session.id },
+      JWT_AUDIENCE.ADMIN,
+    );
+
+    this.requestContext.setIdentity({ adminId: session.adminId, sessionId: session.id });
+
+    return {
+      tokens: { accessToken, expiresIn: TOKEN_TTL_SECONDS.ACCESS },
+      refreshToken: rotated.token,
     };
   }
 
@@ -205,6 +279,98 @@ export class AdminAuthService {
     return null;
   }
 
+  /** Every **other** session is revoked; the one that made the change stays signed in. */
+  async changePassword(
+    adminId: string,
+    sessionId: string,
+    payload: AdminChangePasswordInput,
+  ): Promise<null> {
+    const { currentPassword, newPassword } = payload;
+
+    const credential = await this.credentialService.findByAdminId(adminId);
+
+    await this.credentialService.verifyCurrentPassword(
+      adminId,
+      currentPassword,
+      credential?.passwordHash ?? null,
+    );
+
+    const admin = await this.adminService.getAdminById(adminId);
+
+    if (admin === null) {
+      throw new UnauthorizedException(AUTH_ERROR_MESSAGE.UNAUTHORIZED);
+    }
+
+    await this.transaction.run(async () => {
+      const updated = await this.credentialService.setCredential(adminId, newPassword);
+
+      await this.sessionService.revokeAllForAdmin(
+        adminId,
+        SessionRevokeReason.PASSWORD_CHANGED,
+        sessionId,
+      );
+
+      await this.notifyPasswordChanged(
+        admin,
+        'changed',
+        updated.passwordChangedAt,
+        `admin-password-changed-${adminId}-${updated.passwordChangedAt.getTime()}`,
+      );
+    });
+
+    return null;
+  }
+
+  async logout(sessionId: string): Promise<void> {
+    await this.sessionService.revoke(sessionId, SessionRevokeReason.LOGOUT);
+  }
+
+  async listSessions(
+    adminId: string,
+    currentSessionId: string,
+    query: AdminListSessionsQuery,
+  ): Promise<AdminSessionPage> {
+    const now = new Date();
+
+    const { rows, total } = await this.sessionService.listForAdmin(adminId, query, now);
+
+    return paginate(
+      rows.map((row) => toAdminSession(row, currentSessionId, now)),
+      buildOffsetPagination(total, query.page, query.limit),
+    );
+  }
+
+  /**
+   * 404 for a session that is not the caller's, never 403: a 403 would confirm
+   * that the id belongs to another admin.
+   */
+  async revokeSession(
+    adminId: string,
+    currentSessionId: string,
+    sessionId: string,
+  ): Promise<AdminSessionRevocation> {
+    const revoked = await this.sessionService.revokeOwned(adminId, sessionId);
+
+    if (!revoked) {
+      throw new NotFoundException(ADMIN_AUTH_ERROR_MESSAGE.SESSION_NOT_FOUND);
+    }
+
+    return { wasCurrent: sessionId === currentSessionId };
+  }
+
+  async revokeOtherSessions(
+    adminId: string,
+    currentSessionId: string,
+  ): Promise<AdminRevokedSessions> {
+    const revoked = await this.sessionService.revokeAllForAdmin(
+      adminId,
+      SessionRevokeReason.USER_REVOKED,
+      currentSessionId,
+    );
+
+    return { revoked };
+  }
+
   private issueAndDeliver(
     template: AdminCodeEmailTemplate,
     purpose: AdminCodePurpose,
@@ -255,6 +421,31 @@ export class AdminAuthService {
 
   private refusePasswordReset(): never {
     throw new UnauthorizedException(ADMIN_AUTH_ERROR_MESSAGE.INVALID_OR_EXPIRED_RESET_TOKEN);
+  }
+
+  private refuseRefresh(): never {
+    throw new UnauthorizedException(ADMIN_AUTH_ERROR_MESSAGE.INVALID_REFRESH_TOKEN);
+  }
+
+  /**
+   * A spent token presented again means two parties hold it — the session is
+   * ended outright, because there is no telling which of them is the admin.
+   */
+  private async revokeReusedSession(sessionId: string): Promise<void> {
+    this.logger.warn('Admin refresh token reused — ending the session', {
+      context: ADMIN_AUTH_LOG_CONTEXT,
+      operation: 'refresh-session',
+      metadata: { sessionId, reason: AUTH_FAILURE_REASON.REFRESH_TOKEN_REUSED },
+    });
+
+    await this.transaction.run(async () => {
+      await this.refreshTokenService.revokeSessionTokens(
+        sessionId,
+        TokenRevokeReason.REUSE_DETECTED,
+      );
+
+      await this.sessionService.revoke(sessionId, SessionRevokeReason.TOKEN_REUSE_DETECTED);
+    });
   }
 
   private assertCanSignIn(status: AdminStatus, adminId: string): void {

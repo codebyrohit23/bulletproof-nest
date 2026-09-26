@@ -4,7 +4,7 @@ import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 import { normalizeEmail } from '#/shared/utils/index.js';
 
 import { ADMIN_BOOTSTRAP_LOCK_KEY, ADMIN_SNAPSHOT_SELECT } from '../constants/index.js';
-import type { AdminSnapshot, CreateAdminInput } from '../interfaces/index.js';
+import type { AdminSnapshot, CreateAdminInput, UpdateAdminInput } from '../interfaces/index.js';
 import { toAdminSnapshot } from '../mappers/index.js';
 
 @Injectable()
@@ -32,6 +32,16 @@ export class AdminRepository {
   async create(input: CreateAdminInput): Promise<AdminSnapshot> {
     const admin = await this.prisma.db.admin.create({
       data: { ...input, email: normalizeEmail(input.email) },
+      select: ADMIN_SNAPSHOT_SELECT,
+    });
+
+    return toAdminSnapshot(admin);
+  }
+
+  async update(id: string, input: UpdateAdminInput): Promise<AdminSnapshot> {
+    const admin = await this.prisma.db.admin.update({
+      where: { id },
+      data: input,
       select: ADMIN_SNAPSHOT_SELECT,
     });
 

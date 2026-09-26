@@ -5,4 +5,9 @@ export const ADMIN_AUTH_API_TAG: ApiTag = {
   description: 'Sign-in and session management for the admin console.',
 };
 
-export const ADMIN_API_TAGS: readonly ApiTag[] = [ADMIN_AUTH_API_TAG];
+export const ADMIN_PROFILE_API_TAG: ApiTag = {
+  name: 'Admin Profile',
+  description: "Endpoints for the signed-in admin's own profile.",
+};
+
+export const ADMIN_API_TAGS: readonly ApiTag[] = [ADMIN_AUTH_API_TAG, ADMIN_PROFILE_API_TAG];

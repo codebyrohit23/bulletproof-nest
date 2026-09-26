@@ -4,7 +4,10 @@ import type { AdminRefreshToken, TokenRevokeReason } from '@prisma/client';
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 
 import { ADMIN_REFRESH_TOKEN_TTL_MS } from '../constants/index.js';
-import type { CreateAdminRefreshTokenInput } from '../interfaces/index.js';
+import type {
+  AdminRefreshTokenWithSession,
+  CreateAdminRefreshTokenInput,
+} from '../interfaces/index.js';
 
 @Injectable()
 export class AdminRefreshTokenRepository {
@@ -19,6 +22,27 @@ export class AdminRefreshTokenRepository {
         expiresAt: new Date(Date.now() + ADMIN_REFRESH_TOKEN_TTL_MS),
       },
     });
+  }
+
+  async findByTokenHash(tokenHash: string): Promise<AdminRefreshTokenWithSession | null> {
+    return this.prisma.db.adminRefreshToken.findUnique({
+      where: { tokenHash },
+      include: { session: true },
+    });
+  }
+
+  /**
+   * Guarded on `revokedAt: null` so that of two concurrent refreshes with the
+   * same token exactly one gets `true` — the loser must not mint a second
+   * token. See `UserRefreshTokenRepository.revoke`.
+   */
+  async revoke(id: string, reason: TokenRevokeReason): Promise<boolean> {
+    const { count } = await this.prisma.db.adminRefreshToken.updateMany({
+      where: { id, revokedAt: null },
+      data: { revokedAt: new Date(), revokedReason: reason },
+    });
+
+    return count > 0;
   }
 
   async revokeAllForSessions(

@@ -1,1 +1,1 @@
-export { toAdminSnapshot } from './admin.mapper.js';
+export { toAdminProfile, toAdminSnapshot, toUpdateAdminInput } from './admin.mapper.js';

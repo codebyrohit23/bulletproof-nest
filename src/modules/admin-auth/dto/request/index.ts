@@ -1,3 +1,13 @@
+export {
+  AdminChangePasswordDto,
+  type AdminChangePasswordInput,
+} from './admin-change-password.dto.js';
+
+export {
+  AdminListSessionsQueryDto,
+  type AdminListSessionsQuery,
+} from './admin-list-sessions-query.dto.js';
+
 export { AdminLoginDto, type AdminLoginInput } from './admin-login.dto.js';
 
 export {

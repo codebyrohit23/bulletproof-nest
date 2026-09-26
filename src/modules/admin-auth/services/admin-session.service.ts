@@ -8,6 +8,7 @@ import {
   isUniqueConstraintViolation,
   TransactionService,
 } from '#/infrastructure/database/prisma/index.js';
+import type { OffsetSlice } from '#/shared/pagination/index.js';
 
 import { AdminSessionCacheService } from '../cache/admin-session.cache.js';
 import {
@@ -15,7 +16,11 @@ import {
   ADMIN_AUTH_LOG_CONTEXT,
   ADMIN_SESSION_ACTIVITY_THROTTLE_MS,
 } from '../constants/index.js';
-import type { CreateAdminSessionInput } from '../interfaces/index.js';
+import type {
+  AdminSessionPageQuery,
+  AdminSessionSummaryRow,
+  CreateAdminSessionInput,
+} from '../interfaces/index.js';
 import { AdminSessionRepository } from '../repositories/index.js';
 
 import { AdminRefreshTokenService } from './admin-refresh-token.service.js';
@@ -100,6 +105,42 @@ export class AdminSessionService extends AdminSessionValidator {
     }
 
     return { ok: true, session: { id: session.id, adminId: session.adminId } };
+  }
+
+  async revoke(sessionId: string, reason: SessionRevokeReason): Promise<boolean> {
+    return this.transaction.run(() => this.retire(sessionId, reason));
+  }
+
+  async listForAdmin(
+    adminId: string,
+    query: AdminSessionPageQuery,
+    now: Date,
+  ): Promise<OffsetSlice<AdminSessionSummaryRow>> {
+    return this.sessionRepo.findPageByAdmin(adminId, query, now);
+  }
+
+  /** `false` when the session is not this admin's, or already ended. */
+  async revokeOwned(adminId: string, sessionId: string): Promise<boolean> {
+    return this.transaction.run(async () => {
+      const revoked = await this.sessionRepo.revokeOwned(
+        sessionId,
+        adminId,
+        SessionRevokeReason.USER_REVOKED,
+      );
+
+      if (!revoked) {
+        return false;
+      }
+
+      await this.refreshTokenService.revokeSessionTokens(
+        sessionId,
+        TokenRevokeReason.SESSION_REVOKED,
+      );
+
+      await this.evictAfterCommit(sessionId);
+
+      return true;
+    });
   }
 
   /**

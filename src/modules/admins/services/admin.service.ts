@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
+import { ADMIN_ERROR_MESSAGE } from '../constants/index.js';
+import type { AdminProfile, UpdateAdminProfileInput } from '../dto/index.js';
 import type { AdminSnapshot, CreateAdminInput } from '../interfaces/index.js';
+import { toAdminProfile, toUpdateAdminInput } from '../mappers/index.js';
 import { AdminRepository } from '../repositories/index.js';
 
 @Injectable()
@@ -17,6 +20,22 @@ export class AdminService {
 
   async findByEmail(email: string): Promise<AdminSnapshot | null> {
     return this.adminRepo.findSnapshotByEmail(email);
+  }
+
+  async getProfile(adminId: string): Promise<AdminProfile> {
+    const admin = await this.adminRepo.findSnapshotById(adminId);
+
+    if (admin === null) {
+      throw new NotFoundException(ADMIN_ERROR_MESSAGE.ADMIN_NOT_FOUND);
+    }
+
+    return toAdminProfile(admin);
+  }
+
+  async updateProfile(adminId: string, payload: UpdateAdminProfileInput): Promise<AdminProfile> {
+    const admin = await this.adminRepo.update(adminId, toUpdateAdminInput(payload));
+
+    return toAdminProfile(admin);
   }
 
   async markEmailVerified(id: string): Promise<void> {

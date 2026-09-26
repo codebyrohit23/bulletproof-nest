@@ -78,4 +78,27 @@ export const ADMIN_AUTH_RATE_LIMIT = {
       by: RATE_LIMIT_SUBJECT.IP,
     },
   ],
+
+  /*
+   * Per IP: the cookie is a 256-bit token, so this is not about guessing — it
+   * stops a console stuck in a refresh loop from hammering the database. Lower
+   * than the user budget because there are a handful of admins, not a nation
+   * behind one carrier NAT.
+   */
+  REFRESH: [
+    {
+      name: 'admin-refresh-by-ip',
+      rule: { limit: 60, windowMs: FIVE_MINUTES_MS },
+      by: RATE_LIMIT_SUBJECT.IP,
+    },
+  ],
+
+  /* Authenticated, so the budget bounds password-hashing cost, not guessing. */
+  CHANGE_PASSWORD: [
+    {
+      name: 'admin-change-password-by-ip',
+      rule: { limit: 10, windowMs: FIVE_MINUTES_MS },
+      by: RATE_LIMIT_SUBJECT.IP,
+    },
+  ],
 } as const satisfies Record<string, readonly RateLimitDefinition[]>;
