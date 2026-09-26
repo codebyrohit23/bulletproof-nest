@@ -187,14 +187,14 @@ export class UserAuthController {
   /**
    * Request Login Code
    */
-  @Post('otp/request')
+  @Post('login-code/request')
   @Public()
   @RateLimit(...USER_AUTH_RATE_LIMIT.REQUEST_LOGIN_CODE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Request a one-time login code',
     description:
-      'Sends a one-time code that `/auth/otp/verify` exchanges for a session. No password is ' +
+      'Sends a one-time code that `/auth/login-code/verify` exchanges for a session. No password is ' +
       'involved, no session is established here, and requests are rate-limited.',
   })
   @ApiSuccessMessageResponse({
@@ -212,14 +212,14 @@ export class UserAuthController {
   /**
    * Login With Code
    */
-  @Post('otp/verify')
+  @Post('login-code/verify')
   @Public()
   @RateLimit(...USER_AUTH_RATE_LIMIT.VERIFY_LOGIN_CODE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Exchange a one-time login code for a session',
     description:
-      'Completes the flow from `/auth/otp/request`: a valid code establishes a session bound to ' +
+      'Completes the flow from `/auth/login-code/request`: a valid code establishes a session bound to ' +
       '`X-Device-Id`. A wrong, expired, misdirected or unknown code is answered identically.',
   })
   @ApiDeviceIdHeader()
@@ -301,7 +301,7 @@ export class UserAuthController {
   @ApiOperation({
     summary: 'Request a password reset code',
     description:
-      'Sends a one-time code that `/auth/password-reset/verify-otp` exchanges for a reset token. ' +
+      'Sends a one-time code that `/auth/password-reset/verify-code` exchanges for a reset token. ' +
       'No session is established here, no password changes, and requests are rate-limited.',
   })
   @ApiSuccessMessageResponse({
@@ -319,7 +319,7 @@ export class UserAuthController {
   /**
    * Verify Reset Code
    */
-  @Post('password-reset/verify-otp')
+  @Post('password-reset/verify-code')
   @Public()
   @RateLimit(...USER_AUTH_RATE_LIMIT.VERIFY_PASSWORD_RESET_CODE)
   @HttpCode(HttpStatus.OK)
@@ -357,7 +357,7 @@ export class UserAuthController {
   @ApiOperation({
     summary: 'Set a new password with a reset token',
     description:
-      'Spends the `token` from `/auth/password-reset/verify-otp`, sent in the body, and replaces ' +
+      'Spends the `token` from `/auth/password-reset/verify-code`, sent in the body, and replaces ' +
       'the password. Single-use, and every session and refresh token is revoked on success.',
   })
   @ApiSuccessMessageResponse({

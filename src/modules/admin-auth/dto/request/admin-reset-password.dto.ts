@@ -14,7 +14,7 @@ const adminResetPasswordSchema = z
       .trim()
       .min(1, 'Token is required')
       .max(ADMIN_PASSWORD_RESET_TOKEN_MAX_LENGTH)
-      .describe('The `resetToken` returned by `/admin/auth/password-reset/verify-otp`.'),
+      .describe('The `resetToken` returned by `/admin/auth/password-reset/verify-code`.'),
   })
   .strict();
 

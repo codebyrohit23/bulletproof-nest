@@ -144,7 +144,7 @@ export class AdminAuthController {
   @ApiOperation({
     summary: 'Request an admin password reset code',
     description:
-      'Emails a one-time code that `/admin/auth/password-reset/verify-otp` exchanges for a reset ' +
+      'Emails a one-time code that `/admin/auth/password-reset/verify-code` exchanges for a reset ' +
       'token. This is also how a newly seeded admin sets a first password. No session is ' +
       'established and no password changes here.',
   })
@@ -163,7 +163,7 @@ export class AdminAuthController {
   /**
    * Verify Reset Code
    */
-  @Post('password-reset/verify-otp')
+  @Post('password-reset/verify-code')
   @Public()
   @RateLimit(...ADMIN_AUTH_RATE_LIMIT.VERIFY_PASSWORD_RESET_CODE)
   @HttpCode(HttpStatus.OK)
@@ -202,7 +202,7 @@ export class AdminAuthController {
   @ApiOperation({
     summary: 'Set a new admin password with a reset token',
     description:
-      'Spends the `token` from `/admin/auth/password-reset/verify-otp` and sets the password — ' +
+      'Spends the `token` from `/admin/auth/password-reset/verify-code` and sets the password — ' +
       'the first one, for a newly seeded admin. Single-use, and every admin session and refresh ' +
       'token is revoked on success.',
   })

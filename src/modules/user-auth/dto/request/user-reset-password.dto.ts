@@ -13,7 +13,7 @@ const userResetPasswordSchema = z
       .trim()
       .min(1, 'Token is required')
       .max(USER_PASSWORD_RESET_TOKEN_MAX_LENGTH)
-      .describe('The `resetToken` returned by `/auth/password-reset/verify-otp`.'),
+      .describe('The `resetToken` returned by `/auth/password-reset/verify-code`.'),
   })
   .strict();
 
