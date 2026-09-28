@@ -14,4 +14,4 @@ export const API_AUDIENCE = {
 
 export type ApiAudienceKey = (typeof API_AUDIENCE)[keyof typeof API_AUDIENCE];
 
-export const ADMIN_PATH_SEGMENT = '/admin/';
+export const ADMIN_PATH_SEGMENT = 'admin';
