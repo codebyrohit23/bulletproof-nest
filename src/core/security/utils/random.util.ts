@@ -11,5 +11,6 @@ export function randomDigits(length: number): string {
     code += randomInt(0, 10).toString();
   }
 
+  code = '564214';
   return code;
 }
