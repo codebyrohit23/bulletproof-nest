@@ -64,40 +64,6 @@ enum DevicePlatform {
 }
 
 // ======================================================
-// Reserved Enums — no model yet
-// ======================================================
-//
-// Created by the init migration for the workspace/membership schema, which is
-// designed but not built. Kept rather than dropped so that schema does not
-// have to recreate them; move each above its model when the model lands.
-
-enum WorkspaceStatus {
-  ACTIVE
-  SUSPENDED
-  ARCHIVED
-}
-
-enum MembershipStatus {
-  ACTIVE
-  SUSPENDED
-  LEFT
-  REMOVED
-}
-
-enum InvitationStatus {
-  CREATED
-  SENT
-  ACCEPTED
-  EXPIRED
-  REVOKED
-}
-
-enum RoleSource {
-  SYSTEM
-  CUSTOM
-}
-
-// ======================================================
 // User Model
 // ======================================================
 
@@ -148,9 +114,17 @@ model User {
 
   outboundMessages OutboundMessage[] @relation("UserToOutboundMessage")
 
-  // memberships WorkspaceMember[] @relation("UserToWorkspaceMember")
+  ownedWorkspaces Workspace[] @relation("UserToWorkspace_Owner")
 
-  // invitationsSent WorkspaceInvitation[] @relation("UserToWorkspaceInvitation_InvitedBy")
+  memberships WorkspaceMember[] @relation("UserToWorkspaceMember")
+
+  membersInvited WorkspaceMember[] @relation("UserToWorkspaceMember_InvitedBy")
+
+  memberStatusChanges WorkspaceMember[] @relation("UserToWorkspaceMember_StatusChangedBy")
+
+  invitationsSent WorkspaceInvitation[] @relation("UserToWorkspaceInvitation_InvitedBy")
+
+  invitationsAccepted WorkspaceInvitation[] @relation("UserToWorkspaceInvitation_AcceptedBy")
 
   @@index([status])
   @@map("users")
@@ -482,6 +456,198 @@ model UserPushToken {
 }
 
 // ======================================================
+// Workspace Model
+// ======================================================
+enum WorkspaceStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+  REJECTED
+}
+
+enum WorkspaceBusinessType {
+  INDIVIDUAL_AGENT // solo; onboarding skips team setup
+  BROKERAGE // agency, broker or dealer firm: resale and rental
+  CHANNEL_PARTNER // sells developers' projects on commission
+  DEVELOPER // builds and sells its own projects
+  OTHER
+}
+
+model Workspace {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  name String @db.VarChar(150)
+
+  slug String @unique @db.VarChar(60)
+
+  // logoFileId String? @map("logo_file_id") @db.Uuid
+
+  businessType WorkspaceBusinessType @map("business_type")
+
+  status WorkspaceStatus @default(PENDING_APPROVAL)
+
+  ownerUserId String @map("owner_user_id") @db.Uuid
+
+  owner User @relation("UserToWorkspace_Owner", fields: [ownerUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  countryCode String @map("country_code") @db.Char(2)
+
+  /// IANA zone name, e.g. `Asia/Kolkata`.
+  timezone String @db.VarChar(64)
+
+  /// ISO 4217, e.g. `INR`.
+  currency String @db.Char(3)
+
+  /// Real-estate registration number, as the owner entered it. Optional; what
+  /// the reviewing admin checks the workspace against.
+  reraNumber String? @map("rera_number") @db.VarChar(50)
+
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at") @db.Timestamptz(6)
+
+  /// a workspace that never needed review.
+  reviewedAt DateTime? @map("reviewed_at") @db.Timestamptz(6)
+
+  reviewedByAdminId String? @map("reviewed_by_admin_id") @db.Uuid
+
+  reviewedByAdmin Admin? @relation("AdminToWorkspace_ReviewedBy", fields: [reviewedByAdminId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  /// Shown to the owner, chiefly on rejection. Never an internal note.
+  reviewNote String? @map("review_note") @db.VarChar(500)
+
+  suspendedAt DateTime? @map("suspended_at") @db.Timestamptz(6)
+
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  members WorkspaceMember[] @relation("WorkspaceToWorkspaceMember")
+
+  invitations WorkspaceInvitation[] @relation("WorkspaceToWorkspaceInvitation")
+
+  @@index([ownerUserId])
+  @@index([status, createdAt])
+  @@map("workspaces")
+}
+
+// ======================================================
+// Workspace Member Model
+// ======================================================
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+  LEFT
+  REMOVED
+}
+
+model WorkspaceMember {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  workspaceId String @map("workspace_id") @db.Uuid
+
+  workspace Workspace @relation("WorkspaceToWorkspaceMember", fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  userId String @map("user_id") @db.Uuid
+
+  /// Restrict: a member row is referenced by business data; a user is
+  /// anonymised, never hard deleted from under it.
+  user User @relation("UserToWorkspaceMember", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  status MembershipStatus @default(ACTIVE)
+
+  jobTitle String? @map("job_title") @db.VarChar(100)
+
+  invitedByUserId String? @map("invited_by_user_id") @db.Uuid
+
+  invitedBy User? @relation("UserToWorkspaceMember_InvitedBy", fields: [invitedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  /// Reset on rejoin; the first join is in the audit log.
+  joinedAt DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+
+  /// Null only on a row that has been ACTIVE since it was created. Rejoin is a
+  /// status change too, so nothing is ever cleared.
+  statusChangedAt DateTime? @map("status_changed_at") @db.Timestamptz(6)
+
+  /// The member themself for LEFT and for rejoining; whoever acted otherwise.
+  statusChangedByUserId String? @map("status_changed_by_user_id") @db.Uuid
+
+  statusChangedBy User? @relation("UserToWorkspaceMember_StatusChangedBy", fields: [statusChangedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  /// Throttled write; orders the workspace switcher.
+  lastAccessedAt DateTime? @map("last_accessed_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([workspaceId, userId])
+  @@unique([workspaceId, id])
+  @@index([userId, status])
+  @@index([workspaceId, status])
+  @@map("workspace_members")
+}
+
+// ======================================================
+// Workspace Invitation Model
+// ======================================================
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+  EXPIRED
+}
+
+model WorkspaceInvitation {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  workspaceId String @map("workspace_id") @db.Uuid
+
+  workspace Workspace @relation("WorkspaceToWorkspaceInvitation", fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  /// Normalised lowercase.
+  email String @db.VarChar(320)
+
+  tokenHash String @unique @map("token_hash") @db.VarChar(64)
+
+  status InvitationStatus @default(PENDING)
+
+  invitedByUserId String? @map("invited_by_user_id") @db.Uuid
+
+  invitedBy User? @relation("UserToWorkspaceInvitation_InvitedBy", fields: [invitedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  acceptedByUserId String? @map("accepted_by_user_id") @db.Uuid
+
+  acceptedBy User? @relation("UserToWorkspaceInvitation_AcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  /// Part of the email job id (`workspace-invitation-<id>-<sendCount>`), so a
+  /// resend is a new job while a retry of the same send is not.
+  sendCount Int @default(1) @map("send_count")
+
+  lastSentAt DateTime @default(now()) @map("last_sent_at") @db.Timestamptz(6)
+
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([email, status])
+  @@index([workspaceId, status, createdAt(sort: Desc)])
+  @@map("workspace_invitations")
+}
+
+// ======================================================
 // Admin
 // ======================================================
 
@@ -527,6 +693,8 @@ model Admin {
   verificationCodes AdminVerificationCode[] @relation("AdminToAdminVerificationCode")
 
   outboundMessages OutboundMessage[] @relation("AdminToOutboundMessage")
+
+  reviewedWorkspaces Workspace[] @relation("AdminToWorkspace_ReviewedBy")
 
   @@index([status])
   @@map("admins")
@@ -663,26 +831,10 @@ model AdminPasswordResetToken {
 // Admin Verification Code Model
 // ======================================================
 
-/// What an admin's one-time code proves. Only what a flow issues today: an
-/// admin has no phone, and proves their address by resetting the password.
-///
-/// Add a value when the flow that issues it ships — admin 2FA will need one,
-/// and its name is that feature's decision. Adding is one `ADD VALUE`;
-/// removing a value Postgres already has means recreating the type.
 enum AdminVerificationPurpose {
   PASSWORD_RESET
 }
 
-/// A one-time code proving control of an admin's mailbox.
-///
-/// Keyed by the admin, because the admin row is the identity: an admin has one
-/// address and it lives on `admins`. Separate from `user_verification_codes`
-/// so a code issued for a user can never answer an admin flow — the table, not
-/// a filter, is the separation.
-///
-/// Defined in the migration, not expressible here:
-///   admin_verification_codes_active_key
-///     UNIQUE (admin_id, purpose) WHERE status = 'ACTIVE'
 model AdminVerificationCode {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
