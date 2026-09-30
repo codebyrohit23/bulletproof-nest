@@ -15,8 +15,14 @@ export const USER_PROFILE_API_TAG: ApiTag = {
   description: "Endpoints for the signed-in user's own profile.",
 };
 
+export const WORKSPACES_API_TAG: ApiTag = {
+  name: 'Workspaces',
+  description: 'Creating workspaces and listing the ones the signed-in user belongs to.',
+};
+
 export const USER_API_TAGS: readonly ApiTag[] = [
   HEALTH_API_TAG,
   USER_AUTH_API_TAG,
   USER_PROFILE_API_TAG,
+  WORKSPACES_API_TAG,
 ];

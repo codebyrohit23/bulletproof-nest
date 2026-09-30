@@ -64,6 +64,7 @@
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.1.0",
     "@scalar/nestjs-api-reference": "^1.2.13",
+    "@sindresorhus/slugify": "^3.0.1",
     "argon2": "^0.45.1",
     "bowser": "^2.14.1",
     "bullmq": "^6.0.7",

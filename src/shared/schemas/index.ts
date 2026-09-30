@@ -8,6 +8,8 @@ export {
   type IdentifierInput,
 } from './identifier.schema.js';
 
+export { countryCodeSchema, currencyCodeSchema, timezoneSchema } from './locale.schema.js';
+
 export { passwordSchema, currentPasswordSchema } from './password.schema.js';
 
 export { lookupPhoneSchema, phoneSchema } from './phone.schema.js';

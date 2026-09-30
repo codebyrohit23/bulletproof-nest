@@ -22,6 +22,7 @@ import { CommunicationModule } from '#/modules/communication/index.js';
 import { HealthModule } from '#/modules/health/index.js';
 import { UserAuthModule } from '#/modules/user-auth/index.js';
 import { UsersModule } from '#/modules/users/index.js';
+import { WorkspacesModule } from '#/modules/workspaces/index.js';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { UsersModule } from '#/modules/users/index.js';
     AdminsModule,
     AdminAuthModule,
     CommunicationModule,
+    WorkspacesModule,
 
     AuthModule.forRoot({ imports: [UserAuthModule, AdminAuthModule] }),
     EmailModule.forRoot({ imports: [CommunicationModule] }),
