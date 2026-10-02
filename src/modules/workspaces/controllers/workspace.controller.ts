@@ -9,6 +9,7 @@ import {
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
 import { RateLimit } from '#/core/rate-limit/index.js';
+import { NoWorkspace } from '#/core/tenancy/index.js';
 import { ApiVersion, WORKSPACES_API_TAG } from '#/shared/constants/index.js';
 
 import { CreateWorkspaceDto, WorkspaceDto, type Workspace } from '../dto/index.js';
@@ -24,6 +25,7 @@ export class WorkspaceController {
    * Create Workspace
    */
   @Post()
+  @NoWorkspace()
   @RateLimit(...WORKSPACE_RATE_LIMIT.CREATE)
   @ApiOperation({
     summary: 'Create a workspace',

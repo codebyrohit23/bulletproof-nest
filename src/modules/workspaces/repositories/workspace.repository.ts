@@ -4,7 +4,11 @@ import { WorkspaceStatus } from '@prisma/client';
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 
 import { WORKSPACE_SELECT } from '../constants/index.js';
-import type { CreateWorkspaceRow, WorkspaceSnapshot } from '../interfaces/index.js';
+import type {
+  CreateWorkspaceRow,
+  WorkspaceAccessSnapshot,
+  WorkspaceSnapshot,
+} from '../interfaces/index.js';
 
 @Injectable()
 export class WorkspaceRepository {
@@ -12,6 +16,10 @@ export class WorkspaceRepository {
 
   async create(row: CreateWorkspaceRow): Promise<WorkspaceSnapshot> {
     return this.prisma.db.workspace.create({ data: row, select: WORKSPACE_SELECT });
+  }
+
+  async findAccessSnapshot(id: string): Promise<WorkspaceAccessSnapshot | null> {
+    return this.prisma.db.workspace.findUnique({ where: { id }, select: { status: true } });
   }
 
   async countOwned(ownerUserId: string, statuses: readonly WorkspaceStatus[]): Promise<number> {

@@ -8,6 +8,7 @@ import {
   ApiSuccessResponse,
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
+import { NoWorkspace } from '#/core/tenancy/index.js';
 import { ApiVersion, WORKSPACES_API_TAG } from '#/shared/constants/index.js';
 
 import {
@@ -30,6 +31,7 @@ export class MyWorkspacesController {
    * List My Workspaces
    */
   @Get()
+  @NoWorkspace()
   @ApiOperation({
     summary: 'List my workspaces',
     description:

@@ -12,6 +12,7 @@ import { JwtModule } from '#/core/jwt/index.js';
 import { AppLoggerModule } from '#/core/logger/index.js';
 import { RateLimitModule } from '#/core/rate-limit/index.js';
 import { SecurityModule } from '#/core/security/index.js';
+import { TenancyModule } from '#/core/tenancy/index.js';
 import { ValidationModule } from '#/core/validation/index.js';
 import { PrismaModule } from '#/infrastructure/database/prisma/index.js';
 import { QueueModule, QueueWorkerModule } from '#/infrastructure/queue/index.js';
@@ -57,6 +58,9 @@ import { WorkspacesModule } from '#/modules/workspaces/index.js';
     WorkspacesModule,
 
     AuthModule.forRoot({ imports: [UserAuthModule, AdminAuthModule] }),
+
+    /* After `AuthModule`: the tenant guard needs the user that auth puts in context. */
+    TenancyModule.forRoot({ imports: [WorkspacesModule] }),
     EmailModule.forRoot({ imports: [CommunicationModule] }),
   ],
   controllers: [],

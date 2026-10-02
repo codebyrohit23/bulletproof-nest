@@ -8,6 +8,7 @@ export {
   AUTH_ERROR_MESSAGE,
   AUTH_FAILURE_REASON,
   AUTH_LOG_CONTEXT,
+  AUTH_PUBLIC_METADATA,
   type AuthFailureReason,
 } from './constants/index.js';
 

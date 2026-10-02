@@ -5,6 +5,7 @@ import { AppLoggerService } from '#/core/logger/index.js';
 import { TransactionService } from '#/infrastructure/database/prisma/index.js';
 import { buildOffsetPagination, paginate } from '#/shared/pagination/index.js';
 
+import { WorkspaceAccessCacheService } from '../cache/workspace-access.cache.js';
 import { WORKSPACE_ERROR_MESSAGE, WORKSPACES_LOG_CONTEXT } from '../constants/index.js';
 import type {
   AdminApproveWorkspaceInput,
@@ -22,6 +23,7 @@ export class AdminWorkspaceService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly adminWorkspaceRepo: AdminWorkspaceRepository,
+    private readonly accessCache: WorkspaceAccessCacheService,
     private readonly transaction: TransactionService,
   ) {}
 
@@ -71,14 +73,26 @@ export class AdminWorkspaceService {
   /**
    * In a transaction although it is one statement: the owner's notification
    * email joins it, so the decision and the email commit together.
+   *
+   * The cached access status is dropped after commit, and only when this
+   * review changed the row — otherwise the owner of a just-approved workspace
+   * would keep reading "pending" from the cache until it expired.
    */
   private async review(
     workspaceId: string,
     decision: ReviewDecision,
   ): Promise<AdminWorkspaceDetail> {
-    const reviewed = await this.transaction.run(() =>
-      this.adminWorkspaceRepo.recordReview(workspaceId, decision, new Date()),
-    );
+    const reviewed = await this.transaction.run(async () => {
+      const changed = await this.adminWorkspaceRepo.recordReview(workspaceId, decision, new Date());
+
+      if (changed) {
+        await this.transaction.runAfterCommit(() =>
+          this.accessCache.invalidateWorkspace(workspaceId),
+        );
+      }
+
+      return changed;
+    });
 
     if (!reviewed) {
       await this.refuseReview(workspaceId);

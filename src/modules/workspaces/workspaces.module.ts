@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 
+import { WorkspaceAccessResolver } from '#/core/tenancy/index.js';
+
 import { WorkspaceAccessCacheService } from './cache/workspace-access.cache.js';
 import { AdminWorkspaceController } from './controllers/admin-workspace.controller.js';
 import { MyWorkspacesController } from './controllers/my-workspaces.controller.js';
@@ -10,6 +12,7 @@ import {
   WorkspaceRepository,
 } from './repositories/index.js';
 import { AdminWorkspaceService } from './services/admin-workspace.service.js';
+import { WorkspaceAccessService } from './services/workspace-access.service.js';
 import { WorkspaceService } from './services/workspace.service.js';
 
 @Module({
@@ -19,8 +22,11 @@ import { WorkspaceService } from './services/workspace.service.js';
     WorkspaceMemberRepository,
     AdminWorkspaceRepository,
     WorkspaceAccessCacheService,
+    WorkspaceAccessService,
     WorkspaceService,
     AdminWorkspaceService,
+    { provide: WorkspaceAccessResolver, useExisting: WorkspaceAccessService },
   ],
+  exports: [WorkspaceAccessResolver],
 })
 export class WorkspacesModule {}

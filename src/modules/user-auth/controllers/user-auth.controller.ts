@@ -24,6 +24,7 @@ import {
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
 import { RateLimit } from '#/core/rate-limit/index.js';
+import { NoWorkspace } from '#/core/tenancy/index.js';
 import { ParseIdPipe } from '#/core/validation/index.js';
 import { ApiVersion, USER_AUTH_API_TAG } from '#/shared/constants/index.js';
 
@@ -380,6 +381,7 @@ export class UserAuthController {
    * Change Password
    */
   @Post('password-change')
+  @NoWorkspace()
   @RateLimit(...USER_AUTH_RATE_LIMIT.CHANGE_PASSWORD)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -414,6 +416,7 @@ export class UserAuthController {
    * Logout
    */
   @Post('logout')
+  @NoWorkspace()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Logout the current user',
@@ -439,6 +442,7 @@ export class UserAuthController {
    * List Sessions
    */
   @Get('sessions')
+  @NoWorkspace()
   @ApiOperation({
     summary: 'List signed-in devices and recent sign-ins',
     description:
@@ -470,6 +474,7 @@ export class UserAuthController {
    * Revoke Other Sessions
    */
   @Post('sessions/revoke-others')
+  @NoWorkspace()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Sign out every other device',
@@ -495,6 +500,7 @@ export class UserAuthController {
    * Revoke Session
    */
   @Delete('sessions/:id')
+  @NoWorkspace()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Sign out one device',

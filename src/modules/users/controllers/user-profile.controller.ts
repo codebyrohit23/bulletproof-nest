@@ -8,6 +8,7 @@ import {
   ApiSuccessResponse,
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
+import { NoWorkspace } from '#/core/tenancy/index.js';
 import { ApiVersion, USER_PROFILE_API_TAG } from '#/shared/constants/index.js';
 
 import { UpdateProfileDto, UserProfileDto, type UserProfile } from '../dto/index.js';
@@ -22,6 +23,7 @@ export class UserProfileController {
    * Get Profile
    */
   @Get()
+  @NoWorkspace()
   @ApiOperation({
     summary: 'Get the current profile',
     description: 'Returns the profile of the signed-in user.',
@@ -41,6 +43,7 @@ export class UserProfileController {
    * Update Profile
    */
   @Patch()
+  @NoWorkspace()
   @ApiOperation({
     summary: 'Update the current profile',
     description:

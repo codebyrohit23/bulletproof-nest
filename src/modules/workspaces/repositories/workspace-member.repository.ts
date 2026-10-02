@@ -5,7 +5,8 @@ import { PrismaService, toOffsetArgs } from '#/infrastructure/database/prisma/in
 import type { OffsetPaginationQuery, OffsetSlice } from '#/shared/pagination/index.js';
 
 import { MY_WORKSPACE_SELECT, SWITCHER_WORKSPACE_STATUSES } from '../constants/index.js';
-import type { MyWorkspaceRow } from '../interfaces/index.js';
+import type { MembershipAccessSnapshot, MyWorkspaceRow } from '../interfaces/index.js';
+import { toMembershipAccessSnapshot } from '../mappers/index.js';
 
 @Injectable()
 export class WorkspaceMemberRepository {
@@ -24,6 +25,18 @@ export class WorkspaceMemberRepository {
    * recently opened first; never-opened ones — a workspace just created or
    * joined — after those, newest first.
    */
+  async findAccessSnapshot(
+    workspaceId: string,
+    userId: string,
+  ): Promise<MembershipAccessSnapshot | null> {
+    const member = await this.prisma.db.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+      select: { id: true, status: true },
+    });
+
+    return member === null ? null : toMembershipAccessSnapshot(member);
+  }
+
   async findPageForUser(
     userId: string,
     query: OffsetPaginationQuery,
