@@ -41,10 +41,13 @@ export interface RequestContext {
 
   workspaceId?: string;
 
+  /** The caller's membership in `workspaceId`. Set together with it, by the tenant guard. */
+  memberId?: string;
+
   sessionId?: string;
 }
 
 export type RequestIdentityPatch = Pick<
   RequestContext,
-  'userId' | 'adminId' | 'workspaceId' | 'sessionId'
+  'userId' | 'adminId' | 'workspaceId' | 'memberId' | 'sessionId'
 >;

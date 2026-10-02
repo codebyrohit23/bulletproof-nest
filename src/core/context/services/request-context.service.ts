@@ -37,6 +37,10 @@ export class RequestContextService {
     return requestContextStorage.getStore()?.workspaceId;
   }
 
+  get memberId(): string | undefined {
+    return requestContextStorage.getStore()?.memberId;
+  }
+
   get sessionId(): string | undefined {
     return requestContextStorage.getStore()?.sessionId;
   }

@@ -7,6 +7,7 @@ export {
   CurrentAdminId,
   CurrentContext,
   CurrentDeviceId,
+  CurrentMemberId,
   CurrentSessionId,
   CurrentUserId,
   CurrentWorkspaceId,
