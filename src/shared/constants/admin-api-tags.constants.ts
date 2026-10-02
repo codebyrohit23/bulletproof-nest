@@ -10,4 +10,13 @@ export const ADMIN_PROFILE_API_TAG: ApiTag = {
   description: "Endpoints for the signed-in admin's own profile.",
 };
 
-export const ADMIN_API_TAGS: readonly ApiTag[] = [ADMIN_AUTH_API_TAG, ADMIN_PROFILE_API_TAG];
+export const ADMIN_WORKSPACES_API_TAG: ApiTag = {
+  name: 'Admin Workspaces',
+  description: 'Every workspace on the platform, and the review that opens a new one.',
+};
+
+export const ADMIN_API_TAGS: readonly ApiTag[] = [
+  ADMIN_AUTH_API_TAG,
+  ADMIN_PROFILE_API_TAG,
+  ADMIN_WORKSPACES_API_TAG,
+];

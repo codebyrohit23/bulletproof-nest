@@ -412,3 +412,17 @@ the workspace, so its members are locked out on their next request.
 | Membership audit trail                              | Audit log                                                       |
 | Developer ↔ channel-partner collaboration           | A link between two workspaces, never cross-workspace membership |
 | Restore and permanent deletion of a workspace       | Workspace deletion flow (batched job)                           |
+
+TODO :
+member gaurd, ownder gaurd,
+RABC
+
+GLOBAL PERMISSION
+USER & ADMIN PERMISSION
+MMBER ROLES, AND MEMBER ROLES PERMISSION
+
+DEFAULT SUTEM ROLES SO PERMSSION CAN SEED WHEN NEW PERMSIIN ADD
+
+ADMIN ROLES AND ADMIN ROLES PERMSON
+
+PERMSSION AUTROTAZATION MODULE

@@ -1,4 +1,13 @@
 export {
+  AdminWorkspaceDetailDto,
+  AdminWorkspacePageDto,
+  AdminWorkspaceSummaryDto,
+  type AdminWorkspaceDetail,
+  type AdminWorkspacePage,
+  type AdminWorkspaceSummary,
+} from './admin-workspace.dto.js';
+
+export {
   MyWorkspaceDto,
   MyWorkspacePageDto,
   type MyWorkspace,

@@ -3,10 +3,6 @@ import { RATE_LIMIT_SUBJECT, type RateLimitDefinition } from '#/core/rate-limit/
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
 export const WORKSPACE_RATE_LIMIT = {
-  /**
-   * The owned-workspace cap and one-pending-review rule already bound one
-   * account; this bounds many accounts behind one address.
-   */
   CREATE: [
     {
       name: 'create-workspace-by-ip',
