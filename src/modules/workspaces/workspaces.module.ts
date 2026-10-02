@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { WorkspaceAccessCacheService } from './cache/workspace-access.cache.js';
 import { AdminWorkspaceController } from './controllers/admin-workspace.controller.js';
 import { MyWorkspacesController } from './controllers/my-workspaces.controller.js';
 import { WorkspaceController } from './controllers/workspace.controller.js';
@@ -17,6 +18,7 @@ import { WorkspaceService } from './services/workspace.service.js';
     WorkspaceRepository,
     WorkspaceMemberRepository,
     AdminWorkspaceRepository,
+    WorkspaceAccessCacheService,
     WorkspaceService,
     AdminWorkspaceService,
   ],
