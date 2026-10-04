@@ -5,7 +5,7 @@ export {
   ApiSuccessResponse,
 } from './openapi/openapi.responses.js';
 
-export { ApiDeviceIdHeader } from './openapi/openapi.headers.js';
+export { ApiDeviceIdHeader, ApiWorkspaceIdHeader } from './openapi/openapi.headers.js';
 
 export { API_AUDIENCES } from './openapi/openapi.config.js';
 

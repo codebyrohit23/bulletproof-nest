@@ -4,8 +4,16 @@ import { MembershipStatus, type Prisma } from '@prisma/client';
 import { PrismaService, toOffsetArgs } from '#/infrastructure/database/prisma/index.js';
 import type { OffsetPaginationQuery, OffsetSlice } from '#/shared/pagination/index.js';
 
-import { MY_WORKSPACE_SELECT, SWITCHER_WORKSPACE_STATUSES } from '../constants/index.js';
-import type { MembershipAccessSnapshot, MyWorkspaceRow } from '../interfaces/index.js';
+import {
+  CURRENT_MEMBERSHIP_SELECT,
+  MY_WORKSPACE_SELECT,
+  SWITCHER_WORKSPACE_STATUSES,
+} from '../constants/index.js';
+import type {
+  CurrentMembershipRow,
+  MembershipAccessSnapshot,
+  MyWorkspaceRow,
+} from '../interfaces/index.js';
 import { toMembershipAccessSnapshot } from '../mappers/index.js';
 
 @Injectable()
@@ -35,6 +43,14 @@ export class WorkspaceMemberRepository {
     });
 
     return member === null ? null : toMembershipAccessSnapshot(member);
+  }
+
+  /** Scoped by workspace as well as id, as every tenant read is. */
+  async findCurrent(workspaceId: string, memberId: string): Promise<CurrentMembershipRow | null> {
+    return this.prisma.db.workspaceMember.findFirst({
+      where: { id: memberId, workspaceId },
+      select: CURRENT_MEMBERSHIP_SELECT,
+    });
   }
 
   async findPageForUser(

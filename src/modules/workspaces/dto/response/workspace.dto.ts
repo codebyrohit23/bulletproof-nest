@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { idSchema } from '#/shared/schemas/index.js';
 
-const workspaceSchema = z.object({
+export const workspaceSchema = z.object({
   id: idSchema,
 
   name: z.string(),

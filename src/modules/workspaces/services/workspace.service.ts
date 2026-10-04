@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { WorkspaceStatus } from '@prisma/client';
 
 import { AppLoggerService } from '#/core/logger/index.js';
@@ -18,11 +18,17 @@ import {
 } from '../constants/index.js';
 import type {
   CreateWorkspaceInput,
+  CurrentWorkspace,
   ListMyWorkspacesQuery,
   MyWorkspacePage,
   Workspace,
 } from '../dto/index.js';
-import { toCreateWorkspaceRow, toMyWorkspace, toWorkspace } from '../mappers/index.js';
+import {
+  toCreateWorkspaceRow,
+  toCurrentWorkspace,
+  toMyWorkspace,
+  toWorkspace,
+} from '../mappers/index.js';
 import { WorkspaceMemberRepository, WorkspaceRepository } from '../repositories/index.js';
 import { workspaceSlugCandidates } from '../utils/index.js';
 
@@ -73,6 +79,24 @@ export class WorkspaceService {
     }
 
     throw new ConflictException(WORKSPACE_ERROR_MESSAGE.CREATE_CONFLICT);
+  }
+
+  /**
+   * The tenant guard has already proved the membership, so a miss here means
+   * it ended in between — answered as the guard answers a non-member.
+   */
+  async getCurrentWorkspace(
+    workspaceId: string,
+    memberId: string,
+    userId: string,
+  ): Promise<CurrentWorkspace> {
+    const membership = await this.memberRepo.findCurrent(workspaceId, memberId);
+
+    if (membership === null) {
+      throw new NotFoundException(WORKSPACE_ERROR_MESSAGE.WORKSPACE_NOT_FOUND);
+    }
+
+    return toCurrentWorkspace(membership, userId);
   }
 
   async listMyWorkspaces(userId: string, query: ListMyWorkspacesQuery): Promise<MyWorkspacePage> {

@@ -83,6 +83,13 @@ export const WORKSPACE_SELECT = {
   createdAt: true,
 } as const satisfies Prisma.WorkspaceSelect;
 
+export const CURRENT_MEMBERSHIP_SELECT = {
+  id: true,
+  jobTitle: true,
+  joinedAt: true,
+  workspace: { select: WORKSPACE_SELECT },
+} as const satisfies Prisma.WorkspaceMemberSelect;
+
 export const MY_WORKSPACE_SELECT = {
   id: true,
   joinedAt: true,

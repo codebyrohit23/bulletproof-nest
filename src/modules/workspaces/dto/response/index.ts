@@ -7,6 +7,8 @@ export {
   type AdminWorkspaceSummary,
 } from './admin-workspace.dto.js';
 
+export { CurrentWorkspaceDto, type CurrentWorkspace } from './current-workspace.dto.js';
+
 export {
   MyWorkspaceDto,
   MyWorkspacePageDto,

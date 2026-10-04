@@ -2,4 +2,9 @@ export { toAdminWorkspaceDetail, toAdminWorkspaceSummary } from './admin-workspa
 
 export { toMembershipAccessSnapshot } from './workspace-access.mapper.js';
 
-export { toCreateWorkspaceRow, toMyWorkspace, toWorkspace } from './workspace.mapper.js';
+export {
+  toCreateWorkspaceRow,
+  toCurrentWorkspace,
+  toMyWorkspace,
+  toWorkspace,
+} from './workspace.mapper.js';

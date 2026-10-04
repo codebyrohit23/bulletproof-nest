@@ -1,7 +1,17 @@
 import type { WorkspaceStatus } from '@prisma/client';
 
-import type { CreateWorkspaceInput, MyWorkspace, Workspace } from '../dto/index.js';
-import type { CreateWorkspaceRow, MyWorkspaceRow, WorkspaceSnapshot } from '../interfaces/index.js';
+import type {
+  CreateWorkspaceInput,
+  CurrentWorkspace,
+  MyWorkspace,
+  Workspace,
+} from '../dto/index.js';
+import type {
+  CreateWorkspaceRow,
+  CurrentMembershipRow,
+  MyWorkspaceRow,
+  WorkspaceSnapshot,
+} from '../interfaces/index.js';
 
 /** Drops an omitted RERA number — `exactOptionalPropertyTypes` rejects an explicit `undefined`. */
 export function toCreateWorkspaceRow(
@@ -38,6 +48,20 @@ export function toWorkspace(workspace: WorkspaceSnapshot, callerUserId: string):
     isOwner: workspace.ownerUserId === callerUserId,
     onboardingCompletedAt: workspace.onboardingCompletedAt?.toISOString() ?? null,
     createdAt: workspace.createdAt.toISOString(),
+  };
+}
+
+export function toCurrentWorkspace(
+  row: CurrentMembershipRow,
+  callerUserId: string,
+): CurrentWorkspace {
+  return {
+    workspace: toWorkspace(row.workspace, callerUserId),
+    membership: {
+      id: row.id,
+      jobTitle: row.jobTitle,
+      joinedAt: row.joinedAt.toISOString(),
+    },
   };
 }
 
