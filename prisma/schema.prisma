@@ -14,17 +14,6 @@ datasource db {
 // ======================================================
 // Shared Enums
 // ======================================================
-//
-// Only enums used by more than one model live here. An enum with a single
-// owner is declared directly above that model, so its values are read beside
-// the column that stores them.
-//
-// An enum used by both a user_* and an admin_* table is shared only while
-// the two value sets are the same by nature — a lifecycle, a revoke reason.
-// When the values differ by audience, as verification purposes do, each
-// audience gets its own enum: the database then refuses a value that one
-// audience never issues, instead of TypeScript narrowing a shared type.
-
 enum VerificationCodeStatus {
   ACTIVE
   CONSUMED
@@ -64,7 +53,7 @@ enum DevicePlatform {
 }
 
 // ======================================================
-// User Model
+// User
 // ======================================================
 
 enum UserStatus {
@@ -131,7 +120,7 @@ model User {
 }
 
 // ======================================================
-// User Identity Model
+// User Identity
 // ======================================================
 
 enum IdentifierType {
@@ -168,7 +157,7 @@ model UserIdentity {
 }
 
 // ======================================================
-// User Credential Model
+// User Credential
 // ======================================================
 model UserCredential {
   userId String @id @map("user_id") @db.Uuid
@@ -187,7 +176,7 @@ model UserCredential {
 }
 
 // ======================================================
-// User Auth Account Model
+// User Auth Account
 // ======================================================
 
 enum UserAuthProvider {
@@ -217,7 +206,7 @@ model UserAuthAccount {
 }
 
 // ======================================================
-// User Session Model
+// User Session
 // ======================================================
 
 enum DeviceType {
@@ -282,7 +271,7 @@ model UserSession {
 }
 
 // ======================================================
-// User Refresh Token Model
+// User Refresh Token
 // ======================================================
 model UserRefreshToken {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
@@ -312,7 +301,7 @@ model UserRefreshToken {
 }
 
 // ======================================================
-// User Password Reset Token Model
+// User Password Reset Token
 // ======================================================
 model UserPasswordResetToken {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
@@ -337,12 +326,9 @@ model UserPasswordResetToken {
 }
 
 // ======================================================
-// User Verification Code Model
+// User Verification Code
 // ======================================================
 
-/// What a user's one-time code proves. Separate from `AdminVerificationPurpose`
-/// because the value sets differ: a user holds an email and a phone and signs
-/// in by code; an admin does neither.
 enum UserVerificationPurpose {
   EMAIL_VERIFICATION
   PHONE_VERIFICATION
@@ -350,17 +336,6 @@ enum UserVerificationPurpose {
   PASSWORD_RESET
 }
 
-/// A one-time code proving control of one identity — this email, this phone.
-///
-/// Keyed by the identity, not the user: a user may hold an email and a phone,
-/// and a code sent to one must not verify the other. Keyed by the row, not the
-/// address string: every flow that issues a code has already found the identity
-/// (registration creates it in the same transaction). Admin codes are a
-/// separate table, so a code issued here can never answer an admin flow.
-///
-/// Defined in the migration, not expressible here:
-///   user_verification_codes_active_key
-///     UNIQUE (user_identity_id, purpose) WHERE status = 'ACTIVE'
 model UserVerificationCode {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -387,7 +362,7 @@ model UserVerificationCode {
 }
 
 // ======================================================
-// User Two Factor Model
+// User Two Factor
 // ======================================================
 
 // enum UserTwoFactorMethod {
@@ -430,7 +405,7 @@ model UserVerificationCode {
 // }
 
 // ======================================================
-// User Push Token Model
+// User Push Token
 // ======================================================
 model UserPushToken {
   userId String @map("user_id") @db.Uuid
@@ -456,7 +431,7 @@ model UserPushToken {
 }
 
 // ======================================================
-// Workspace Model
+// Workspace
 // ======================================================
 enum WorkspaceStatus {
   PENDING_APPROVAL
@@ -500,7 +475,6 @@ model Workspace {
   currency String @db.Char(3)
 
   /// Real-estate registration number, as the owner entered it. Optional; what
-  /// the reviewing admin checks the workspace against.
   reraNumber String? @map("rera_number") @db.VarChar(50)
 
   onboardingCompletedAt DateTime? @map("onboarding_completed_at") @db.Timestamptz(6)
@@ -531,13 +505,15 @@ model Workspace {
 
   invitations WorkspaceInvitation[] @relation("WorkspaceToWorkspaceInvitation")
 
+  roles WorkspaceRole[] @relation("WorkspaceToWorkspaceRole")
+
   @@index([ownerUserId])
   @@index([status, createdAt])
   @@map("workspaces")
 }
 
 // ======================================================
-// Workspace Member Model
+// Workspace Member
 // ======================================================
 
 enum MembershipStatus {
@@ -587,6 +563,12 @@ model WorkspaceMember {
 
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  // Relations
+
+  roles WorkspaceMemberRole[] @relation("WorkspaceMemberToWorkspaceMemberRole")
+
+  rolesAssigned WorkspaceMemberRole[] @relation("WorkspaceMemberToWorkspaceMemberRole_AssignedBy")
+
   @@unique([workspaceId, userId])
   @@unique([workspaceId, id])
   @@index([userId, status])
@@ -595,7 +577,40 @@ model WorkspaceMember {
 }
 
 // ======================================================
-// Workspace Invitation Model
+// Workspace Member Role
+// ======================================================
+
+/// No "at least one role" rule: a member with none is valid and reaches only
+/// `@AnyMember()` routes. `MAX_ROLES_PER_MEMBER` is a service rule.
+model WorkspaceMemberRole {
+  workspaceId String @map("workspace_id") @db.Uuid
+
+  memberId String @map("member_id") @db.Uuid
+
+  member WorkspaceMember @relation("WorkspaceMemberToWorkspaceMemberRole", fields: [workspaceId, memberId], references: [workspaceId, id], onDelete: Cascade, onUpdate: Cascade)
+
+  roleId String @map("role_id") @db.Uuid
+
+  /// Single-column: a default role has no workspace to match, so the tenant
+  /// rule is the trigger above. Restrict: a role is deleted only after its
+  /// holders are reassigned.
+  role WorkspaceRole @relation("WorkspaceRoleToWorkspaceMemberRole", fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  assignedByMemberId String? @map("assigned_by_member_id") @db.Uuid
+
+  assignedBy WorkspaceMember? @relation("WorkspaceMemberToWorkspaceMemberRole_AssignedBy", fields: [assignedByMemberId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([memberId, roleId])
+  /// Leads with `role_id` for the RESTRICT check on role deletion; with
+  /// `workspace_id`, "who holds this role here".
+  @@index([roleId, workspaceId])
+  @@map("workspace_member_roles")
+}
+
+// ======================================================
+// Workspace Invitation
 // ======================================================
 
 enum InvitationStatus {
@@ -606,6 +621,8 @@ enum InvitationStatus {
   EXPIRED
 }
 
+/// Not expressible in schema.prisma, added to the migration by hand:
+///   TRIGGER workspace_invitations_role_tenant — as on workspace_member_roles
 model WorkspaceInvitation {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -619,6 +636,12 @@ model WorkspaceInvitation {
   tokenHash String @unique @map("token_hash") @db.VarChar(64)
 
   status InvitationStatus @default(PENDING)
+
+  roleId String @map("role_id") @db.Uuid
+
+  /// The one role the invitee receives on acceptance. Restrict: a role named
+  /// by a pending invitation is not deleted from under it.
+  role WorkspaceRole @relation("WorkspaceRoleToWorkspaceInvitation", fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   invitedByUserId String? @map("invited_by_user_id") @db.Uuid
 
@@ -644,7 +667,102 @@ model WorkspaceInvitation {
 
   @@index([email, status])
   @@index([workspaceId, status, createdAt(sort: Desc)])
+  /// Serves the RESTRICT check on role deletion.
+  @@index([roleId])
   @@map("workspace_invitations")
+}
+
+// ======================================================
+// Workspace Permission
+// ======================================================
+model WorkspacePermission {
+  /// `<resource>.<action>`, e.g. `member.invite`.
+  key String @id @db.VarChar(100)
+
+  resource String @db.VarChar(50)
+
+  action String @db.VarChar(50)
+
+  name String @db.VarChar(150)
+
+  description String @db.VarChar(500)
+
+  /// Held only by the workspace owner and never grantable to any role, system
+  /// or custom — archiving the workspace, transferring ownership. A role that
+  /// could be granted these could be handed to anyone, and ownership would be
+  /// a pointer with no power behind it.
+  restricted Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+
+  rolePermissions WorkspaceRolePermission[] @relation("WorkspacePermissionToWorkspaceRolePermission")
+
+  @@unique([resource, action])
+  @@map("workspace_permissions")
+}
+
+// ======================================================
+// Workspace Role
+// ======================================================
+model WorkspaceRole {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  /// Null for a default role.
+  workspaceId String? @map("workspace_id") @db.Uuid
+
+  workspace Workspace? @relation("WorkspaceToWorkspaceRole", fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  /// `admin` · `manager` · `agent` — default roles only. What the catalogue's
+  /// `defaultFor` names, and what code compares; never the display name.
+  key String? @unique @db.VarChar(50)
+
+  name String @db.VarChar(100)
+
+  description String? @db.VarChar(500)
+
+  isSystem Boolean @default(false) @map("is_system")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+
+  permissions WorkspaceRolePermission[] @relation("WorkspaceRoleToWorkspaceRolePermission")
+
+  memberRoles WorkspaceMemberRole[] @relation("WorkspaceRoleToWorkspaceMemberRole")
+
+  invitations WorkspaceInvitation[] @relation("WorkspaceRoleToWorkspaceInvitation")
+
+  @@index([workspaceId])
+  @@map("workspace_roles")
+}
+
+// ======================================================
+// Workspace Role Permission
+// ======================================================
+model WorkspaceRolePermission {
+  roleId String @map("role_id") @db.Uuid
+
+  role WorkspaceRole @relation("WorkspaceRoleToWorkspaceRolePermission", fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  permissionKey String @map("permission_key") @db.VarChar(100)
+
+  /// Restrict: the seeder never deletes a permission, and a migration that
+  /// does must take its grants with it, knowingly.
+  permission WorkspacePermission @relation("WorkspacePermissionToWorkspaceRolePermission", fields: [permissionKey], references: [key], onDelete: Restrict, onUpdate: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([roleId, permissionKey])
+  /// Serves the RESTRICT check when a permission row is removed, and the
+  /// seeder's per-permission sync.
+  @@index([permissionKey])
+  @@map("workspace_role_permissions")
 }
 
 // ======================================================
@@ -669,6 +787,8 @@ model Admin {
   displayName String @map("display_name") @db.VarChar(150)
 
   status AdminStatus @default(ACTIVE)
+
+  isSuperAdmin Boolean @default(false) @map("is_super_admin")
 
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(6)
 
@@ -696,8 +816,112 @@ model Admin {
 
   reviewedWorkspaces Workspace[] @relation("AdminToWorkspace_ReviewedBy")
 
+  roles AdminUserRole[] @relation("AdminToAdminUserRole")
+
+  rolesAssigned AdminUserRole[] @relation("AdminToAdminUserRole_AssignedBy")
+
   @@index([status])
   @@map("admins")
+}
+
+// ======================================================
+// Admin Permission
+// ======================================================
+
+model AdminPermission {
+  /// `<resource>.<action>`, e.g. `workspace.review`.
+  key String @id @db.VarChar(100)
+
+  resource String @db.VarChar(50)
+
+  action String @db.VarChar(50)
+
+  name String @db.VarChar(150)
+
+  description String @db.VarChar(500)
+
+  restricted Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+
+  rolePermissions AdminRolePermission[] @relation("AdminPermissionToAdminRolePermission")
+
+  @@unique([resource, action])
+  @@map("admin_permissions")
+}
+
+// ======================================================
+// Admin Role
+// ======================================================
+
+/// Not expressible in schema.prisma, added to the migration by hand:
+///   UNIQUE (lower(name))
+model AdminRole {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  name String @db.VarChar(100)
+
+  description String? @db.VarChar(500)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+
+  permissions AdminRolePermission[] @relation("AdminRoleToAdminRolePermission")
+
+  userRoles AdminUserRole[] @relation("AdminRoleToAdminUserRole")
+
+  @@map("admin_roles")
+}
+
+model AdminRolePermission {
+  roleId String @map("role_id") @db.Uuid
+
+  role AdminRole @relation("AdminRoleToAdminRolePermission", fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  permissionKey String @map("permission_key") @db.VarChar(100)
+
+  /// Restrict, as for workspace grants.
+  permission AdminPermission @relation("AdminPermissionToAdminRolePermission", fields: [permissionKey], references: [key], onDelete: Restrict, onUpdate: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([roleId, permissionKey])
+  @@index([permissionKey])
+  @@map("admin_role_permissions")
+}
+
+// ======================================================
+// Admin User Role
+// ======================================================
+
+/// One role held by one admin. Many-to-many, as for members; an admin with no
+/// role and no super-admin flag reaches only `@AnyAdmin()` routes.
+model AdminUserRole {
+  adminId String @map("admin_id") @db.Uuid
+
+  admin Admin @relation("AdminToAdminUserRole", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  roleId String @map("role_id") @db.Uuid
+
+  /// Restrict: a role is deleted only after its holders are reassigned.
+  role AdminRole @relation("AdminRoleToAdminUserRole", fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  assignedByAdminId String? @map("assigned_by_admin_id") @db.Uuid
+
+  assignedBy Admin? @relation("AdminToAdminUserRole_AssignedBy", fields: [assignedByAdminId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([adminId, roleId])
+  @@index([roleId])
+  @@map("admin_user_roles")
 }
 
 // ======================================================
@@ -828,7 +1052,7 @@ model AdminPasswordResetToken {
 }
 
 // ======================================================
-// Admin Verification Code Model
+// Admin Verification Code
 // ======================================================
 
 enum AdminVerificationPurpose {
@@ -861,7 +1085,7 @@ model AdminVerificationCode {
 }
 
 // ======================================================
-// Outbox Message Model
+// Outbox Message
 // ======================================================
 
 enum OutboxStatus {
@@ -911,7 +1135,7 @@ model OutboxMessage {
 }
 
 // ======================================================
-// Outbound Message Model
+// Outbound Message
 // ======================================================
 
 enum MessageChannel {

@@ -145,7 +145,9 @@ global for the reason `AuthModule` is — a module importing the plain class wou
 get a second copy with no recorder behind it.
 
 Existing ports: `UserSessionValidator`, `AdminSessionValidator`,
-`MessageRecorder`, `CacheStore`, `RateLimitStore`, `EmailTransport`.
+`WorkspaceAccessResolver`, `WorkspacePermissionResolver`,
+`AdminPermissionResolver`, `MessageRecorder`, `Seeder`, `CacheStore`,
+`RateLimitStore`, `EmailTransport`.
 
 ---
 
@@ -251,8 +253,10 @@ declaration. `API_AUDIENCE` lives in `shared/constants/` because `core/auth`
 dispatches on it and `core/documentation` slices the two OpenAPI documents by
 it, and the two must not be able to disagree.
 
-**One global guard.** `ApiAuthGuard` is the only `APP_GUARD`. It resolves the
-audience, does everything common — `@Public()`, the bearer token, the device id,
+**One authentication guard.** `ApiAuthGuard` is the only guard that reads a
+credential; the others in the chain (`CsrfGuard`, `RateLimitGuard`,
+`WorkspaceGuard`, `PermissionGuard`) each answer one other question. It
+resolves the audience, does everything common — `@Public()`, the bearer token, the device id,
 the refusal — then delegates to `UserAuthenticator` or `AdminAuthenticator`,
 which differ in exactly three things: which audience they verify against, which
 session table, which identity field. The dispatch table is typed
@@ -293,9 +297,91 @@ required-ness means no call site can obtain a payload whose audience nobody
 checked. Choosing the audience is `core/auth`'s job and happens once per
 authenticator.
 
-Authentication is global; **authorization is per route** — a permission
-decorator that is missing leaves a route authenticated-but-unrestricted, which
-is a visible state rather than a hole. That is where `core/permissions` lands.
+---
+
+## Permissions
+
+Two planes, each a code catalogue, a set of roles and one resolver. The model
+below was settled after several designs were tried and rejected; the reasons
+are recorded here because there is no other record of them.
+
+`modules/workspace-roles/API.md` and the RBAC markers in
+`modules/workspaces/API.md` predate this model — they describe system roles as
+an enum and an `ownerOnly` flag. They are rewritten with the roles routes;
+until then this section wins.
+
+**Two catalogues, branded keys.** `WORKSPACE_PERMISSION` for members,
+`ADMIN_PERMISSION` for platform staff, in `core/permissions/catalogue/`. Each
+is a nested literal; the builder derives the key tree, a key type **branded
+with its plane**, the entry list, the restricted set and each default role's
+set. The brand is why `@RequireAdminPermission(WORKSPACE_PERMISSION.workspace.read)`
+does not compile although both planes spell that key the same way. Never
+write a key as a string literal. Keys are `<resource>.<action>` — a dot,
+because BullMQ rejects `:` in a job id and cache keys use it as a separator.
+
+**The apex holds no role.** A workspace's owner is `workspaces.owner_user_id`
+and an admin's apex is `admins.is_super_admin`; the resolver grants either the
+whole catalogue. So a new permission is the owner's at deploy, and no edit to
+any role can lock a workspace or the platform out of itself. There is no Owner
+role, no `OwnerGuard` and no `@OwnerOnly()` — a second authorization primitive
+would be a second thing to forget and a fact the client could not read from
+`permissions[]`.
+
+**`restricted` keys belong to the apex alone.** Archiving a workspace and
+transferring ownership; creating admins, assigning admin roles and defining
+them. No role — default or custom — can hold one: the builder refuses a
+restricted key with a `defaultFor`, and the role services refuse to grant one.
+"Owner only" is therefore a property of the key, checked by the one guard.
+
+**Default roles are global and managed.** Admin, Manager and Agent are rows in
+`workspace_roles` with `workspace_id NULL`, a `key` and `is_system` — one row
+each, shared by every workspace, under fixed ids that code refers to. No
+workspace can edit or delete them; a workspace that wants different
+permissions clones one into a custom role. Their grants are exactly the keys
+whose `defaultFor` names them, and the `REFERENCE` seeder syncs them to that
+set on every deploy — adding and removing, which is safe because nothing else
+writes those rows. So "add a permission and name it in `defaultFor`" is what
+grants it in every workspace, at once, touching three rows.
+
+Per-workspace copies of the defaults were built and rejected: once defaults
+are not editable, a copy per workspace is the same three rows N times, and
+every new permission becomes a write across all of them.
+
+**Custom roles belong to one workspace** and are the customer's: they start
+empty, never receive a permission automatically, and the seeder never touches
+them. The admin plane has custom roles only; the platform team defines its own.
+
+**Members hold any number of roles; the permissions are their union.**
+`workspace_member_roles`, capped by `MAX_ROLES_PER_MEMBER`; a member with none
+reaches only `@AnyMember()` routes. An invitation names one role, given on
+acceptance. A role reference cannot be a composite foreign key — a default
+role has no workspace — so a trigger checks that the role is a default one or
+the row's own workspace's, and another forbids a role from changing workspace.
+
+**Every route carries exactly one marker, or the process does not start.**
+Tenant routes: `@RequirePermission(key)` or `@AnyMember()`. Admin routes:
+`@RequireAdminPermission(key)` or `@AnyAdmin()`. Caller-only user routes:
+`@NoWorkspace()`. `RouteAuthorizationAudit` walks every controller at
+bootstrap and throws on a route with no marker, two, or one from the other
+plane; `PermissionGuard` applies the same rule at runtime as a belt. The
+`compile()`-only e2e test does not run the audit — boot the app to see it.
+
+**No escalation.** Assigning roles, or defining a custom role's permissions,
+requires the target set to be a subset of the caller's. One check, in the
+role service, used by invitations, member role changes and the role editor.
+
+**One resolver, two callers.** `PermissionGuard` and the access endpoints
+(`GET /workspace/access`, `GET /admin/me/access`) call the same resolver, so
+the UI and the API cannot disagree. Role grants are cached per role — three
+global keys cover every default role on the platform. Every set from the
+database goes through `catalogue.narrow()`, so a key this build does not
+define authorizes nothing.
+
+**Clients decide on `permissions[]`**, a flat sorted list from the access
+endpoints, whose OpenAPI `enum` is the catalogue — a frontend generates its
+constants from it. `isOwner`, `isSuperAdmin` and the roles are for display.
+`GET /workspace/permissions` and `GET /admin/permissions` give a role editor
+names, resources and the restricted flag.
 
 ---
 
@@ -530,8 +616,7 @@ directory when you write the first file in it, not before.
 
 | Area                                | Build it when                                                       | Notes                                                                                                                                                                                                                                                                                                                                                                                              |
 | ----------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `core/events/`                      | a second consumer needs to react to something a module already does | `@nestjs/event-emitter` is not a dependency yet. `JobDispatcher` and its outbox already cover "do X after this write commits", durably, which is what most of the demand looks like — reach for events when one write needs _several_ independent reactions. Domain events are modelled in `docs/phase-2-domain-model/06-domain-events.md`.                                                        |
-| `core/permissions/`                 | with the workspace/membership schema                                | RBAC per ADR-002. Needs `permissions`, `organization_roles` and `role_permissions` tables first; a permission guard with nothing to resolve against is not testable. Resolution should cache through `CacheService`.                                                                                                                                                                               |
+| `core/events/`                      | a second consumer needs to react to something a module already does | `@nestjs/event-emitter` is not a dependency yet. `JobDispatcher` and its outbox already cover "do X after this write commits", durably, which is what most of the demand looks like — reach for events when one write needs _several_ independent reactions.                                                                                                                                       |
 | `infrastructure/communication/sms/` | phone verification ships                                            | Mirrors `infrastructure/communication/email/`: an `SmsTransport` abstract class, a provider adapter, and a log adapter for local development. The schema already supports it (`IdentifierType.PHONE`, `UserVerificationPurpose.PHONE_VERIFICATION`) but no flow sends a code by SMS. Note the queue is named `email`, not `mail` — a separate SMS queue is a workload-class decision to make then. |
 | `shared/decorators/`                | a decorator is needed by two layers                                 | Nothing is shared yet. Context decorators live in `core/context/decorators/`, rate limiting in `core/rate-limit/decorators/`, CSRF in `core/csrf/decorators/` — each with the subsystem that gives it meaning, which is where they should stay unless a genuinely generic one appears.                                                                                                             |
 
@@ -553,12 +638,14 @@ their domain joins the blocklist.
 
 ## Decisions
 
-Architecture decisions are recorded in `docs/adr/`:
+There is no `docs/` folder. It held design drafts written before any code
+existed, by a different team, and was removed once the code had moved past
+them. A decision lives where it applies: this file for the rules that cross
+modules, a module's `API.md` — written before its code — for that module's
+contract, and a comment for why a line is the way it is.
 
-- ADR-001 — multi-organization membership
-- ADR-002 — RBAC model
-- ADR-003 — CSRF strategy
-
-Product and domain modelling is in `docs/phase-*/`. Note that these describe the
-intended system: multi-tenancy, RBAC and the CRM domain are **designed but not
-yet built**. The schema today covers identity only.
+Two decisions that had records of their own: a user is a global identity who
+may belong to several workspaces, through membership (`modules/workspaces`);
+and CSRF protection covers only the refresh cookie, because every other route
+authenticates with a bearer header no browser attaches by itself
+(`core/csrf`).

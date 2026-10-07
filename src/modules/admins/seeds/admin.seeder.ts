@@ -48,10 +48,12 @@ export class AdminSeeder extends Seeder {
 
       const name = this.seedConfig.adminName;
 
+      /* The first admin is the one who creates the others, so a super admin by definition. */
       const admin = await this.adminService.createAdmin({
         email,
         firstName: name,
         displayName: name,
+        isSuperAdmin: true,
       });
 
       return {

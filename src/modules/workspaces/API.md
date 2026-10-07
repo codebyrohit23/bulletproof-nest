@@ -5,9 +5,10 @@ invitations. Written before the code; the schema is in `prisma/schema.prisma`
 (`Workspace`, `WorkspaceMember`, `WorkspaceInvitation`) and its model comments
 carry the reasons for each table's shape.
 
-Roles and permissions are **not** part of this contract. Where RBAC plugs in,
-the text says so; until then every active member may call every workspace
-route, and the owner-only routes check `workspaces.owner_user_id`.
+Roles and permissions are decided in `docs/adr/ADR-004-rbac-implementation.md`
+and specified in `modules/workspace-roles/API.md`. This file names the
+permission each route requires, and specifies the two role-bearing rows this
+module owns: the role on a member and the role on an invitation.
 
 ---
 
@@ -16,9 +17,11 @@ route, and the owner-only routes check `workspaces.owner_user_id`.
 A user is a global identity with zero or more workspaces. A workspace is the
 tenant: every business row carries its id. Membership is one row per
 `(workspace, user)` for life — it changes status, it is never deleted.
-Ownership is a pointer on the workspace, not a role, so a workspace has
-exactly one owner by construction. Registration does not create a workspace:
-a user who arrives by invitation must not be left holding an empty one.
+Ownership is a pointer on the workspace, `owner_user_id`, and the owner's
+member row carries `system_role = OWNER`; the transfer updates both in one
+transaction, and a partial unique index allows one `OWNER` row per workspace.
+Registration does not create a workspace: a user who arrives by invitation
+must not be left holding an empty one.
 
 ---
 
@@ -32,18 +35,25 @@ workspaces, and a removed member would keep access until the token expired.
 The header is never trusted. `WorkspaceGuard` (`core/tenancy`, registered after
 `ApiAuthGuard`) resolves it on every request:
 
-1. header present and a valid id — else `400 WORKSPACE_REQUIRED`
-2. membership `(workspace, user)` exists and is `ACTIVE`, and the workspace is
-   `ACTIVE` — else `404 WORKSPACE_NOT_FOUND` (a non-member learns nothing about
-   whether the workspace exists)
-3. sets `workspaceId` and `memberId` in the request context — from here
-   `CacheService.tenantKey()`, tenant rate limits, the logger and dispatched
-   jobs all see the tenant
+1. header present — else `400 WORKSPACE_REQUIRED`; malformed — `422`
+2. a membership `(workspace, user)` exists and is neither `LEFT` nor
+   `REMOVED` — else `404 WORKSPACE_NOT_FOUND`: a non-member and a former
+   member learn nothing about whether the workspace exists
+3. the membership is `ACTIVE` — else `403 MEMBERSHIP_SUSPENDED`
+4. the workspace is `ACTIVE` — else `403` with the reason
+   (`WORKSPACE_PENDING_APPROVAL`, `WORKSPACE_REJECTED`, `WORKSPACE_SUSPENDED`,
+   `WORKSPACE_ARCHIVED`): a member knows the workspace exists and needs to
+   know why it stopped working
+5. sets `workspaceId` and `memberId` in the request context — from here
+   `CacheService.key()`, the logger and dispatched jobs all see the tenant
 
-The lookup is cached per `(workspace, user)` through `CacheService` with a
-short TTL, and **invalidated explicitly** by every membership or workspace
-status change, so removal locks a member out immediately rather than after
-the TTL.
+Two cache entries, because they change apart: the workspace's status, one
+key shared by every member, and the membership — `memberId`, `status`,
+`systemRole`, `customRoleId` — one key per `(workspace, user)`. Both are
+**invalidated explicitly** by every status or role change, so removal locks a
+member out on their next request rather than when a TTL expires. The
+membership entry carries the role so that `PermissionGuard`, which runs next,
+resolves permissions without another read — see `modules/workspace-roles/API.md`.
 
 `core/tenancy` cannot import this module, so it declares a
 `WorkspaceAccessResolver` port; this module provides it with `useExisting`
@@ -54,6 +64,12 @@ marked `@NoWorkspace()` (or `@Public()`). A forgotten marker fails the first
 call with a visible 400; the opposite default would let a tenant route run
 with no tenant. Admin routes never read the header — an admin addresses a
 workspace by path.
+
+**Then authorized, by default.** Every tenant route carries
+`@RequirePermission(key)` or `@AnyMember()`; every admin route
+`@RequireAdminPermission(key)` or `@AnyAdmin()`. A route with neither does not
+start the process (`RouteAuthorizationAudit`). A caller whose role lacks the
+key gets `403 PERMISSION_DENIED`.
 
 ---
 
@@ -71,35 +87,42 @@ workspace by path.
 
 ## Routes
 
-Marker legend: **P** `@Public()` · **N** `@NoWorkspace()` · **W** needs
-`x-workspace-id` · **O** owner only.
+Marker legend: **P** `@Public()` · **N** `@NoWorkspace()` · **M**
+`@AnyMember()` · **A** `@AnyAdmin()` · a key is `@RequirePermission(key)` on a
+tenant route and `@RequireAdminPermission(key)` on an admin one. Every tenant
+route needs `x-workspace-id`.
 
-| Method | Path                                    | Marker | Purpose                          |
-| ------ | --------------------------------------- | ------ | -------------------------------- |
-| POST   | `/workspaces`                           | N      | Create a workspace               |
-| GET    | `/users/me/workspaces`                  | N      | Switcher: my workspaces          |
-| GET    | `/workspace`                            | W      | Current workspace, full view     |
-| PATCH  | `/workspace`                            | W      | Update settings                  |
-| POST   | `/workspace/archive`                    | W O    | Archive                          |
-| POST   | `/workspace/ownership-transfer`         | W O    | Transfer ownership               |
-| GET    | `/workspace/members`                    | W      | List members                     |
-| GET    | `/workspace/members/:id`                | W      | One member                       |
-| PATCH  | `/workspace/members/:id`                | W      | Job title, suspend / reactivate  |
-| DELETE | `/workspace/members/:id`                | W      | Remove a member                  |
-| POST   | `/workspace/leave`                      | W      | Leave                            |
-| POST   | `/workspace/invitations`                | W      | Invite (or resend)               |
-| GET    | `/workspace/invitations`                | W      | List invitations                 |
-| DELETE | `/workspace/invitations/:id`            | W      | Revoke                           |
-| GET    | `/users/me/invitations`                 | N      | Pending invitations for me       |
-| GET    | `/workspace-invitations/preview?token=` | P      | What a link is for, before login |
-| POST   | `/workspace-invitations/accept`         | N      | Accept                           |
-| POST   | `/workspace-invitations/:id/decline`    | N      | Decline                          |
-| GET    | `/admin/workspaces`                     | admin  | Platform list                    |
-| GET    | `/admin/workspaces/:id`                 | admin  | Platform view                    |
-| POST   | `/admin/workspaces/:id/suspend`         | admin  | Suspend                          |
-| POST   | `/admin/workspaces/:id/reactivate`      | admin  | Lift a suspension                |
+| Method | Path                                    | Marker                        | Purpose                          |
+| ------ | --------------------------------------- | ----------------------------- | -------------------------------- |
+| POST   | `/workspaces`                           | N                             | Create a workspace               |
+| GET    | `/users/me/workspaces`                  | N                             | Switcher: my workspaces          |
+| GET    | `/workspace`                            | M                             | Current workspace, full view     |
+| PATCH  | `/workspace`                            | `workspace.update`            | Update settings                  |
+| POST   | `/workspace/archive`                    | `workspace.archive`           | Archive — owner only             |
+| POST   | `/workspace/ownership-transfer`         | `workspace.transferOwnership` | Transfer ownership — owner only  |
+| GET    | `/workspace/members`                    | `member.read`                 | List members                     |
+| GET    | `/workspace/members/:id`                | `member.read`                 | One member                       |
+| PATCH  | `/workspace/members/:id`                | `member.update`               | Job title, suspend / reactivate  |
+| PATCH  | `/workspace/members/:id/role`           | `member.changeRole`           | Assign a role                    |
+| DELETE | `/workspace/members/:id`                | `member.remove`               | Remove a member                  |
+| POST   | `/workspace/leave`                      | M                             | Leave                            |
+| POST   | `/workspace/invitations`                | `invitation.create`           | Invite (or resend)               |
+| GET    | `/workspace/invitations`                | `invitation.read`             | List invitations                 |
+| DELETE | `/workspace/invitations/:id`            | `invitation.revoke`           | Revoke                           |
+| GET    | `/users/me/invitations`                 | N                             | Pending invitations for me       |
+| GET    | `/workspace-invitations/preview?token=` | P                             | What a link is for, before login |
+| POST   | `/workspace-invitations/accept`         | N                             | Accept                           |
+| POST   | `/workspace-invitations/:id/decline`    | N                             | Decline                          |
+| GET    | `/admin/workspaces`                     | `workspace.read` (admin)      | Platform list                    |
+| GET    | `/admin/workspaces/:id`                 | `workspace.read` (admin)      | Platform view                    |
+| POST   | `/admin/workspaces/:id/approve`         | `workspace.review` (admin)    | Approve a pending workspace      |
+| POST   | `/admin/workspaces/:id/reject`          | `workspace.review` (admin)    | Reject a pending workspace       |
+| POST   | `/admin/workspaces/:id/suspend`         | `workspace.suspend` (admin)   | Suspend                          |
+| POST   | `/admin/workspaces/:id/reactivate`      | `workspace.suspend` (admin)   | Lift a suspension                |
 
 `/workspace` is singular because the header has already said which one.
+"Owner only" is not a guard: the two keys are `ownerOnly` in the catalogue, so
+only the `OWNER` system role holds them and no custom role can be granted them.
 
 ---
 
@@ -118,8 +141,9 @@ Marker legend: **P** `@Public()` · **N** `@NoWorkspace()` · **W** needs
 ```
 
 One transaction: insert the workspace with `owner_user_id = me`, insert my
-membership `ACTIVE`, [RBAC: seed the default roles and give me Owner]. The
-deferred owner foreign key is checked at commit, so the order inside is free.
+membership `ACTIVE` with `system_role = OWNER`. Nothing else: system roles
+have no rows, so there is nothing to seed per workspace. The deferred owner
+foreign key is checked at commit, so the order inside is free.
 
 - `201` → the same body as `GET /workspace`
 - `409 WORKSPACE_SLUG_TAKEN` — an explicit slug in use. A derived slug never
@@ -177,13 +201,19 @@ The one call a client makes after choosing a workspace.
     "jobTitle": null,
     "joinedAt": "…",
     "isOwner": true,
+    "role": { "kind": "system", "key": "OWNER", "name": "Owner" },
   },
+  "permissions": ["workspace.update", "member.read", "…"],
   "counts": { "activeMembers": 4, "pendingInvitations": 1 },
-  // RBAC adds:     "roles": […], "permissions": […]
   // Billing adds:  "subscription": { "plan": …, "status": …, "trialEndsAt": … },
   //                "limits": { "members": { "used": 4, "max": 10 } }
 }
 ```
+
+`permissions` is the caller's resolved set — the same set the guard checks —
+and is what a client decides on: hide what is not in it, refetch on a `403`.
+`role` is for display. In the OpenAPI document `permissions` is an enum of the
+catalogue's keys, so a generated client gets a union type.
 
 Touches `last_accessed_at`, throttled (at most once per
 `MEMBER_ACCESS_TOUCH_INTERVAL`), so the switcher order is cheap to keep.
@@ -192,9 +222,9 @@ Touches `last_accessed_at`, throttled (at most once per
 
 Any of `name`, `slug`, `logoFileId`, `businessType`, `countryCode`, `timezone`,
 `currency`; `onboardingCompleted: true` stamps `onboarding_completed_at` once.
-[RBAC: `workspace.settings.update`.] `409 WORKSPACE_SLUG_TAKEN`.
+`409 WORKSPACE_SLUG_TAKEN`.
 
-### POST `/workspace/archive` — owner
+### POST `/workspace/archive` — owner only
 
 Sets `ARCHIVED` + `archived_at`; invalidates every membership cache entry for
 the workspace. Pending invitations are revoked in the same transaction.
@@ -202,15 +232,18 @@ Restore and permanent deletion are later work, and deletion will be a batched
 job — a single cascading delete across a tenant's leads is not a transaction
 to run in a request.
 
-### POST `/workspace/ownership-transfer` — owner
+### POST `/workspace/ownership-transfer` — owner only
 
 ```jsonc
 { "memberId": "…" }
 ```
 
-Target must be an `ACTIVE` member other than me. Updates `owner_user_id`;
-[RBAC: moves the Owner role]. The previous owner stays a member.
-`422 MEMBER_NOT_ACTIVE`, `422 ALREADY_OWNER`.
+Target must be an `ACTIVE` member other than me. One transaction: the target
+becomes `system_role = OWNER` (whatever role they held is dropped), I become
+`system_role = ADMIN`, then `owner_user_id` moves — in that order, because the
+partial unique index allows one `OWNER` row at a time. After commit, both
+membership cache keys are deleted. `422 MEMBER_NOT_ACTIVE`,
+`422 ALREADY_OWNER`.
 
 ### GET `/workspace/members`
 
@@ -222,9 +255,14 @@ Target must be an `ACTIVE` member other than me. Updates `owner_user_id`;
 { "items": [
   { "id": "…", "userId": "…", "displayName": "…", "email": "…",
     "avatarUrl": null, "jobTitle": null, "status": "ACTIVE",
-    "isOwner": false, "joinedAt": "…", "lastAccessedAt": "…" }
+    "isOwner": false,
+    "role": { "kind": "custom", "id": "…", "name": "Senior Broker" },
+    "joinedAt": "…", "lastAccessedAt": "…" }
 ], "pagination": { … } }
 ```
+
+A `role` filter (`systemRole` or `customRoleId`) joins `status`, `search` and
+`sortBy` when the role editor needs "who holds this role".
 
 ### PATCH `/workspace/members/:id`
 
@@ -234,7 +272,23 @@ Target must be an `ACTIVE` member other than me. Updates `owner_user_id`;
 
 The owner cannot be suspended, and nobody changes their own status.
 Invalidates that member's access cache. `422 CANNOT_MODIFY_OWNER`,
-`422 CANNOT_MODIFY_SELF`, `404 MEMBER_NOT_FOUND`.
+`422 CANNOT_MODIFY_SELF`, `404 MEMBER_NOT_FOUND`. The role is not here: it is
+a different permission and a different route.
+
+### PATCH `/workspace/members/:id/role`
+
+```jsonc
+{ "role": { "systemRole": "MANAGER" } } // or { "customRoleId": "…" }
+```
+
+The owner's role is not changed here (`422 CANNOT_MODIFY_OWNER` — transfer
+ownership instead), nobody changes their own (`422 CANNOT_MODIFY_SELF`), and
+`OWNER` is never a target (`422 ROLE_NOT_ASSIGNABLE`). The role must be
+within the caller's own permissions (`403 ROLE_EXCEEDS_CALLER`), so a Manager
+cannot promote anyone to Admin. A custom role id from another workspace is
+`404 ROLE_NOT_FOUND`. Invalidates that member's membership cache after
+commit; their next request runs with the new role. `200` → the member as in
+the list.
 
 ### DELETE `/workspace/members/:id` — remove
 
@@ -250,9 +304,13 @@ Status `LEFT`. `422 OWNER_CANNOT_LEAVE` — transfer first. `204`.
 ### POST `/workspace/invitations` — invite or resend
 
 ```jsonc
-{ "email": "priya@example.com" }
-// RBAC adds: "roleId": "…"
+{ "email": "priya@example.com", "role": { "systemRole": "AGENT" } }
 ```
+
+`role` is optional and defaults to `{ "systemRole": "AGENT" }`. It follows
+the rules of `PATCH /workspace/members/:id/role`: never `OWNER`, within the
+inviter's own permissions, a custom role of this workspace. A resend keeps the
+role the invitation already has.
 
 - The address belongs to an `ACTIVE` or `SUSPENDED` member → `409 ALREADY_MEMBER`.
   A `LEFT` or `REMOVED` member may be invited back.
@@ -276,6 +334,7 @@ the seat limit here.]
   "id": "…",
   "email": "priya@example.com",
   "status": "PENDING",
+  "role": { "kind": "system", "key": "AGENT", "name": "Agent" },
   "invitedBy": { "userId": "…", "displayName": "…" },
   "sendCount": 1,
   "lastSentAt": "…",
@@ -340,7 +399,9 @@ One transaction:
 2. membership upsert: none → insert `ACTIVE`; `LEFT` / `REMOVED` → back to
    `ACTIVE`, `ended_at` cleared, `joined_at` reset; `SUSPENDED` →
    `409 MEMBER_SUSPENDED`; `ACTIVE` → nothing to do.
-3. [RBAC: assign the invitation's role.]
+3. the member row takes the invitation's role — on a rejoin as well, so the
+   role a former member held is replaced by the one they were invited back
+   with.
 
 Idempotent: accepting an invitation I already accepted returns `200` with the
 workspace. Workspace not `ACTIVE` → `422 WORKSPACE_NOT_ACTIVE`.
@@ -356,34 +417,43 @@ Same email rule as accept. `PENDING` → `DECLINED`. `204`.
 ### Admin routes
 
 Under `admin/`, so the admin audience by path. List and view any workspace
-(with owner and member count); suspend and reactivate. Suspension sets
-`SUSPENDED` + `suspended_at` and invalidates every membership cache entry for
-the workspace, so its members are locked out on their next request.
-[Admin permissions arrive with admin RBAC.]
+(with owner and member count): `ADMIN_PERMISSION.workspace.read`. Approve or
+reject a pending one: `workspace.review`. Suspend and reactivate:
+`workspace.suspend`, which arrives with those routes. Suspension sets
+`SUSPENDED` + `suspended_at` and deletes the workspace's one status cache key,
+so its members are locked out on their next request.
 
 ---
 
 ## Errors
 
-| Code                        | HTTP | When                                                        |
-| --------------------------- | ---- | ----------------------------------------------------------- |
-| `WORKSPACE_REQUIRED`        | 400  | Tenant route without `x-workspace-id`                       |
-| `WORKSPACE_NOT_FOUND`       | 404  | Not a member, not active, or no such workspace — one answer |
-| `WORKSPACE_SLUG_TAKEN`      | 409  | Explicit slug in use                                        |
-| `WORKSPACE_LIMIT_REACHED`   | 422  | Owned-workspace cap                                         |
-| `WORKSPACE_NOT_ACTIVE`      | 422  | Accepting into a suspended or archived workspace            |
-| `NOT_WORKSPACE_OWNER`       | 403  | Owner-only route                                            |
-| `MEMBER_NOT_FOUND`          | 404  | No such member in this workspace                            |
-| `MEMBER_NOT_ACTIVE`         | 422  | Transfer target not active                                  |
-| `MEMBER_SUSPENDED`          | 409  | Accepting while suspended in that workspace                 |
-| `ALREADY_MEMBER`            | 409  | Inviting an active or suspended member                      |
-| `ALREADY_OWNER`             | 422  | Transferring to the current owner                           |
-| `OWNER_CANNOT_LEAVE`        | 422  | Owner leaving without transferring                          |
-| `CANNOT_MODIFY_OWNER`       | 422  | Suspending or removing the owner                            |
-| `CANNOT_MODIFY_SELF`        | 422  | Suspending or removing yourself                             |
-| `INVITATION_NOT_FOUND`      | 404  | Unknown, expired, or other workspace's invitation           |
-| `INVITATION_NOT_PENDING`    | 409  | Revoking a resolved invitation                              |
-| `INVITATION_EMAIL_MISMATCH` | 403  | Accept/decline without a matching verified email            |
+| Code                         | HTTP | When                                                |
+| ---------------------------- | ---- | --------------------------------------------------- |
+| `WORKSPACE_REQUIRED`         | 400  | Tenant route without `x-workspace-id`               |
+| `WORKSPACE_NOT_FOUND`        | 404  | Not a member, a former member, or no such workspace |
+| `MEMBERSHIP_SUSPENDED`       | 403  | A member whose membership is `SUSPENDED`            |
+| `WORKSPACE_PENDING_APPROVAL` | 403  | A member of a workspace not yet reviewed            |
+| `WORKSPACE_REJECTED`         | 403  | A member of a rejected workspace                    |
+| `WORKSPACE_SUSPENDED`        | 403  | A member of a suspended workspace                   |
+| `WORKSPACE_ARCHIVED`         | 403  | A member of an archived workspace                   |
+| `PERMISSION_DENIED`          | 403  | The caller's role lacks the route's key             |
+| `ROLE_EXCEEDS_CALLER`        | 403  | Assigning a role with more than the caller holds    |
+| `ROLE_NOT_ASSIGNABLE`        | 422  | `OWNER` as a target                                 |
+| `ROLE_NOT_FOUND`             | 404  | Custom role id not of this workspace                |
+| `WORKSPACE_SLUG_TAKEN`       | 409  | Explicit slug in use                                |
+| `WORKSPACE_LIMIT_REACHED`    | 422  | Owned-workspace cap                                 |
+| `WORKSPACE_NOT_ACTIVE`       | 422  | Accepting into a suspended or archived workspace    |
+| `MEMBER_NOT_FOUND`           | 404  | No such member in this workspace                    |
+| `MEMBER_NOT_ACTIVE`          | 422  | Transfer target not active                          |
+| `MEMBER_SUSPENDED`           | 409  | Accepting while suspended in that workspace         |
+| `ALREADY_MEMBER`             | 409  | Inviting an active or suspended member              |
+| `ALREADY_OWNER`              | 422  | Transferring to the current owner                   |
+| `OWNER_CANNOT_LEAVE`         | 422  | Owner leaving without transferring                  |
+| `CANNOT_MODIFY_OWNER`        | 422  | Suspending or removing the owner                    |
+| `CANNOT_MODIFY_SELF`         | 422  | Suspending or removing yourself                     |
+| `INVITATION_NOT_FOUND`       | 404  | Unknown, expired, or other workspace's invitation   |
+| `INVITATION_NOT_PENDING`     | 409  | Revoking a resolved invitation                      |
+| `INVITATION_EMAIL_MISMATCH`  | 403  | Accept/decline without a matching verified email    |
 
 ---
 
@@ -396,33 +466,22 @@ the workspace, so its members are locked out on their next request.
   with it, and references members as `(workspace_id, member_id)` →
   `workspace_members (workspace_id, id)`, so the database refuses a row that
   crosses tenants.
-- **Soft delete.** `Workspace` has `deleted_at`; add it to
-  `SOFT_DELETABLE_MODELS` when this module lands. Members and invitations have
-  no `deleted_at` — their status is their lifecycle.
+- **No soft delete.** Workspaces, members and invitations have no
+  `deleted_at`; their status is their lifecycle, and `ARCHIVED` is what a
+  deleted workspace looks like until the deletion flow exists.
+- **Every tenant row that names a role** does so as
+  `(workspace_id, custom_role_id)` → `workspace_roles (workspace_id, id)`, for
+  the same reason as member references.
 
 ---
 
 ## Deliberately not here
 
-| Area                                                | Arrives with                                                    |
-| --------------------------------------------------- | --------------------------------------------------------------- |
-| Roles on members and invitations, permission checks | RBAC (`core/permissions`)                                       |
-| Teams / branches and lead visibility scopes         | RBAC scope design                                               |
-| Plans, subscriptions, seat and feature limits       | Billing — own tables, never a column on `workspaces`            |
-| Membership audit trail                              | Audit log                                                       |
-| Developer ↔ channel-partner collaboration           | A link between two workspaces, never cross-workspace membership |
-| Restore and permanent deletion of a workspace       | Workspace deletion flow (batched job)                           |
-
-TODO :
-member gaurd, ownder gaurd,
-RABC
-
-GLOBAL PERMISSION
-USER & ADMIN PERMISSION
-MMBER ROLES, AND MEMBER ROLES PERMISSION
-
-DEFAULT SUTEM ROLES SO PERMSSION CAN SEED WHEN NEW PERMSIIN ADD
-
-ADMIN ROLES AND ADMIN ROLES PERMSON
-
-PERMSSION AUTROTAZATION MODULE
+| Area                                              | Arrives with                                                    |
+| ------------------------------------------------- | --------------------------------------------------------------- |
+| The permission catalogue, custom roles, their API | `modules/workspace-roles/API.md`                                |
+| Teams / branches and lead visibility scopes       | An attribute on the role, with the CRM modules (ADR-004)        |
+| Plans, subscriptions, seat and feature limits     | Billing — own tables, never a column on `workspaces`            |
+| Membership audit trail                            | Audit log                                                       |
+| Developer ↔ channel-partner collaboration         | A link between two workspaces, never cross-workspace membership |
+| Restore and permanent deletion of a workspace     | Workspace deletion flow (batched job)                           |
