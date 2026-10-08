@@ -4,12 +4,33 @@ import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 import { normalizeEmail } from '#/shared/utils/index.js';
 
 import { ADMIN_BOOTSTRAP_LOCK_KEY, ADMIN_SNAPSHOT_SELECT } from '../constants/index.js';
-import type { AdminSnapshot, CreateAdminInput, UpdateAdminInput } from '../interfaces/index.js';
+import type {
+  AdminGrantSubject,
+  AdminSnapshot,
+  CreateAdminInput,
+  UpdateAdminInput,
+} from '../interfaces/index.js';
 import { toAdminSnapshot } from '../mappers/index.js';
 
 @Injectable()
 export class AdminRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** `null` for a soft-deleted admin as for a missing one — the extension filters both reads. */
+  async findGrantSubject(id: string): Promise<AdminGrantSubject | null> {
+    const admin = await this.prisma.db.admin.findFirst({
+      where: { id },
+      select: { status: true, isSuperAdmin: true, roles: { select: { roleId: true } } },
+    });
+
+    return admin === null
+      ? null
+      : {
+          status: admin.status,
+          isSuperAdmin: admin.isSuperAdmin,
+          roleIds: admin.roles.map((role) => role.roleId),
+        };
+  }
 
   async findSnapshotById(id: string): Promise<AdminSnapshot | null> {
     const admin = await this.prisma.db.admin.findUnique({

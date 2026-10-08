@@ -1,29 +1,45 @@
 import { Injectable } from '@nestjs/common';
 
 import { CACHE_NEGATIVE_TTL_SECONDS, CACHE_TTL, CacheService } from '#/core/cache/index.js';
+import { RequestContextService } from '#/core/context/index.js';
+import type { WorkspaceRoleRef } from '#/modules/workspace-roles/index.js';
 
 import type { MembershipAccessSnapshot, WorkspaceAccessSnapshot } from '../interfaces/index.js';
 
 /**
- * The tenant guard's two facts, cached apart because they change apart.
+ * The guards' three facts about a request's place in a workspace, cached apart
+ * because they change apart:
  *
- * A workspace's status is one key shared by all its members, so suspending a
- * workspace of five thousand deletes one key. A membership is one key per
- * user, so removing a member deletes theirs alone. One combined key per member
- * would make every workspace change a prefix scan.
+ *   workspace     status and owner — one key shared by all members, so
+ *                 suspending a workspace of five thousand deletes one key
+ *   membership    the member and their status — one key per user, so
+ *                 removing a member deletes theirs alone
+ *   member roles  which roles the member holds — one key per member, so
+ *                 changing someone's roles touches nothing else
  *
- * Global keys, not tenant keys: the guard reads these before any workspace is
- * in context — setting it is what the guard is for.
+ * What a role grants is not here: that is one key per role, in
+ * `modules/workspace-roles`, shared by everyone who holds it.
  *
- * Read with two parallel `remember`s rather than one `getMany`: `getMany`
- * returns a cached `null` and a miss alike, so a negatively cached non-member
- * would reach the database on every request.
+ * Global keys, not tenant keys: the guards read these before any workspace is
+ * in context — setting it is what the tenant guard is for.
+ *
+ * Every read goes through the request memo: the tenant guard and the
+ * permission guard both read the workspace and the membership, and the second
+ * read in a request costs nothing. Every invalidation forgets the memo too.
+ *
+ * Read with parallel `remember`s rather than `getMany`: `getMany` returns a
+ * cached `null` and a miss alike, so a negatively cached non-member would
+ * reach the database on every request.
  */
 @Injectable()
 export class WorkspaceAccessCacheService {
-  private static readonly VERSION = 1;
+  /** 2: the workspace snapshot gained `ownerUserId`. */
+  private static readonly VERSION = 2;
 
-  constructor(private readonly cache: CacheService) {}
+  constructor(
+    private readonly cache: CacheService,
+    private readonly requestContext: RequestContextService,
+  ) {}
 
   private readonly keys = {
     workspace: (workspaceId: string): string =>
@@ -39,20 +55,31 @@ export class WorkspaceAccessCacheService {
         version: WorkspaceAccessCacheService.VERSION,
         segments: [workspaceId, userId],
       }),
+
+    memberRoles: (workspaceId: string, memberId: string): string =>
+      this.cache.globalKey({
+        resource: 'workspace-member-roles',
+        version: WorkspaceAccessCacheService.VERSION,
+        segments: [workspaceId, memberId],
+      }),
   };
 
   /**
-   * Five minutes: status changes rarely, every member shares the key, and
-   * each change deletes it at once — the TTL only bounds a missed delete.
+   * Five minutes: status and owner change rarely, every member shares the key,
+   * and each change deletes it at once — the TTL only bounds a missed delete.
    */
   async rememberWorkspace(
     workspaceId: string,
     loader: () => Promise<WorkspaceAccessSnapshot | null>,
   ): Promise<WorkspaceAccessSnapshot | null> {
-    return this.cache.remember(this.keys.workspace(workspaceId), loader, {
-      ttlSeconds: CACHE_TTL.FIVE_MINUTES,
-      negativeTtlSeconds: CACHE_NEGATIVE_TTL_SECONDS,
-    });
+    const key = this.keys.workspace(workspaceId);
+
+    return this.requestContext.memo(key, () =>
+      this.cache.remember(key, loader, {
+        ttlSeconds: CACHE_TTL.FIVE_MINUTES,
+        negativeTtlSeconds: CACHE_NEGATIVE_TTL_SECONDS,
+      }),
+    );
   }
 
   /**
@@ -65,17 +92,50 @@ export class WorkspaceAccessCacheService {
     userId: string,
     loader: () => Promise<MembershipAccessSnapshot | null>,
   ): Promise<MembershipAccessSnapshot | null> {
-    return this.cache.remember(this.keys.membership(workspaceId, userId), loader, {
-      ttlSeconds: CACHE_TTL.ONE_MINUTE,
-      negativeTtlSeconds: CACHE_NEGATIVE_TTL_SECONDS,
-    });
+    const key = this.keys.membership(workspaceId, userId);
+
+    return this.requestContext.memo(key, () =>
+      this.cache.remember(key, loader, {
+        ttlSeconds: CACHE_TTL.ONE_MINUTE,
+        negativeTtlSeconds: CACHE_NEGATIVE_TTL_SECONDS,
+      }),
+    );
+  }
+
+  /**
+   * One minute, as for the membership: losing a role must take effect quickly
+   * even if the delete that should have done it was lost. Never null — a
+   * member with no roles is `[]`.
+   */
+  async rememberMemberRoles(
+    workspaceId: string,
+    memberId: string,
+    loader: () => Promise<WorkspaceRoleRef[]>,
+  ): Promise<WorkspaceRoleRef[]> {
+    const key = this.keys.memberRoles(workspaceId, memberId);
+
+    return this.requestContext.memo(key, () =>
+      this.cache.remember(key, loader, { ttlSeconds: CACHE_TTL.ONE_MINUTE }),
+    );
   }
 
   async invalidateWorkspace(workspaceId: string): Promise<void> {
-    await this.cache.delete(this.keys.workspace(workspaceId));
+    await this.drop([this.keys.workspace(workspaceId)]);
   }
 
   async invalidateMembership(workspaceId: string, userId: string): Promise<void> {
-    await this.cache.delete(this.keys.membership(workspaceId, userId));
+    await this.drop([this.keys.membership(workspaceId, userId)]);
+  }
+
+  async invalidateMemberRoles(workspaceId: string, memberId: string): Promise<void> {
+    await this.drop([this.keys.memberRoles(workspaceId, memberId)]);
+  }
+
+  private async drop(keys: readonly string[]): Promise<void> {
+    for (const key of keys) {
+      this.requestContext.forget(key);
+    }
+
+    await this.cache.delete(keys);
   }
 }

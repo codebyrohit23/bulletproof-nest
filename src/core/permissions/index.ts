@@ -28,6 +28,12 @@ export {
   PERMISSIONS_LOG_CONTEXT,
 } from './constants/index.js';
 
+export {
+  planPermissionMirror,
+  type PermissionMirrorPlan,
+  type PermissionMirrorRow,
+} from './utils/permission-mirror.util.js';
+
 export type {
   AdminGrant,
   PermissionsModuleOptions,

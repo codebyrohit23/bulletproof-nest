@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MembershipStatus, type Prisma } from '@prisma/client';
 
 import { PrismaService, toOffsetArgs } from '#/infrastructure/database/prisma/index.js';
+import type { WorkspaceRoleRef } from '#/modules/workspace-roles/index.js';
 import type { OffsetPaginationQuery, OffsetSlice } from '#/shared/pagination/index.js';
 
 import {
@@ -43,6 +44,16 @@ export class WorkspaceMemberRepository {
     });
 
     return member === null ? null : toMembershipAccessSnapshot(member);
+  }
+
+  /** The roles a member holds, with each role's `key` — set on default roles only. */
+  async findRoles(workspaceId: string, memberId: string): Promise<WorkspaceRoleRef[]> {
+    const rows = await this.prisma.db.workspaceMemberRole.findMany({
+      where: { workspaceId, memberId },
+      select: { role: { select: { id: true, key: true } } },
+    });
+
+    return rows.map((row) => row.role);
   }
 
   /** Scoped by workspace as well as id, as every tenant read is. */

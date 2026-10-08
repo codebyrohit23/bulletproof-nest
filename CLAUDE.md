@@ -371,11 +371,52 @@ requires the target set to be a subset of the caller's. One check, in the
 role service, used by invitations, member role changes and the role editor.
 
 **One resolver, two callers.** `PermissionGuard` and the access endpoints
-(`GET /workspace/access`, `GET /admin/me/access`) call the same resolver, so
-the UI and the API cannot disagree. Role grants are cached per role — three
-global keys cover every default role on the platform. Every set from the
-database goes through `catalogue.narrow()`, so a key this build does not
-define authorizes nothing.
+(`GET /workspace/access`, `GET /admin/me/access`) call the same resolver —
+`WorkspaceGrantService` in `modules/workspaces`, `AdminGrantService` in
+`modules/admins` — so the UI and the API cannot disagree.
+
+**A default role's permissions come from the catalogue, never the database.**
+The resolver recognises a default role by its `key` and takes
+`defaultsFor(key)`. Its grant rows exist for role lists, reports and foreign
+keys; reading them would add a read per request, a window between deploy and
+seed in which a new route 403s, and a cache the seed script — which has no
+Redis — could not clear. Default roles are found by `key`, never by id: ids
+are generated per environment.
+
+**Two caches, split by what changes them.** What a member holds —
+`workspace-member-roles:<workspaceId>:<memberId>`, the roles' ids and keys —
+and what a custom role grants — `workspace-role-grants:<roleId>`, global,
+shared by everyone who holds the role. So a role edit is one key deleted
+however many members hold it, and a member's role change is one key too.
+Several custom roles are one pipelined read and, on a miss, one query. The
+admin plane is the same shape: `admin-grant-subject:<adminId>` and
+`admin-role-grants:<roleId>`. There is no in-process cache in front of Redis:
+a revoked permission must stop working on the next request on every pod.
+
+Every invalidation is a `runAfterCommit` delete of exactly one of these keys:
+
+| What changed                               | Key deleted                   |
+| ------------------------------------------ | ----------------------------- |
+| A custom role's grants, or the role        | `workspace-role-grants:<id>`  |
+| A member's roles                           | `workspace-member-roles:…`    |
+| Ownership                                  | the workspace access snapshot |
+| An admin's roles, super-admin flag, status | `admin-grant-subject:<id>`    |
+| A default role's template (code)           | nothing — the deploy is it    |
+
+The tenant and permission guards read the same snapshots in one request;
+`RequestContextService.memo` makes the second read free. Code that writes a
+snapshot and reads it again in the same request must `forget` the key — the
+access cache's `invalidate*` methods do.
+
+Every set from the database goes through `catalogue.narrow()` and has its
+restricted keys removed, so a key this build does not define, or a restricted
+key a row wrongly grants, authorizes nothing.
+
+**Admin status is checked here, not at authentication.** A session outlives a
+suspension: `ApiAuthGuard` does not read `admins.status`. The admin resolver
+returns `null` — a 403 — for an admin who is deleted or not `ACTIVE`, but
+`@AnyAdmin()` routes never reach it. Suspending an admin must also revoke
+their sessions.
 
 **Clients decide on `permissions[]`**, a flat sorted list from the access
 endpoints, whose OpenAPI `enum` is the catalogue — a frontend generates its
@@ -589,8 +630,17 @@ There is no `demo` kind. Nothing generates fixtures yet, and the environment
 gate one would need — refusing to run outside development — is not worth writing
 against no caller. Add both in the same change as the first fixture seeder.
 
-**Seeders never delete.** A permission the catalogue no longer defines may still
-be referenced by a role — report it in `notes` and let a human decide.
+**Seeders never delete** — with one exception. A permission the catalogue no
+longer defines may still be referenced by a role — report it in `notes` and
+let a human decide. The exception is `workspace-default-roles`, which syncs
+the default roles' grants exactly, removals included: nothing but that seeder
+writes those rows, so a grant the code no longer gives is one nobody meant.
+
+**Seed modules, not runtime modules.** `SeedModule` imports
+`WorkspaceRolesSeedModule`, `AdminRolesSeedModule` and `AdminsSeedModule`,
+which provide repositories and seeders only. The runtime modules cache
+through `CacheService`, which needs Redis, and the seed script runs without
+it.
 
 ---
 

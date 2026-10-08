@@ -8,6 +8,7 @@ import {
   ApiSuccessResponse,
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
+import { ADMIN_PERMISSION, RequireAdminPermission } from '#/core/permissions/index.js';
 import { ParseIdPipe } from '#/core/validation/index.js';
 import { ADMIN_WORKSPACES_API_TAG, ApiVersion } from '#/shared/constants/index.js';
 
@@ -37,6 +38,7 @@ export class AdminWorkspaceController {
    * List Workspaces
    */
   @Get()
+  @RequireAdminPermission(ADMIN_PERMISSION.workspace.read)
   @ApiOperation({
     summary: 'List workspaces',
     description:
@@ -58,6 +60,7 @@ export class AdminWorkspaceController {
    * Get Workspace
    */
   @Get(':id')
+  @RequireAdminPermission(ADMIN_PERMISSION.workspace.read)
   @ApiOperation({
     summary: 'Get a workspace',
     description: 'One workspace with its owner, review history and active member count.',
@@ -77,6 +80,7 @@ export class AdminWorkspaceController {
    * Approve Workspace
    */
   @Post(':id/approve')
+  @RequireAdminPermission(ADMIN_PERMISSION.workspace.review)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Approve a workspace',
@@ -108,6 +112,7 @@ export class AdminWorkspaceController {
    * Reject Workspace
    */
   @Post(':id/reject')
+  @RequireAdminPermission(ADMIN_PERMISSION.workspace.review)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Reject a workspace',

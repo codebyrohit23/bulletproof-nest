@@ -19,7 +19,10 @@ export class WorkspaceRepository {
   }
 
   async findAccessSnapshot(id: string): Promise<WorkspaceAccessSnapshot | null> {
-    return this.prisma.db.workspace.findUnique({ where: { id }, select: { status: true } });
+    return this.prisma.db.workspace.findUnique({
+      where: { id },
+      select: { status: true, ownerUserId: true },
+    });
   }
 
   async countOwned(ownerUserId: string, statuses: readonly WorkspaceStatus[]): Promise<number> {

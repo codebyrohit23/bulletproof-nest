@@ -16,4 +16,6 @@ export {
   type MyWorkspacePage,
 } from './my-workspace.dto.js';
 
+export { WorkspaceAccessDto, type WorkspaceAccess } from './workspace-access.dto.js';
+
 export { WorkspaceDto, type Workspace } from './workspace.dto.js';

@@ -23,6 +23,7 @@ import {
   ApiSuccessResponse,
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
+import { AnyAdmin } from '#/core/permissions/index.js';
 import { RateLimit } from '#/core/rate-limit/index.js';
 import { ParseIdPipe } from '#/core/validation/index.js';
 import { ADMIN_AUTH_API_TAG, ApiVersion } from '#/shared/constants/index.js';
@@ -226,6 +227,7 @@ export class AdminAuthController {
    * Change Password
    */
   @Post('password-change')
+  @AnyAdmin()
   @RateLimit(...ADMIN_AUTH_RATE_LIMIT.CHANGE_PASSWORD)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -260,6 +262,7 @@ export class AdminAuthController {
    * Logout
    */
   @Post('logout')
+  @AnyAdmin()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Sign out of the admin console',
@@ -287,6 +290,7 @@ export class AdminAuthController {
    * List Sessions
    */
   @Get('sessions')
+  @AnyAdmin()
   @ApiOperation({
     summary: 'List signed-in devices and recent sign-ins',
     description:
@@ -318,6 +322,7 @@ export class AdminAuthController {
    * Revoke Other Sessions
    */
   @Post('sessions/revoke-others')
+  @AnyAdmin()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Sign out every other device',
@@ -343,6 +348,7 @@ export class AdminAuthController {
    * Revoke Session
    */
   @Delete('sessions/:id')
+  @AnyAdmin()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Sign out one device',

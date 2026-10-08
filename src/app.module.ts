@@ -10,6 +10,7 @@ import { ExceptionModule } from '#/core/exceptions/index.js';
 import { InterceptorModule } from '#/core/interceptors/index.js';
 import { JwtModule } from '#/core/jwt/index.js';
 import { AppLoggerModule } from '#/core/logger/index.js';
+import { PermissionsModule } from '#/core/permissions/index.js';
 import { RateLimitModule } from '#/core/rate-limit/index.js';
 import { SecurityModule } from '#/core/security/index.js';
 import { TenancyModule } from '#/core/tenancy/index.js';
@@ -61,6 +62,13 @@ import { WorkspacesModule } from '#/modules/workspaces/index.js';
 
     /* After `AuthModule`: the tenant guard needs the user that auth puts in context. */
     TenancyModule.forRoot({ imports: [WorkspacesModule] }),
+
+    /*
+     * After `TenancyModule`: the permission guard reads the user, workspace and
+     * member the two guards before it put in context. Its two resolvers come
+     * from the modules that own memberships and admins.
+     */
+    PermissionsModule.forRoot({ imports: [WorkspacesModule, AdminsModule] }),
     EmailModule.forRoot({ imports: [CommunicationModule] }),
   ],
   controllers: [],

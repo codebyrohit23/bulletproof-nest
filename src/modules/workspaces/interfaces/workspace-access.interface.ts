@@ -6,6 +6,9 @@ import type { MembershipStatus, WorkspaceStatus } from '@prisma/client';
  */
 export interface WorkspaceAccessSnapshot {
   readonly status: WorkspaceStatus;
+
+  /** The owner holds every permission; the permission resolver reads it from here. */
+  readonly ownerUserId: string;
 }
 
 /** What the tenant guard needs to know about one user's place in a workspace. */

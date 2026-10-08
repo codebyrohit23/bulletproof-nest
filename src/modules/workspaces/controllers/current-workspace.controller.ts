@@ -9,6 +9,7 @@ import {
   ApiWorkspaceIdHeader,
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
+import { AnyMember } from '#/core/permissions/index.js';
 import { ApiVersion, WORKSPACES_API_TAG } from '#/shared/constants/index.js';
 
 import { CurrentWorkspaceDto, type CurrentWorkspace } from '../dto/index.js';
@@ -28,6 +29,7 @@ export class CurrentWorkspaceController {
    * Get Current Workspace
    */
   @Get()
+  @AnyMember()
   @ApiOperation({
     summary: 'Get the current workspace',
     description:

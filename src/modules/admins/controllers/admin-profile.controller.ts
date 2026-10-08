@@ -8,6 +8,7 @@ import {
   ApiSuccessResponse,
 } from '#/core/documentation/index.js';
 import { ResponseMessage } from '#/core/interceptors/index.js';
+import { AnyAdmin } from '#/core/permissions/index.js';
 import { ADMIN_PROFILE_API_TAG, ApiVersion } from '#/shared/constants/index.js';
 
 import { AdminProfileDto, UpdateAdminProfileDto, type AdminProfile } from '../dto/index.js';
@@ -23,6 +24,7 @@ export class AdminProfileController {
    * Get Profile
    */
   @Get()
+  @AnyAdmin()
   @ApiOperation({
     summary: 'Get the current admin profile',
     description: 'Returns the profile of the signed-in admin.',
@@ -42,6 +44,7 @@ export class AdminProfileController {
    * Update Profile
    */
   @Patch()
+  @AnyAdmin()
   @ApiOperation({
     summary: 'Update the current admin profile',
     description:
