@@ -18,18 +18,10 @@ export class AdminRepository {
 
   /** `null` for a soft-deleted admin as for a missing one — the extension filters both reads. */
   async findGrantSubject(id: string): Promise<AdminGrantSubject | null> {
-    const admin = await this.prisma.db.admin.findFirst({
+    return this.prisma.db.admin.findFirst({
       where: { id },
-      select: { status: true, isSuperAdmin: true, roles: { select: { roleId: true } } },
+      select: { status: true, isSuperAdmin: true },
     });
-
-    return admin === null
-      ? null
-      : {
-          status: admin.status,
-          isSuperAdmin: admin.isSuperAdmin,
-          roleIds: admin.roles.map((role) => role.roleId),
-        };
   }
 
   async findSnapshotById(id: string): Promise<AdminSnapshot | null> {

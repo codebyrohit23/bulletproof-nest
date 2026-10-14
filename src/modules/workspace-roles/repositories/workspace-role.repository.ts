@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { InvitationStatus, type Prisma } from '@prisma/client';
 
 import { PrismaService } from '#/infrastructure/database/prisma/index.js';
 
@@ -104,4 +105,94 @@ export class WorkspaceRoleRepository {
       where: { roleId, permissionKey: { in: [...keys] } },
     });
   }
+
+  /* ----------------------------------------------------------------------
+   * Custom roles — every read scoped to one workspace's view: the default
+   * roles plus that workspace's own. Another workspace's role is never found.
+   * -------------------------------------------------------------------- */
+
+  async findVisible(workspaceId: string): Promise<WorkspaceRoleRow[]> {
+    return this.prisma.db.workspaceRole.findMany({
+      where: visibleTo(workspaceId),
+      select: WORKSPACE_ROLE_SELECT,
+    });
+  }
+
+  async findVisibleById(workspaceId: string, id: string): Promise<WorkspaceRoleRow | null> {
+    return this.prisma.db.workspaceRole.findFirst({
+      where: { id, ...visibleTo(workspaceId) },
+      select: WORKSPACE_ROLE_SELECT,
+    });
+  }
+
+  async countCustom(workspaceId: string): Promise<number> {
+    return this.prisma.db.workspaceRole.count({ where: { workspaceId } });
+  }
+
+  /** Case-insensitive, as the unique index is. `exceptId` skips the role being renamed. */
+  async isNameTaken(workspaceId: string, name: string, exceptId?: string): Promise<boolean> {
+    const found = await this.prisma.db.workspaceRole.findFirst({
+      where: {
+        workspaceId,
+        name: { equals: name, mode: 'insensitive' },
+        ...(exceptId !== undefined ? { id: { not: exceptId } } : {}),
+      },
+      select: { id: true },
+    });
+
+    return found !== null;
+  }
+
+  async createCustom(
+    workspaceId: string,
+    data: { name: string; description: string | null },
+  ): Promise<WorkspaceRoleRow> {
+    return this.prisma.db.workspaceRole.create({
+      data: { workspaceId, name: data.name, description: data.description },
+      select: WORKSPACE_ROLE_SELECT,
+    });
+  }
+
+  async updateCustom(
+    id: string,
+    data: { name?: string; description?: string | null },
+  ): Promise<void> {
+    await this.prisma.db.workspaceRole.update({ where: { id }, data, select: { id: true } });
+  }
+
+  /** The role's grants become exactly `keys`. */
+  async replaceGrants(roleId: string, keys: readonly string[]): Promise<void> {
+    await this.prisma.db.workspaceRolePermission.deleteMany({ where: { roleId } });
+
+    await this.addGrants(roleId, keys);
+  }
+
+  /** Grants go with it, by cascade. Assignments must be removed first — they restrict. */
+  async deleteCustom(id: string): Promise<void> {
+    await this.prisma.db.workspaceRole.delete({ where: { id }, select: { id: true } });
+  }
+
+  async countPendingInvitations(workspaceId: string, roleId: string): Promise<number> {
+    return this.prisma.db.workspaceInvitation.count({
+      where: { workspaceId, roleId, status: InvitationStatus.PENDING },
+    });
+  }
+}
+
+const WORKSPACE_ROLE_SELECT = {
+  id: true,
+  key: true,
+  name: true,
+  description: true,
+  isSystem: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Prisma.WorkspaceRoleSelect;
+
+export type WorkspaceRoleRow = Prisma.WorkspaceRoleGetPayload<{
+  select: typeof WORKSPACE_ROLE_SELECT;
+}>;
+
+function visibleTo(workspaceId: string): Prisma.WorkspaceRoleWhereInput {
+  return { OR: [{ workspaceId: null }, { workspaceId }] };
 }

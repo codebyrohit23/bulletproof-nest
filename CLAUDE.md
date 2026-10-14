@@ -369,6 +369,10 @@ plane; `PermissionGuard` applies the same rule at runtime as a belt. The
 **No escalation.** Assigning roles, or defining a custom role's permissions,
 requires the target set to be a subset of the caller's. One check, in the
 role service, used by invitations, member role changes and the role editor.
+A role that already holds a permission the caller lacks is read-only to them —
+no rename, edit or delete — so nobody can strip a power they never had from a
+role someone above them built. Checking only the difference between old and
+new sets was rejected: one rule the client can mirror beats two.
 
 **One resolver, two callers.** `PermissionGuard` and the access endpoints
 (`GET /workspace/access`, `GET /admin/me/access`) call the same resolver —
@@ -389,19 +393,35 @@ and what a custom role grants — `workspace-role-grants:<roleId>`, global,
 shared by everyone who holds the role. So a role edit is one key deleted
 however many members hold it, and a member's role change is one key too.
 Several custom roles are one pipelined read and, on a miss, one query. The
-admin plane is the same shape: `admin-grant-subject:<adminId>` and
-`admin-role-grants:<roleId>`. There is no in-process cache in front of Redis:
-a revoked permission must stop working on the next request on every pod.
+admin plane is the same shape: `admin-user-roles:<adminId>` and
+`admin-role-grants:<roleId>`, beside `admin-grant-subject:<adminId>` for
+status and the super-admin flag. There is no in-process cache in front of
+Redis: a revoked permission must stop working on the next request on every pod.
+
+**The roles modules own the assignments.** `workspace_member_roles` and its
+cache live in `modules/workspace-roles`, `admin_user_roles` and its cache in
+`modules/admin-roles` — not with members or admins. Deleting a role must
+remove it from its holders and drop their cached roles, and a roles module
+cannot import `modules/workspaces` or `modules/admins`, which import it. The
+resolvers ask the roles module for `rolesOf(…)`.
+
+**Handlers that check the caller's permissions read the guard's answer.**
+`@CurrentWorkspaceGrant()` and `@CurrentAdminGrant()` return the grant
+`PermissionGuard` resolved for the request — on a `@RequirePermission` or
+`@RequireAdminPermission` route only. The role services' no-escalation check
+uses them, so it cannot disagree with the guard and needs no second resolve.
 
 Every invalidation is a `runAfterCommit` delete of exactly one of these keys:
 
-| What changed                               | Key deleted                   |
-| ------------------------------------------ | ----------------------------- |
-| A custom role's grants, or the role        | `workspace-role-grants:<id>`  |
-| A member's roles                           | `workspace-member-roles:…`    |
-| Ownership                                  | the workspace access snapshot |
-| An admin's roles, super-admin flag, status | `admin-grant-subject:<id>`    |
-| A default role's template (code)           | nothing — the deploy is it    |
+| What changed                          | Key deleted                   |
+| ------------------------------------- | ----------------------------- |
+| A custom role's grants, or the role   | `workspace-role-grants:<id>`  |
+| A member's roles                      | `workspace-member-roles:…`    |
+| Ownership                             | the workspace access snapshot |
+| An admin role's grants, or the role   | `admin-role-grants:<id>`      |
+| An admin's roles                      | `admin-user-roles:<id>`       |
+| An admin's super-admin flag or status | `admin-grant-subject:<id>`    |
+| A default role's template (code)      | nothing — the deploy is it    |
 
 The tenant and permission guards read the same snapshots in one request;
 `RequestContextService.memo` makes the second read free. Code that writes a

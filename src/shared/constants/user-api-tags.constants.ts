@@ -20,9 +20,15 @@ export const WORKSPACES_API_TAG: ApiTag = {
   description: 'Creating workspaces and listing the ones the signed-in user belongs to.',
 };
 
+export const WORKSPACE_ROLES_API_TAG: ApiTag = {
+  name: 'Workspace Roles',
+  description: 'The permission catalogue and the roles a workspace grants it through.',
+};
+
 export const USER_API_TAGS: readonly ApiTag[] = [
   HEALTH_API_TAG,
   USER_AUTH_API_TAG,
   USER_PROFILE_API_TAG,
   WORKSPACES_API_TAG,
+  WORKSPACE_ROLES_API_TAG,
 ];

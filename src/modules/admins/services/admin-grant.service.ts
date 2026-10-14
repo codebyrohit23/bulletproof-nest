@@ -42,14 +42,16 @@ export class AdminGrantService extends AdminPermissionResolver {
       return null;
     }
 
+    const roleIds = await this.roleGrants.rolesOf(adminId);
+
     if (subject.isSuperAdmin) {
-      return { isSuperAdmin: true, roleIds: subject.roleIds, permissions: EVERY_PERMISSION };
+      return { isSuperAdmin: true, roleIds, permissions: EVERY_PERMISSION };
     }
 
     return {
       isSuperAdmin: false,
-      roleIds: subject.roleIds,
-      permissions: await this.roleGrants.permissionsOf(subject.roleIds),
+      roleIds,
+      permissions: await this.roleGrants.permissionsOf(roleIds),
     };
   }
 }

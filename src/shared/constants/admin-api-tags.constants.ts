@@ -15,8 +15,14 @@ export const ADMIN_WORKSPACES_API_TAG: ApiTag = {
   description: 'Every workspace on the platform, and the review that opens a new one.',
 };
 
+export const ADMIN_ROLES_API_TAG: ApiTag = {
+  name: 'Admin Roles',
+  description: 'The admin permission catalogue and the roles the platform team defines.',
+};
+
 export const ADMIN_API_TAGS: readonly ApiTag[] = [
   ADMIN_AUTH_API_TAG,
   ADMIN_PROFILE_API_TAG,
   ADMIN_WORKSPACES_API_TAG,
+  ADMIN_ROLES_API_TAG,
 ];

@@ -1,154 +1,161 @@
 # Workspace roles — API contract
 
 The contract `modules/workspace-roles` implements: the permission catalogue a
-workspace can grant from, the system roles every workspace has, and the custom
-roles a workspace defines. Written before the code. The decision record is
-`docs/adr/ADR-004-rbac-implementation.md`; this file is what a client and a
-reviewer hold the code to. Member role assignment and the role on an
-invitation live in `modules/workspaces/API.md`, because those rows are that
-module's.
+role editor shows, the default roles every workspace has, the custom roles a
+workspace defines, and which roles each member holds. Written before the code;
+the model and the reasons for it are in `CLAUDE.md`, "Permissions".
+
+Assigning roles to a member and the role on an invitation are routes of
+`modules/workspaces` (Phase 5), because they start from a member or an
+invitation; they call this module to write the assignment.
 
 ---
 
 ## The model in one paragraph
 
-A permission is a key, `<resource>.<action>`, declared once in code
-(`core/permissions/catalogue`) and mirrored into `workspace_permissions` by a
-seeder. A system role is an enum value whose permission set is in code; every
-workspace has them, none has a row for them. A custom role is a row with
-grants, per workspace, starting empty. A member holds exactly one role of
-either kind. The caller's resolved permissions, not their role, are what the
-API and the client decide on.
+A permission is a key, `<resource>.<action>`, declared once in code and
+mirrored into `workspace_permissions` by a seeder. A **default role** — Admin,
+Manager, Agent — is one row shared by every workspace (`workspace_id` null,
+`key` set); its permissions are the catalogue keys whose `defaultFor` names it,
+and no workspace can edit it. A **custom role** belongs to one workspace,
+starts empty, and is the customer's. A member holds any number of roles and has
+their union. The owner holds no role and every permission.
 
 ---
 
-## System roles
+## What this module owns
 
-| Role      | Permissions                                                                                 | Notes                                               |
-| --------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `OWNER`   | every key in the catalogue, derived                                                         | one per workspace; moves only by ownership transfer |
-| `ADMIN`   | every key minus `ownerOnly`, derived                                                        | the previous owner becomes this on transfer         |
-| `MANAGER` | `member.read` · `invitation.read` · `invitation.create` · `invitation.revoke` · `role.read` | runs the team day to day; does not shape it         |
-| `AGENT`   | `member.read`                                                                               | the default for an invitation that names no role    |
+| Owns                                                                     | Does not own                                                     |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `workspace_permissions`, `workspace_roles`, `workspace_role_permissions` | `workspace_members` and membership status — `modules/workspaces` |
+| `workspace_member_roles` — which roles a member holds                    | who the owner is — `modules/workspaces`                          |
+| the `workspace-role-grants` and `workspace-member-roles` caches          | the workspace and membership snapshots                           |
 
-Labels shown to clients: Owner, Admin, Manager, Agent. The sets are
-`WORKSPACE_SYSTEM_ROLE_PERMISSIONS` in `constants/`, typed
-`satisfies Record<WorkspaceSystemRole, ReadonlySet<WorkspacePermissionKey>>`.
-When the CRM resources arrive, `MANAGER` and `AGENT` grow in that one
-constant and every workspace has the change at deploy.
+`workspace_member_roles` is here, not in `modules/workspaces`, because deleting
+a role must remove it from its holders and drop their cached roles, and this
+module cannot import `modules/workspaces` — that module imports this one. The
+permission resolver in `modules/workspaces` asks this module for a member's
+roles and what they grant.
 
 ---
 
 ## The catalogue today
 
-Only what has, or is about to have, a route. CRM resources arrive with their
-modules.
+| Key                           | Restricted | Name                      | Default for           |
+| ----------------------------- | ---------- | ------------------------- | --------------------- |
+| `workspace.update`            |            | Update workspace settings | admin                 |
+| `workspace.archive`           | yes        | Archive the workspace     | — owner only          |
+| `workspace.transferOwnership` | yes        | Transfer ownership        | — owner only          |
+| `member.read`                 |            | View members              | admin, manager, agent |
+| `member.update`               |            | Update members            | admin                 |
+| `member.changeRole`           |            | Change a member’s roles   | admin                 |
+| `member.remove`               |            | Remove members            | admin                 |
+| `invitation.read`             |            | View invitations          | admin, manager        |
+| `invitation.create`           |            | Invite people             | admin, manager        |
+| `invitation.revoke`           |            | Revoke invitations        | admin, manager        |
+| `role.read`                   |            | View roles                | admin, manager        |
+| `role.manage`                 |            | Manage custom roles       | admin                 |
 
-| Key                           | Owner-only | Name                      |
-| ----------------------------- | ---------- | ------------------------- |
-| `workspace.update`            |            | Update workspace settings |
-| `workspace.archive`           | yes        | Archive the workspace     |
-| `workspace.transferOwnership` | yes        | Transfer ownership        |
-| `member.read`                 |            | View members              |
-| `member.update`               |            | Update members            |
-| `member.changeRole`           |            | Change a member’s role    |
-| `member.remove`               |            | Remove members            |
-| `invitation.read`             |            | View invitations          |
-| `invitation.create`           |            | Invite people             |
-| `invitation.revoke`           |            | Revoke invitations        |
-| `role.read`                   |            | View roles                |
-| `role.manage`                 |            | Manage custom roles       |
-
-There is no `workspace.read`: every active member may read their workspace,
-which is what `@AnyMember()` on that route says.
+The source is `core/permissions/catalogue/workspace-permissions.catalogue.ts`;
+this table is a reading of it. There is no `workspace.read`: every active
+member may read their workspace (`@AnyMember()`).
 
 ---
 
-## Conventions
+## Rules
 
-- Base path `/v1`, tenant routes (`x-workspace-id`), standard envelope.
-- A **role reference** in a request body is exactly one of two fields:
+- **Restricted keys belong to the owner.** A role — default or custom — never
+  holds one. Granting one is `422`.
+- **No escalation.** Creating or editing a role requires every key it grants
+  to be one the caller holds. The caller's set comes from the same resolver
+  the guard uses, so the owner may grant anything not restricted. `403`.
+- **A role beyond the caller is read-only to them.** If a role already holds a
+  key the caller lacks, they cannot rename, edit or delete it — otherwise they
+  could strip a permission they never had from a role the owner built. `403`.
+  The role's `editable` says so in advance.
+- **Default roles are read-only.** `PATCH` and `DELETE` on one are `422`. A
+  workspace that wants a variation creates a custom role with the same
+  permissions — the client copies them; there is no clone route.
+- **Names are unique per workspace, case-insensitive, and may not take a
+  default role's name.** `409`. Enforced by the service for the default names
+  and by `UNIQUE (workspace_id, lower(name))` for the rest.
+- **`MAX_CUSTOM_ROLES` is 20 per workspace**, a constant. Beyond that the
+  workspace wants teams or scopes, not more roles. `422`.
+- **Another workspace's role is not found.** Every read and write is scoped by
+  the workspace in `x-workspace-id`. `404`.
 
-  ```jsonc
-  { "systemRole": "MANAGER" }        // WorkspaceSystemRole, never OWNER
-  { "customRoleId": "…" }            // a role of this workspace
-  ```
-
-- A **role** in a response is discriminated by `kind`:
-
-  ```jsonc
-  { "kind": "system", "key": "MANAGER", "name": "Manager" }
-  { "kind": "custom", "id": "…", "name": "Senior Broker" }
-  ```
-
-- **No escalation.** Creating or editing a custom role, and assigning any role,
-  requires the target permission set to be a subset of the caller's. `OWNER`
-  is never assignable. One check, `assertWithinCallerGrant`, in the role
-  service.
-- `MAX_CUSTOM_ROLES` is 20 per workspace, a constant. Beyond that is a sign the
-  workspace needs scopes or teams, not more roles.
+Errors follow the API's envelope: `error.code` is derived from the status
+(`FORBIDDEN`, `CONFLICT`, `UNPROCESSABLE_ENTITY`, `NOT_FOUND`) and `message`
+says which rule applied. Messages live in `constants/`.
 
 ---
 
 ## Routes
 
-| Method | Path                     | Permission     | Purpose                               |
-| ------ | ------------------------ | -------------- | ------------------------------------- |
-| GET    | `/workspace/permissions` | `@AnyMember()` | The catalogue, for a role editor      |
-| GET    | `/workspace/roles`       | `role.read`    | System and custom roles               |
-| GET    | `/workspace/roles/:id`   | `role.read`    | One custom role                       |
-| POST   | `/workspace/roles`       | `role.manage`  | Create a custom role                  |
-| PATCH  | `/workspace/roles/:id`   | `role.manage`  | Rename, describe, replace permissions |
-| DELETE | `/workspace/roles/:id`   | `role.manage`  | Delete, reassigning its members       |
+Tenant routes: base path `/v1`, header `x-workspace-id`.
+
+| Method | Path                     | Marker         | Purpose                                  |
+| ------ | ------------------------ | -------------- | ---------------------------------------- |
+| GET    | `/workspace/permissions` | `@AnyMember()` | The catalogue, for a role editor         |
+| GET    | `/workspace/roles`       | `role.read`    | Default and custom roles                 |
+| GET    | `/workspace/roles/:id`   | `role.read`    | One role                                 |
+| POST   | `/workspace/roles`       | `role.manage`  | Create a custom role                     |
+| PATCH  | `/workspace/roles/:id`   | `role.manage`  | Rename, describe, replace permissions    |
+| DELETE | `/workspace/roles/:id`   | `role.manage`  | Delete a custom role and its assignments |
 
 ### GET `/workspace/permissions`
 
-Any member: a role editor needs the vocabulary, and a member with no
-`role.manage` sees the same list read-only to understand their own role. Not
-paginated — the catalogue is a few dozen entries.
+Any member: the editor needs the vocabulary, and a member without
+`role.manage` sees the same list to understand their own roles. Served from
+the code catalogue, not the table. Not paginated — a few dozen entries.
 
 ```jsonc
 {
   "items": [
     {
-      "key": "member.invite",
+      "key": "member.read",
       "resource": "member",
-      "action": "invite",
-      "name": "Invite people",
-      "description": "Invite someone by email, or resend an invitation.",
-      "ownerOnly": false,
+      "action": "read",
+      "name": "View members",
+      "description": "See who belongs to the workspace, with their roles and status.",
+      "restricted": false,
     },
   ],
 }
 ```
 
-Served from the code catalogue, not the table: the table is the mirror.
+A client groups by `resource` and disables what is `restricted` or absent from
+the caller's `GET /workspace/access`.
 
 ### GET `/workspace/roles`
 
-System roles first, in enum order, then custom roles by name. Not paginated:
-four system roles and at most `MAX_CUSTOM_ROLES`.
+Default roles first in catalogue order, then custom roles by name. Not
+paginated: three defaults and at most `MAX_CUSTOM_ROLES`.
 
 ```jsonc
 {
   "items": [
     {
-      "kind": "system",
-      "key": "MANAGER",
+      "id": "…",
+      "key": "manager",
       "name": "Manager",
-      "description": "Runs the team day to day.",
-      "permissions": ["member.read", "invitation.read", "…"],
-      "memberCount": 3,
+      "description": "Runs the team day to day: invites people and sees the roles.",
+      "isSystem": true,
       "editable": false,
+      "permissions": ["invitation.create", "invitation.read", "…"],
+      "memberCount": 4,
+      "createdAt": "…",
+      "updatedAt": "…",
     },
     {
-      "kind": "custom",
       "id": "…",
+      "key": null,
       "name": "Senior Broker",
       "description": null,
-      "permissions": ["member.read", "invitation.create"],
-      "memberCount": 2,
+      "isSystem": false,
       "editable": true,
+      "permissions": ["invitation.create", "member.read"],
+      "memberCount": 1,
       "createdAt": "…",
       "updatedAt": "…",
     },
@@ -156,120 +163,95 @@ four system roles and at most `MAX_CUSTOM_ROLES`.
 }
 ```
 
-`memberCount` counts `ACTIVE` and `SUSPENDED` members. `editable` is `false`
-for every system role and `true` for every custom role; it is in the body so
-a client never derives it from `kind`.
+- `permissions` of a default role come from the catalogue — the same source
+  the resolver uses — and of a custom role from its grants. Sorted.
+- `memberCount` counts members of **this** workspace who hold the role and are
+  `ACTIVE` or `SUSPENDED`.
+- `editable` is the write rules answered for the caller: `false` for a default
+  role, for a caller without `role.manage`, and for a role holding a key the
+  caller lacks. A client shows edit and delete controls from it alone.
 
 ### GET `/workspace/roles/:id`
 
-A custom role. System roles have no id; the list is their only view.
-`404 ROLE_NOT_FOUND` — including for another workspace's role id.
+One role, the list's item shape. A default role is found by its id like any
+other. `404` for an id that is neither a default role nor this workspace's.
 
 ### POST `/workspace/roles`
 
 ```jsonc
 {
-  "name": "Senior Broker", // 2–100, unique per workspace, case-insensitive
-  "description": "…", // optional, ≤ 500
-  "permissions": ["member.read", "invitation.create"], // catalogue keys; may be empty
+  "name": "Senior Broker", // 2–100, trimmed
+  "description": "Handles invitations.", // optional, ≤ 500
+  "permissions": ["member.read", "invitation.create"], // catalogue keys, no duplicates; may be empty
 }
 ```
 
-Validation is the catalogue: `permissions` is a Zod enum of the keys, so an
-unknown key is a `422` with `validationErrors` before the service runs.
+`permissions` is validated against the catalogue by the schema, so an unknown
+key is a `422` with `validationErrors` before the service runs. Then, in this
+order, so the message names the first rule broken:
 
-- `422 ROLE_PERMISSION_OWNER_ONLY` — an `ownerOnly` key. Named before the
-  escalation check so the message says why, not just that.
-- `403 ROLE_EXCEEDS_CALLER` — a key the caller does not hold.
-- `409 ROLE_NAME_TAKEN` — collides with a custom role or a system role label.
-- `422 ROLE_LIMIT_REACHED`.
-- `201` → the role as in the list.
+1. a restricted key → `422`
+2. a key the caller does not hold → `403`
+3. a name in use, or a default role's name → `409`
+4. `MAX_CUSTOM_ROLES` reached → `422`
 
-Cloning is a client concern: fetch a role, post its permissions.
+`201` → the role, as in the list.
 
 ### PATCH `/workspace/roles/:id`
 
-Any of `name`, `description`, `permissions`. `permissions` **replaces** the
-set — a partial edit of a set has no honest semantics over HTTP. Same errors
-as create. Invalidates the role's permission cache after commit, so every
-member of the role sees the change on their next request.
+Any of `name`, `description`, `permissions`; at least one. `permissions`
+**replaces** the set — a partial edit of a set has no honest meaning over HTTP.
+`422` on a default role; then `403` if the role as it stands has a key the
+caller lacks — even for a rename; then the same checks as create. `200` → the
+role.
+
+After commit, the role's `workspace-role-grants` key is deleted, so every
+holder has the new set on their next request.
 
 ### DELETE `/workspace/roles/:id`
 
-```jsonc
-{ "reassignTo": { "systemRole": "AGENT" } } // required while anyone holds the role
-```
+No body. One transaction: the role's assignments are removed from every holder
+— their other roles stay — then the role, and its grants by cascade. After
+commit, the role's grants key and each holder's member-roles key are deleted.
+A member left with no role reaches only `@AnyMember()` routes.
 
-One transaction: every member of the role — any status, since `LEFT` and
-`REMOVED` rows still point at it — and every `PENDING` invitation move to
-`reassignTo`; then the role is deleted and its grants cascade. After commit,
-the role's cache key and every moved member's membership key are deleted.
-
-- `422 ROLE_REASSIGN_REQUIRED` — holders exist and no `reassignTo`.
-- `422 ROLE_NOT_ASSIGNABLE` — `reassignTo` is `OWNER` or the role itself.
-- `403 ROLE_EXCEEDS_CALLER` — `reassignTo` exceeds the caller.
-- `204`.
+- `422` on a default role.
+- `403` if the role has a key the caller lacks.
+- `409` while a **pending** invitation names the role — revoke it or change
+  its role first. Phase 5 makes `workspace_invitations.role_id` nullable for
+  resolved invitations, which today would block the delete through the
+  foreign key; none exist yet.
+- `200`, `data: null` and a message — the API's convention for a delete.
 
 ---
 
-## Resolution
+## Caches
 
-```
-WorkspaceGuard   membership snapshot (cached per workspace+user): memberId, status, systemRole, customRoleId
-PermissionGuard  WorkspaceGrantService.resolve(workspaceId, userId)
-                   systemRole  → WORKSPACE_SYSTEM_ROLE_PERMISSIONS[role]            no read
-                   customRole  → cache (workspace, roleId) → workspace_role_permissions → catalogue.narrow()
-```
+| Key                                               | Value              | TTL   | Deleted when                                           |
+| ------------------------------------------------- | ------------------ | ----- | ------------------------------------------------------ |
+| `workspace-role-grants:<roleId>`                  | custom role's keys | 5 min | its permissions change, it is deleted                  |
+| `workspace-member-roles:<workspaceId>:<memberId>` | `{ id, key }[]`    | 1 min | the member's roles change, a role they hold is deleted |
 
-`narrow()` drops any key the running build does not define, so a grant left
-by a rolled-back deploy authorizes nothing.
-
-### Invalidation
-
-| Event                                 | Deleted                                                  |
-| ------------------------------------- | -------------------------------------------------------- |
-| Custom role permissions edited        | the role key                                             |
-| Custom role deleted with reassignment | the role key + each moved member's membership key        |
-| Member's role changed                 | that member's membership key (`modules/workspaces`)      |
-| Ownership transferred                 | both members' membership keys (`modules/workspaces`)     |
-| Catalogue changed at deploy           | nothing — system sets are code, custom keys are narrowed |
+Default roles are never cached: the catalogue is their source. Deletes run
+after commit.
 
 ---
 
 ## Seeding
 
-`WorkspacePermissionSeeder`, key `workspace-permissions`, kind `REFERENCE`,
-runs before `admins` in `SeedModule`. It upserts every catalogue entry by
-`key` — name, description and `ownerOnly` follow the code — and never
-deletes: a key present in the table but absent from the catalogue is reported
-in `notes` for a human to migrate away. It depends on the repository and
-`TransactionService` only, and is provided by `WorkspaceRolesSeedModule`
-rather than the runtime module, because the runtime module's cache service
-needs Redis and `SeedModule` does not import it.
-
----
-
-## Errors
-
-| Code                         | HTTP | When                                                         |
-| ---------------------------- | ---- | ------------------------------------------------------------ |
-| `PERMISSION_DENIED`          | 403  | The caller's role lacks the route's key (`core/permissions`) |
-| `ROLE_NOT_FOUND`             | 404  | No such custom role in this workspace                        |
-| `ROLE_NAME_TAKEN`            | 409  | Name in use, case-insensitive, including system labels       |
-| `ROLE_LIMIT_REACHED`         | 422  | `MAX_CUSTOM_ROLES`                                           |
-| `ROLE_PERMISSION_OWNER_ONLY` | 422  | Granting an `ownerOnly` key to a custom role                 |
-| `ROLE_EXCEEDS_CALLER`        | 403  | Defining or assigning more than the caller holds             |
-| `ROLE_REASSIGN_REQUIRED`     | 422  | Deleting a held role without `reassignTo`                    |
-| `ROLE_NOT_ASSIGNABLE`        | 422  | `OWNER`, or the role being deleted, as a target              |
+`workspace-permissions` mirrors the catalogue into `workspace_permissions` and
+reports — never deletes — keys the catalogue no longer has.
+`workspace-default-roles` upserts Admin, Manager and Agent by `key` and syncs
+their grants exactly to `defaultFor`. Both are `REFERENCE`, run on every
+deploy, and live in `WorkspaceRolesSeedModule`, which needs no Redis.
 
 ---
 
 ## Deliberately not here
 
-| Area                                           | Arrives with                                                  |
-| ---------------------------------------------- | ------------------------------------------------------------- |
-| Member role assignment, invitation role        | `modules/workspaces` — it owns those rows                     |
-| Data visibility scope (own / team / all leads) | An attribute on the role, with the CRM modules                |
-| Audit trail of role changes                    | Audit log; an `info` log entry per change until then          |
-| Several roles per member                       | ADR-004, Rejected                                             |
-| Role templates by business type                | Onboarding, if `INDIVIDUAL_AGENT` and `DEVELOPER` ever differ |
+| Area                                           | Arrives with                                         |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| Assigning roles to a member, invitation role   | Phase 5, routes in `modules/workspaces`              |
+| Data visibility scope (own / team / all leads) | An attribute on the role, with the CRM modules       |
+| Audit trail of role changes                    | Audit log; an `info` log entry per change until then |
+| A clone route                                  | Only if a client needs more than copying the list    |

@@ -3,7 +3,8 @@ import { Injectable } from '@nestjs/common';
 import { ADMIN_PERMISSION_CATALOGUE, type AdminPermissionKey } from '#/core/permissions/index.js';
 
 import { AdminRoleGrantsCacheService } from '../cache/admin-role-grants.cache.js';
-import { AdminRoleRepository } from '../repositories/index.js';
+import { AdminUserRolesCacheService } from '../cache/admin-user-roles.cache.js';
+import { AdminRoleRepository, AdminUserRoleRepository } from '../repositories/index.js';
 
 /**
  * The permissions a set of admin roles grants — their union. Every admin role
@@ -17,8 +18,15 @@ import { AdminRoleRepository } from '../repositories/index.js';
 export class AdminRoleGrantsService {
   constructor(
     private readonly roleRepo: AdminRoleRepository,
+    private readonly userRoleRepo: AdminUserRoleRepository,
     private readonly grantsCache: AdminRoleGrantsCacheService,
+    private readonly userRolesCache: AdminUserRolesCacheService,
   ) {}
+
+  /** The roles an admin holds — cached per admin. */
+  async rolesOf(adminId: string): Promise<string[]> {
+    return this.userRolesCache.remember(adminId, () => this.userRoleRepo.findRoleIds(adminId));
+  }
 
   async permissionsOf(roleIds: readonly string[]): Promise<ReadonlySet<AdminPermissionKey>> {
     if (roleIds.length === 0) {

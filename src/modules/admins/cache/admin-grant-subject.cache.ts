@@ -5,15 +5,16 @@ import { CACHE_NEGATIVE_TTL_SECONDS, CACHE_TTL, CacheService } from '#/core/cach
 import type { AdminGrantSubject } from '../interfaces/index.js';
 
 /**
- * An admin's status, super-admin flag and role ids — one key per admin. What
- * the roles grant is cached per role in `modules/admin-roles`.
+ * An admin's status and super-admin flag — one key per admin. Which roles the
+ * admin holds, and what they grant, are cached in `modules/admin-roles`.
  *
- * One minute: suspending an admin, revoking super admin or removing a role
- * must take effect quickly even if the delete that should have done it was lost.
+ * One minute: suspending an admin or revoking super admin must take effect
+ * quickly even if the delete that should have done it was lost.
  */
 @Injectable()
 export class AdminGrantSubjectCacheService {
-  private static readonly VERSION = 1;
+  /** 2: role ids moved to `admin-user-roles` in `modules/admin-roles`. */
+  private static readonly VERSION = 2;
 
   constructor(private readonly cache: CacheService) {}
 

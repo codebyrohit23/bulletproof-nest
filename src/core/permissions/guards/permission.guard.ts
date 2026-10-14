@@ -19,7 +19,12 @@ import {
   type PermissionDenialReason,
 } from '../constants/index.js';
 import { AdminPermissionResolver, WorkspacePermissionResolver } from '../ports/index.js';
-import { readRouteMarkers, resolveRouteRequirement } from '../utils/index.js';
+import {
+  keepAdminGrant,
+  keepWorkspaceGrant,
+  readRouteMarkers,
+  resolveRouteRequirement,
+} from '../utils/index.js';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -34,7 +39,9 @@ export class PermissionGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const markers = readRouteMarkers(this.reflector, context.getHandler(), context.getClass());
 
-    const routePath = context.switchToHttp().getRequest<FastifyRequest>().routeOptions.url;
+    const request = context.switchToHttp().getRequest<FastifyRequest>();
+
+    const routePath = request.routeOptions.url;
 
     const audience = routePath === undefined ? undefined : resolveApiAudience(routePath);
 
@@ -52,14 +59,14 @@ export class PermissionGuard implements CanActivate {
         return true;
 
       case 'workspace':
-        return this.authorizeMember(requirement.key);
+        return this.authorizeMember(requirement.key, request);
 
       case 'admin':
-        return this.authorizeAdmin(requirement.key);
+        return this.authorizeAdmin(requirement.key, request);
     }
   }
 
-  private async authorizeMember(key: WorkspacePermissionKey): Promise<true> {
+  private async authorizeMember(key: WorkspacePermissionKey, request: object): Promise<true> {
     const { userId, workspaceId, memberId } = this.requestContext;
 
     if (userId === undefined || workspaceId === undefined || memberId === undefined) {
@@ -79,10 +86,13 @@ export class PermissionGuard implements CanActivate {
       this.refuse(PERMISSION_DENIAL_REASON.KEY_NOT_GRANTED, key, { userId, workspaceId });
     }
 
+    /* For `@CurrentWorkspaceGrant()` — the handler's no-escalation check reads the same answer. */
+    keepWorkspaceGrant(request, grant);
+
     return true;
   }
 
-  private async authorizeAdmin(key: AdminPermissionKey): Promise<true> {
+  private async authorizeAdmin(key: AdminPermissionKey, request: object): Promise<true> {
     const { adminId } = this.requestContext;
 
     if (adminId === undefined) {
@@ -101,6 +111,8 @@ export class PermissionGuard implements CanActivate {
     if (!grant.permissions.has(key)) {
       this.refuse(PERMISSION_DENIAL_REASON.KEY_NOT_GRANTED, key, { adminId });
     }
+
+    keepAdminGrant(request, grant);
 
     return true;
   }

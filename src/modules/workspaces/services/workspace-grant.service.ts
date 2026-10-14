@@ -65,9 +65,7 @@ export class WorkspaceGrantService extends WorkspacePermissionResolver {
       return { isOwner: true, roleIds: [], permissions: EVERY_PERMISSION };
     }
 
-    const roles = await this.accessCache.rememberMemberRoles(workspaceId, memberId, () =>
-      this.memberRepo.findRoles(workspaceId, memberId),
-    );
+    const roles = await this.roleGrants.rolesOf(workspaceId, memberId);
 
     return {
       isOwner: false,

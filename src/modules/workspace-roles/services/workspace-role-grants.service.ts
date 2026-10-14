@@ -6,9 +6,10 @@ import {
   type WorkspacePermissionKey,
 } from '#/core/permissions/index.js';
 
+import { WorkspaceMemberRolesCacheService } from '../cache/workspace-member-roles.cache.js';
 import { WorkspaceRoleGrantsCacheService } from '../cache/workspace-role-grants.cache.js';
 import type { WorkspaceRoleRef } from '../interfaces/index.js';
-import { WorkspaceRoleRepository } from '../repositories/index.js';
+import { WorkspaceMemberRoleRepository, WorkspaceRoleRepository } from '../repositories/index.js';
 
 const DEFAULT_ROLE_KEYS: ReadonlySet<string> = new Set(WORKSPACE_PERMISSION_CATALOGUE.defaultRoles);
 
@@ -29,8 +30,24 @@ const DEFAULT_ROLE_KEYS: ReadonlySet<string> = new Set(WORKSPACE_PERMISSION_CATA
 export class WorkspaceRoleGrantsService {
   constructor(
     private readonly roleRepo: WorkspaceRoleRepository,
+    private readonly memberRoleRepo: WorkspaceMemberRoleRepository,
     private readonly grantsCache: WorkspaceRoleGrantsCacheService,
+    private readonly memberRolesCache: WorkspaceMemberRolesCacheService,
   ) {}
+
+  /** The roles a member holds — cached per member. */
+  async rolesOf(workspaceId: string, memberId: string): Promise<WorkspaceRoleRef[]> {
+    return this.memberRolesCache.remember(workspaceId, memberId, () =>
+      this.memberRoleRepo.findRoles(workspaceId, memberId),
+    );
+  }
+
+  /** A default role's permissions — the catalogue's, never its rows. Empty for a key this build does not define. */
+  defaultRolePermissions(key: string): ReadonlySet<WorkspacePermissionKey> {
+    return DEFAULT_ROLE_KEYS.has(key)
+      ? WORKSPACE_PERMISSION_CATALOGUE.defaultsFor(key as WorkspaceDefaultRoleKey)
+      : new Set();
+  }
 
   async permissionsOf(
     roles: readonly WorkspaceRoleRef[],

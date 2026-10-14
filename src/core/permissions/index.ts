@@ -7,6 +7,8 @@ export {
   RequirePermission,
 } from './decorators/permission.decorators.js';
 
+export { CurrentAdminGrant, CurrentWorkspaceGrant } from './decorators/current-grant.decorators.js';
+
 export { AdminPermissionResolver, WorkspacePermissionResolver } from './ports/index.js';
 
 export {
@@ -27,6 +29,8 @@ export {
   PERMISSION_OPENAPI_EXTENSION,
   PERMISSIONS_LOG_CONTEXT,
 } from './constants/index.js';
+
+export { missingPermissions } from './utils/permission-check.util.js';
 
 export {
   planPermissionMirror,

@@ -2,23 +2,20 @@ import { Injectable } from '@nestjs/common';
 
 import { CACHE_NEGATIVE_TTL_SECONDS, CACHE_TTL, CacheService } from '#/core/cache/index.js';
 import { RequestContextService } from '#/core/context/index.js';
-import type { WorkspaceRoleRef } from '#/modules/workspace-roles/index.js';
 
 import type { MembershipAccessSnapshot, WorkspaceAccessSnapshot } from '../interfaces/index.js';
 
 /**
- * The guards' three facts about a request's place in a workspace, cached apart
- * because they change apart:
+ * The tenant guard's two facts about a request's place in a workspace, cached
+ * apart because they change apart:
  *
  *   workspace     status and owner — one key shared by all members, so
  *                 suspending a workspace of five thousand deletes one key
  *   membership    the member and their status — one key per user, so
  *                 removing a member deletes theirs alone
- *   member roles  which roles the member holds — one key per member, so
- *                 changing someone's roles touches nothing else
  *
- * What a role grants is not here: that is one key per role, in
- * `modules/workspace-roles`, shared by everyone who holds it.
+ * Which roles a member holds, and what those roles grant, are cached in
+ * `modules/workspace-roles`, which owns the assignments.
  *
  * Global keys, not tenant keys: the guards read these before any workspace is
  * in context — setting it is what the tenant guard is for.
@@ -54,13 +51,6 @@ export class WorkspaceAccessCacheService {
         resource: 'workspace-membership-access',
         version: WorkspaceAccessCacheService.VERSION,
         segments: [workspaceId, userId],
-      }),
-
-    memberRoles: (workspaceId: string, memberId: string): string =>
-      this.cache.globalKey({
-        resource: 'workspace-member-roles',
-        version: WorkspaceAccessCacheService.VERSION,
-        segments: [workspaceId, memberId],
       }),
   };
 
@@ -102,33 +92,12 @@ export class WorkspaceAccessCacheService {
     );
   }
 
-  /**
-   * One minute, as for the membership: losing a role must take effect quickly
-   * even if the delete that should have done it was lost. Never null — a
-   * member with no roles is `[]`.
-   */
-  async rememberMemberRoles(
-    workspaceId: string,
-    memberId: string,
-    loader: () => Promise<WorkspaceRoleRef[]>,
-  ): Promise<WorkspaceRoleRef[]> {
-    const key = this.keys.memberRoles(workspaceId, memberId);
-
-    return this.requestContext.memo(key, () =>
-      this.cache.remember(key, loader, { ttlSeconds: CACHE_TTL.ONE_MINUTE }),
-    );
-  }
-
   async invalidateWorkspace(workspaceId: string): Promise<void> {
     await this.drop([this.keys.workspace(workspaceId)]);
   }
 
   async invalidateMembership(workspaceId: string, userId: string): Promise<void> {
     await this.drop([this.keys.membership(workspaceId, userId)]);
-  }
-
-  async invalidateMemberRoles(workspaceId: string, memberId: string): Promise<void> {
-    await this.drop([this.keys.memberRoles(workspaceId, memberId)]);
   }
 
   private async drop(keys: readonly string[]): Promise<void> {
