@@ -1248,7 +1248,7 @@ model OutboundMessage {
 // Stored File
 // ======================================================
 
-///  the file is for. Every rule — allowed types, size, visibility, scope,
+/// What the file is for. Every rule — allowed types, size, visibility, scope,
 /// variants — follows from this, in `FILE_PURPOSE_POLICY`. A new owner (a lead,
 /// a chat message) adds a value here in the same change as its join table.
 ///
@@ -1284,6 +1284,11 @@ enum FileRejectReason {
   UNREADABLE // the decoder could not open it
 }
 
+/// Defined in the migrations, not expressible here:
+///   files_unattached_expiry_idx  (expires_at) WHERE expires_at IS NOT NULL
+///   files_deleted_idx            (deleted_at) WHERE deleted_at IS NOT NULL
+///   chk_files_single_uploader    uploaded_by_user_id IS NULL OR uploaded_by_admin_id IS NULL
+///   chk_files_size_positive      size_bytes > 0
 model StoredFile {
   id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
 
@@ -1334,7 +1339,7 @@ model StoredFile {
   /// column we filter on.
   metadata Json? @db.JsonB
 
-  /// The deadline for an unclaimed upload; cleared when an owner claims it.
+  /// The deadline for an unattached upload; cleared when an owner attaches it.
   /// The purge removes anything still set and past.
   expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
 
@@ -1342,7 +1347,7 @@ model StoredFile {
 
   processedAt DateTime? @map("processed_at") @db.Timestamptz(6)
 
-  claimedAt DateTime? @map("claimed_at") @db.Timestamptz(6)
+  attachedAt DateTime? @map("attached_at") @db.Timestamptz(6)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -1363,7 +1368,7 @@ model StoredFile {
 
   /// Also serves the RESTRICT check on workspace deletion.
   @@index([workspaceId, createdAt(sort: Desc)])
-  /// The per-user cap on unclaimed uploads, and the SET NULL on user removal.
+  /// The per-user cap on unattached uploads, and the SET NULL on user removal.
   @@index([uploadedByUserId, status])
   @@index([uploadedByAdminId])
   @@map("files")
@@ -1378,6 +1383,7 @@ enum FileVariantKind {
   THUMBNAIL
 }
 
+/// Same bucket as its file. Cascade: the purge deletes the objects of a file
 /// and its variants before it deletes the row.
 model StoredFileVariant {
   fileId String @map("file_id") @db.Uuid
@@ -1405,6 +1411,9 @@ model StoredFileVariant {
 // ======================================================
 // Workspace Storage Usage
 // ======================================================
+
+/// Defined in the migrations, not expressible here:
+///   chk_workspace_storage_usage_non_negative   used_bytes >= 0
 model WorkspaceStorageUsage {
   workspaceId String @id @map("workspace_id") @db.Uuid
 
