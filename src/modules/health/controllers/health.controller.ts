@@ -17,6 +17,7 @@ import {
   WorkerHealthIndicator,
 } from '#/infrastructure/queue/index.js';
 import { RedisHealthIndicator } from '#/infrastructure/redis/index.js';
+import { StorageHealthIndicator } from '#/infrastructure/storage/index.js';
 import { HEALTH_API_TAG } from '#/shared/constants/index.js';
 
 import type { LivenessResult } from '../interfaces/index.js';
@@ -37,6 +38,8 @@ export class HealthController {
 
     private readonly outbox: OutboxHealthIndicator,
 
+    private readonly storage: StorageHealthIndicator,
+
     @Optional() private readonly workers?: WorkerHealthIndicator,
   ) {}
 
@@ -54,7 +57,7 @@ export class HealthController {
   @Get('ready')
   @ApiOperation({
     summary:
-      'Readiness — can it serve traffic? Checks Postgres, Redis, the queue and its workers; reports the outbox backlog.',
+      'Readiness — can it serve traffic? Checks Postgres, Redis, the queue and its workers; reports the outbox backlog and storage.',
   })
   @RawResponse()
   @HealthCheck()
@@ -64,6 +67,7 @@ export class HealthController {
       () => this.redis.isHealthy(),
       () => this.queue.isHealthy(),
       () => this.outbox.isHealthy(),
+      () => this.storage.isHealthy(),
     ];
 
     const workers = this.workers;

@@ -8,6 +8,7 @@ import { JwtConfigService, jwtConfig } from './jwt/index.js';
 import { RedisConfigService, redisConfig } from './redis/index.js';
 import { SecurityConfigService, securityConfig } from './security/index.js';
 import { SeedConfigService, seedConfig } from './seed/index.js';
+import { StorageConfigService, storageConfig } from './storage/index.js';
 
 @Global()
 @Module({
@@ -24,6 +25,7 @@ import { SeedConfigService, seedConfig } from './seed/index.js';
         redisConfig,
         seedConfig,
         securityConfig,
+        storageConfig,
       ],
     }),
   ],
@@ -35,6 +37,7 @@ import { SeedConfigService, seedConfig } from './seed/index.js';
     RedisConfigService,
     SeedConfigService,
     SecurityConfigService,
+    StorageConfigService,
   ],
   exports: [
     AppConfigService,
@@ -44,6 +47,7 @@ import { SeedConfigService, seedConfig } from './seed/index.js';
     RedisConfigService,
     SeedConfigService,
     SecurityConfigService,
+    StorageConfigService,
   ],
 })
 export class AppConfigModule {}

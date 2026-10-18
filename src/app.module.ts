@@ -18,6 +18,7 @@ import { ValidationModule } from '#/core/validation/index.js';
 import { PrismaModule } from '#/infrastructure/database/prisma/index.js';
 import { QueueModule, QueueWorkerModule } from '#/infrastructure/queue/index.js';
 import { RedisModule } from '#/infrastructure/redis/index.js';
+import { StorageModule } from '#/infrastructure/storage/index.js';
 import { AdminAuthModule } from '#/modules/admin-auth/index.js';
 import { AdminsModule } from '#/modules/admins/index.js';
 import { CommunicationModule } from '#/modules/communication/index.js';
@@ -33,6 +34,7 @@ import { WorkspacesModule } from '#/modules/workspaces/index.js';
     AppLoggerModule,
     PrismaModule,
     RedisModule,
+    StorageModule,
     CacheModule,
 
     /*

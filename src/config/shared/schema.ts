@@ -7,6 +7,7 @@ import { jwtSchema } from '../jwt/jwt.schema.js';
 import { redisSchema } from '../redis/redis.schema.js';
 import { securitySchema } from '../security/security.schema.js';
 import { seedSchema } from '../seed/seed.schema.js';
+import { storageSchema } from '../storage/storage.schema.js';
 
 export const envSchema = z.object({
   ...appSchema.shape,
@@ -16,4 +17,5 @@ export const envSchema = z.object({
   ...redisSchema.shape,
   ...seedSchema.shape,
   ...securitySchema.shape,
+  ...storageSchema.shape,
 });
