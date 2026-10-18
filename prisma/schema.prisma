@@ -71,7 +71,11 @@ model User {
 
   displayName String @map("display_name") @db.VarChar(150)
 
-  avatarFileId String? @map("avatar_file_id") @db.Uuid
+  /// Unique: one file is one user's avatar, never two users'. SetNull: the
+  /// purge removes a file only after it was replaced or deleted.
+  avatarFileId String? @unique @map("avatar_file_id") @db.Uuid
+
+  avatarFile StoredFile? @relation("StoredFileToUser_Avatar", fields: [avatarFileId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   status UserStatus @default(ACTIVE)
 
@@ -114,6 +118,8 @@ model User {
   invitationsSent WorkspaceInvitation[] @relation("UserToWorkspaceInvitation_InvitedBy")
 
   invitationsAccepted WorkspaceInvitation[] @relation("UserToWorkspaceInvitation_AcceptedBy")
+
+  filesUploaded StoredFile[] @relation("UserToStoredFile_UploadedBy")
 
   @@index([status])
   @@map("users")
@@ -456,7 +462,10 @@ model Workspace {
 
   slug String @unique @db.VarChar(60)
 
-  // logoFileId String? @map("logo_file_id") @db.Uuid
+  /// Unique and SetNull, as for `users.avatar_file_id`.
+  logoFileId String? @unique @map("logo_file_id") @db.Uuid
+
+  logoFile StoredFile? @relation("StoredFileToWorkspace_Logo", fields: [logoFileId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   businessType WorkspaceBusinessType @map("business_type")
 
@@ -506,6 +515,10 @@ model Workspace {
   invitations WorkspaceInvitation[] @relation("WorkspaceToWorkspaceInvitation")
 
   roles WorkspaceRole[] @relation("WorkspaceToWorkspaceRole")
+
+  files StoredFile[] @relation("WorkspaceToStoredFile")
+
+  storageUsage WorkspaceStorageUsage? @relation("WorkspaceToWorkspaceStorageUsage")
 
   @@index([ownerUserId])
   @@index([status, createdAt])
@@ -786,6 +799,11 @@ model Admin {
 
   displayName String @map("display_name") @db.VarChar(150)
 
+  /// Unique and SetNull, as for `users.avatar_file_id`.
+  avatarFileId String? @unique @map("avatar_file_id") @db.Uuid
+
+  avatarFile StoredFile? @relation("StoredFileToAdmin_Avatar", fields: [avatarFileId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
   status AdminStatus @default(ACTIVE)
 
   isSuperAdmin Boolean @default(false) @map("is_super_admin")
@@ -819,6 +837,8 @@ model Admin {
   roles AdminUserRole[] @relation("AdminToAdminUserRole")
 
   rolesAssigned AdminUserRole[] @relation("AdminToAdminUserRole_AssignedBy")
+
+  filesUploaded StoredFile[] @relation("AdminToStoredFile_UploadedBy")
 
   @@index([status])
   @@map("admins")
@@ -1222,4 +1242,177 @@ model OutboundMessage {
   @@index([createdAt(sort: Desc)])
   @@index([recipient, createdAt(sort: Desc)])
   @@map("outbound_messages")
+}
+
+// ======================================================
+// Stored File
+// ======================================================
+
+///  the file is for. Every rule — allowed types, size, visibility, scope,
+/// variants — follows from this, in `FILE_PURPOSE_POLICY`. A new owner (a lead,
+/// a chat message) adds a value here in the same change as its join table.
+///
+/// `ADMIN_AVATAR` is not `USER_AVATAR` reused: the audiences share nothing, and
+/// one purpose would let a file a user uploaded be attached to an admin.
+enum FilePurpose {
+  USER_AVATAR
+  ADMIN_AVATAR
+  WORKSPACE_LOGO
+}
+
+/// Which bucket. Derived from the purpose and never taken from the client.
+enum FileVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+/// PENDING     an upload URL was issued; nothing confirmed yet
+/// UPLOADED    the object exists and its size matched; processing queued
+/// READY       content verified and variants written
+/// REJECTED    the content failed a check; the object is deleted
+enum FileStatus {
+  PENDING
+  UPLOADED
+  READY
+  REJECTED
+}
+
+enum FileRejectReason {
+  SIZE_MISMATCH // the stored object is not the size that was declared
+  TYPE_NOT_ALLOWED // magic bytes name a type the purpose does not allow
+  TYPE_MISMATCH // magic bytes disagree with the declared type
+  UNREADABLE // the decoder could not open it
+}
+
+model StoredFile {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+
+  workspaceId String? @map("workspace_id") @db.Uuid
+
+  workspace Workspace? @relation("WorkspaceToStoredFile", fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  /// Two columns, not one: the audiences share no table. At most one is set.
+  uploadedByUserId String? @map("uploaded_by_user_id") @db.Uuid
+
+  uploadedByUser User? @relation("UserToStoredFile_UploadedBy", fields: [uploadedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  uploadedByAdminId String? @map("uploaded_by_admin_id") @db.Uuid
+
+  uploadedByAdmin Admin? @relation("AdminToStoredFile_UploadedBy", fields: [uploadedByAdminId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  purpose FilePurpose
+
+  visibility FileVisibility
+
+  status FileStatus @default(PENDING)
+
+  rejectReason FileRejectReason? @map("reject_reason")
+
+  /// Built from ids only, never from the client's file name: a name in a key is
+  /// a traversal vector, leaks personal data into URLs and collides.
+  objectKey String @map("object_key") @db.VarChar(512)
+
+  /// Display only, sanitised. Used for `Content-Disposition` on download.
+  originalName String @map("original_name") @db.VarChar(255)
+
+  /// What the client said at presign. The upload URL is signed for it.
+  declaredMimeType String @map("declared_mime_type") @db.VarChar(255)
+
+  /// What the magic bytes say. Null until processed; what is served.
+  detectedMimeType String? @map("detected_mime_type") @db.VarChar(255)
+
+  /// Declared at presign, confirmed against the stored object on complete.
+  sizeBytes BigInt @map("size_bytes")
+
+  width Int?
+
+  height Int?
+
+  durationMs Int? @map("duration_ms")
+
+  /// Facts a purpose needs that no other uses (a PDF's page count). Never a
+  /// column we filter on.
+  metadata Json? @db.JsonB
+
+  /// The deadline for an unclaimed upload; cleared when an owner claims it.
+  /// The purge removes anything still set and past.
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  uploadedAt DateTime? @map("uploaded_at") @db.Timestamptz(6)
+
+  processedAt DateTime? @map("processed_at") @db.Timestamptz(6)
+
+  claimedAt DateTime? @map("claimed_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  /// Soft delete. Storage is purged after the grace period, then the row.
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  // Relations
+
+  variants StoredFileVariant[] @relation("StoredFileToStoredFileVariant")
+
+  avatarOf User? @relation("StoredFileToUser_Avatar")
+
+  avatarOfAdmin Admin? @relation("StoredFileToAdmin_Avatar")
+
+  logoOf Workspace? @relation("StoredFileToWorkspace_Logo")
+
+  /// Also serves the RESTRICT check on workspace deletion.
+  @@index([workspaceId, createdAt(sort: Desc)])
+  /// The per-user cap on unclaimed uploads, and the SET NULL on user removal.
+  @@index([uploadedByUserId, status])
+  @@index([uploadedByAdminId])
+  @@map("files")
+}
+
+// ======================================================
+// Stored File Variant
+// ======================================================
+
+/// A derived rendition. A new size is a new value, not a new column.
+enum FileVariantKind {
+  THUMBNAIL
+}
+
+/// and its variants before it deletes the row.
+model StoredFileVariant {
+  fileId String @map("file_id") @db.Uuid
+
+  file StoredFile @relation("StoredFileToStoredFileVariant", fields: [fileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  kind FileVariantKind
+
+  objectKey String @map("object_key") @db.VarChar(512)
+
+  mimeType String @map("mime_type") @db.VarChar(255)
+
+  width Int
+
+  height Int
+
+  sizeBytes Int @map("size_bytes")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([fileId, kind])
+  @@map("file_variants")
+}
+
+// ======================================================
+// Workspace Storage Usage
+// ======================================================
+model WorkspaceStorageUsage {
+  workspaceId String @id @map("workspace_id") @db.Uuid
+
+  workspace Workspace @relation("WorkspaceToWorkspaceStorageUsage", fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  usedBytes BigInt @default(0) @map("used_bytes")
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("workspace_storage_usage")
 }
