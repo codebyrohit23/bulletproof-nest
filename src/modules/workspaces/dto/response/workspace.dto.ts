@@ -2,6 +2,7 @@ import { WorkspaceBusinessType, WorkspaceStatus } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
+import { attachedImageSchema } from '#/modules/files/index.js';
 import { idSchema } from '#/shared/schemas/index.js';
 
 export const workspaceSchema = z.object({
@@ -31,6 +32,10 @@ export const workspaceSchema = z.object({
     .string()
     .nullable()
     .describe('Left by the reviewing admin — chiefly the reason for a rejection.'),
+
+  logo: attachedImageSchema
+    .nullable()
+    .describe('Null when there is no logo, and while a new one is still being processed.'),
 
   isOwner: z.boolean(),
 

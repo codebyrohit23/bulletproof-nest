@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { WorkspacePermissionResolver } from '#/core/permissions/index.js';
 import { WorkspaceAccessResolver } from '#/core/tenancy/index.js';
+import { FilesModule } from '#/modules/files/index.js';
 import { WorkspaceRolesModule } from '#/modules/workspace-roles/index.js';
 
 import { WorkspaceAccessCacheService } from './cache/workspace-access.cache.js';
@@ -22,7 +23,7 @@ import { WorkspaceGrantService } from './services/workspace-grant.service.js';
 import { WorkspaceService } from './services/workspace.service.js';
 
 @Module({
-  imports: [WorkspaceRolesModule],
+  imports: [WorkspaceRolesModule, FilesModule],
   controllers: [
     WorkspaceController,
     MyWorkspacesController,

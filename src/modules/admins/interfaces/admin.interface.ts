@@ -11,6 +11,8 @@ export interface AdminSnapshot {
 
   readonly displayName: string;
 
+  readonly avatarFileId: string | null;
+
   readonly status: AdminStatus;
 
   readonly emailVerifiedAt: Date | null;

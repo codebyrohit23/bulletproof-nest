@@ -22,6 +22,7 @@ import { StorageModule } from '#/infrastructure/storage/index.js';
 import { AdminAuthModule } from '#/modules/admin-auth/index.js';
 import { AdminsModule } from '#/modules/admins/index.js';
 import { CommunicationModule } from '#/modules/communication/index.js';
+import { FilesModule } from '#/modules/files/index.js';
 import { HealthModule } from '#/modules/health/index.js';
 import { UserAuthModule } from '#/modules/user-auth/index.js';
 import { UsersModule } from '#/modules/users/index.js';
@@ -59,6 +60,7 @@ import { WorkspacesModule } from '#/modules/workspaces/index.js';
     AdminAuthModule,
     CommunicationModule,
     WorkspacesModule,
+    FilesModule,
 
     AuthModule.forRoot({ imports: [UserAuthModule, AdminAuthModule] }),
 

@@ -20,9 +20,15 @@ export const ADMIN_ROLES_API_TAG: ApiTag = {
   description: 'The admin permission catalogue and the roles the platform team defines.',
 };
 
+export const ADMIN_FILES_API_TAG: ApiTag = {
+  name: 'Admin Files',
+  description: "Uploading the signed-in admin's own files, and following them until ready.",
+};
+
 export const ADMIN_API_TAGS: readonly ApiTag[] = [
   ADMIN_AUTH_API_TAG,
   ADMIN_PROFILE_API_TAG,
   ADMIN_WORKSPACES_API_TAG,
   ADMIN_ROLES_API_TAG,
+  ADMIN_FILES_API_TAG,
 ];

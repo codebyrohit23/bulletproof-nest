@@ -165,7 +165,7 @@ revisit if a user ever holds hundreds.
       "id": "…",
       "name": "Skyline Realty",
       "slug": "skyline-realty",
-      "logoUrl": null,
+      "logo": null, // or { "url", "thumbnailUrl" } — every logo on the page in one query
       "businessType": "AGENCY",
       "isOwner": true,
       "memberId": "…",
@@ -185,7 +185,7 @@ The one call a client makes after choosing a workspace.
     "id": "…",
     "name": "…",
     "slug": "…",
-    "logoUrl": null,
+    "logo": { "url": "https://cdn…/image.webp", "thumbnailUrl": "https://cdn…/thumbnail.webp" }, // or null
     "businessType": "AGENCY",
     "status": "ACTIVE",
     "countryCode": "IN",
@@ -220,9 +220,14 @@ Touches `last_accessed_at`, throttled (at most once per
 
 ### PATCH `/workspace` — settings
 
-Any of `name`, `slug`, `logoFileId`, `businessType`, `countryCode`, `timezone`,
-`currency`; `onboardingCompleted: true` stamps `onboarding_completed_at` once.
-`409 WORKSPACE_SLUG_TAKEN`.
+Built so far: `logoFileId` only — a `WORKSPACE_LOGO` file the caller uploaded
+to `/workspace/files` in this workspace. It replaces the logo and releases the
+old file. Left out, the logo is unchanged; `null` is a `422`. An update never
+removes the logo: that is `DELETE /workspace/logo`, also `workspace.update`.
+
+Planned, on this same route: `name`, `slug`, `businessType`, `countryCode`,
+`timezone`, `currency`; `onboardingCompleted: true` stamps
+`onboarding_completed_at` once. `409 WORKSPACE_SLUG_TAKEN`.
 
 ### POST `/workspace/archive` — owner only
 
@@ -367,7 +372,7 @@ login or signup.
 
 ```jsonc
 {
-  "workspace": { "name": "…", "logoUrl": null },
+  "workspace": { "name": "…", "logo": null },
   "invitedBy": { "displayName": "…" },
   "email": "p****@example.com", // masked
   "status": "PENDING",

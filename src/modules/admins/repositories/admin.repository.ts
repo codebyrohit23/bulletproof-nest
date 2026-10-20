@@ -61,6 +61,15 @@ export class AdminRepository {
     return toAdminSnapshot(admin);
   }
 
+  async replaceAvatar(id: string, from: string | null, to: string | null): Promise<boolean> {
+    const { count } = await this.prisma.db.admin.updateMany({
+      where: { id, avatarFileId: from },
+      data: { avatarFileId: to },
+    });
+
+    return count === 1;
+  }
+
   /** Only the first proof is recorded; a later one does not move the date. */
   async markEmailVerified(id: string): Promise<void> {
     await this.prisma.db.admin.updateMany({

@@ -1,5 +1,7 @@
 import type { WorkspaceStatus } from '@prisma/client';
 
+import type { AttachedImage } from '#/modules/files/index.js';
+
 import type {
   CreateWorkspaceInput,
   CurrentWorkspace,
@@ -33,7 +35,11 @@ export function toCreateWorkspaceRow(
   };
 }
 
-export function toWorkspace(workspace: WorkspaceSnapshot, callerUserId: string): Workspace {
+export function toWorkspace(
+  workspace: WorkspaceSnapshot,
+  callerUserId: string,
+  logo: AttachedImage | null,
+): Workspace {
   return {
     id: workspace.id,
     name: workspace.name,
@@ -45,6 +51,7 @@ export function toWorkspace(workspace: WorkspaceSnapshot, callerUserId: string):
     currency: workspace.currency,
     reraNumber: workspace.reraNumber,
     reviewNote: workspace.reviewNote,
+    logo,
     isOwner: workspace.ownerUserId === callerUserId,
     onboardingCompletedAt: workspace.onboardingCompletedAt?.toISOString() ?? null,
     createdAt: workspace.createdAt.toISOString(),
@@ -54,9 +61,10 @@ export function toWorkspace(workspace: WorkspaceSnapshot, callerUserId: string):
 export function toCurrentWorkspace(
   row: CurrentMembershipRow,
   callerUserId: string,
+  logo: AttachedImage | null,
 ): CurrentWorkspace {
   return {
-    workspace: toWorkspace(row.workspace, callerUserId),
+    workspace: toWorkspace(row.workspace, callerUserId, logo),
     membership: {
       id: row.id,
       jobTitle: row.jobTitle,
@@ -65,7 +73,11 @@ export function toCurrentWorkspace(
   };
 }
 
-export function toMyWorkspace(row: MyWorkspaceRow, callerUserId: string): MyWorkspace {
+export function toMyWorkspace(
+  row: MyWorkspaceRow,
+  callerUserId: string,
+  logo: AttachedImage | null,
+): MyWorkspace {
   return {
     id: row.workspace.id,
     name: row.workspace.name,
@@ -73,6 +85,7 @@ export function toMyWorkspace(row: MyWorkspaceRow, callerUserId: string): MyWork
     businessType: row.workspace.businessType,
     status: row.workspace.status,
     reviewNote: row.workspace.reviewNote,
+    logo,
     isOwner: row.workspace.ownerUserId === callerUserId,
     memberId: row.id,
     joinedAt: row.joinedAt.toISOString(),

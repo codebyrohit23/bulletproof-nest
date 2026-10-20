@@ -2,6 +2,7 @@ export const QUEUE = {
   EMAIL: 'email',
   WEBHOOKS: 'webhooks',
   IMPORTS: 'imports',
+  MEDIA: 'media',
   DEFAULT: 'default',
 } as const;
 
@@ -13,6 +14,7 @@ export const QUEUE_SETTINGS: Readonly<Record<QueueName, QueueWorkerSettings>> = 
   [QUEUE.EMAIL]: { concurrency: 10, attempts: 5, keepCompletedJobs: 0 },
   [QUEUE.WEBHOOKS]: { concurrency: 5, attempts: 8, keepCompletedJobs: 1_000 },
   [QUEUE.IMPORTS]: { concurrency: 2, attempts: 3, keepCompletedJobs: 1_000 },
+  [QUEUE.MEDIA]: { concurrency: 2, attempts: 3, keepCompletedJobs: 1_000 },
   [QUEUE.DEFAULT]: { concurrency: 5, attempts: 3, keepCompletedJobs: 1_000 },
 };
 

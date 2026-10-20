@@ -12,6 +12,7 @@ import {
   DefaultQueueProcessor,
   EmailQueueProcessor,
   ImportsQueueProcessor,
+  MediaQueueProcessor,
   WebhooksQueueProcessor,
 } from '../processors/queue.processors.js';
 
@@ -23,6 +24,7 @@ export class WorkerHealthIndicator {
     email: EmailQueueProcessor,
     webhooks: WebhooksQueueProcessor,
     imports: ImportsQueueProcessor,
+    media: MediaQueueProcessor,
     fallback: DefaultQueueProcessor,
 
     private readonly healthIndicatorService: HealthIndicatorService,
@@ -31,6 +33,7 @@ export class WorkerHealthIndicator {
       [QUEUE.EMAIL]: email,
       [QUEUE.WEBHOOKS]: webhooks,
       [QUEUE.IMPORTS]: imports,
+      [QUEUE.MEDIA]: media,
       [QUEUE.DEFAULT]: fallback,
     };
   }

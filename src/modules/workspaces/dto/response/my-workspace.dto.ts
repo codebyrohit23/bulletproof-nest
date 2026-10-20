@@ -2,6 +2,7 @@ import { WorkspaceBusinessType, WorkspaceStatus } from '@prisma/client';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
+import { attachedImageSchema } from '#/modules/files/index.js';
 import { offsetPageSchema } from '#/shared/pagination/index.js';
 import { idSchema } from '#/shared/schemas/index.js';
 
@@ -22,6 +23,8 @@ const myWorkspaceSchema = z.object({
     ),
 
   reviewNote: z.string().nullable(),
+
+  logo: attachedImageSchema.nullable(),
 
   isOwner: z.boolean(),
 

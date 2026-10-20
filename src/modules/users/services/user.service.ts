@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { FilePurpose } from '@prisma/client';
 
 import { TransactionService } from '#/infrastructure/database/prisma/index.js';
+import { FilesService, userUploader } from '#/modules/files/index.js';
 
 import { UserCacheService } from '../cache/user.cache.js';
 import { USER_ERROR_MESSAGE } from '../constants/index.js';
@@ -15,6 +17,7 @@ export class UserService {
     private readonly userRepo: UserRepository,
     private readonly userCache: UserCacheService,
     private readonly transaction: TransactionService,
+    private readonly files: FilesService,
   ) {}
 
   async createUser(payload: CreateUserInput): Promise<UserSnapshot> {
@@ -32,15 +35,71 @@ export class UserService {
       throw new NotFoundException(USER_ERROR_MESSAGE.USER_NOT_FOUND);
     }
 
-    return toUserProfile(user);
+    return this.toProfile(user);
   }
 
   async updateProfile(userId: string, payload: UpdateProfileInput): Promise<UserProfile> {
-    const user = await this.userRepo.update(userId, toUpdateUserInput(payload));
+    await this.transaction.run(async () => {
+      const user = await this.findOrThrow(userId);
+      const names = toUpdateUserInput(payload);
 
-    await this.evictAfterCommit(userId);
+      if (Object.keys(names).length > 0) {
+        await this.userRepo.update(userId, names);
+      }
 
-    return toUserProfile(user);
+      const next = payload.avatarFileId;
+
+      if (next && next !== user.avatarFileId) {
+        await this.files.attach(next, {
+          purpose: FilePurpose.USER_AVATAR,
+          uploader: userUploader(userId),
+        });
+
+        await this.moveAvatar(userId, user.avatarFileId, next);
+      }
+
+      await this.evictAfterCommit(userId);
+    });
+
+    return this.getProfile(userId);
+  }
+
+  async removeAvatar(userId: string): Promise<UserProfile> {
+    await this.transaction.run(async () => {
+      const user = await this.findOrThrow(userId);
+
+      if (user.avatarFileId) {
+        await this.moveAvatar(userId, user.avatarFileId, null);
+        await this.evictAfterCommit(userId);
+      }
+    });
+
+    return this.getProfile(userId);
+  }
+
+  /** Read fresh, not from the cache: the transaction acts on what it reads. */
+  private async findOrThrow(userId: string): Promise<UserSnapshot> {
+    const user = await this.userRepo.findSnapshotById(userId);
+
+    if (user === null) {
+      throw new NotFoundException(USER_ERROR_MESSAGE.USER_NOT_FOUND);
+    }
+
+    return user;
+  }
+
+  private async moveAvatar(userId: string, from: string | null, to: string | null): Promise<void> {
+    if (!(await this.userRepo.replaceAvatar(userId, from, to))) {
+      throw new ConflictException(USER_ERROR_MESSAGE.AVATAR_CHANGED);
+    }
+
+    if (from !== null) {
+      await this.files.release(from);
+    }
+  }
+
+  private async toProfile(user: UserSnapshot): Promise<UserProfile> {
+    return toUserProfile(user, await this.files.attachedImage(user.avatarFileId));
   }
 
   private async evictAfterCommit(userId: string): Promise<void> {

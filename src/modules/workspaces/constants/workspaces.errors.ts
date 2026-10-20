@@ -11,4 +11,6 @@ export const WORKSPACE_ERROR_MESSAGE = {
   WORKSPACE_NOT_FOUND: 'Workspace not found.',
 
   NOT_AWAITING_REVIEW: 'This workspace is not awaiting review.',
+
+  LOGO_CHANGED: 'The logo was changed somewhere else at the same time. Please try again.',
 } as const;

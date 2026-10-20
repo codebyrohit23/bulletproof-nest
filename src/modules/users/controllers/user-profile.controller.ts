@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpStatus, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpStatus, Patch } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUserId } from '#/core/context/index.js';
@@ -48,13 +48,20 @@ export class UserProfileController {
     summary: 'Update the current profile',
     description:
       'Changes only the fields that are sent — at least one is required. `displayName` is not ' +
-      'derived from the name fields, so send it too if it should follow a rename.',
+      'derived from the name fields, so send it too if it should follow a rename. ' +
+      '`avatarFileId` sets or replaces the avatar from an upload; until it is processed, ' +
+      '`avatar` is null. This never removes the avatar — `DELETE /users/me/avatar` does.',
   })
   @ApiSuccessResponse(UserProfileDto, {
     status: HttpStatus.OK,
     description: 'The profile after the update.',
   })
-  @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND)
+  @ApiErrorResponses(
+    HttpStatus.UNPROCESSABLE_ENTITY,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.NOT_FOUND,
+    HttpStatus.CONFLICT,
+  )
   @ResponseMessage('Profile updated successfully')
   @ApiDeviceIdHeader()
   updateProfile(
@@ -62,5 +69,26 @@ export class UserProfileController {
     @Body() body: UpdateProfileDto,
   ): Promise<UserProfile> {
     return this.userService.updateProfile(userId, body);
+  }
+
+  /**
+   * Remove Avatar
+   */
+  @Delete('avatar')
+  @NoWorkspace()
+  @ApiOperation({
+    summary: 'Remove the avatar',
+    description:
+      'Succeeds when there is no avatar too. To set or replace one, use `PATCH /users/me`.',
+  })
+  @ApiSuccessResponse(UserProfileDto, {
+    status: HttpStatus.OK,
+    description: 'The profile without an avatar.',
+  })
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND, HttpStatus.CONFLICT)
+  @ResponseMessage('Avatar removed successfully')
+  @ApiDeviceIdHeader()
+  removeAvatar(@CurrentUserId() userId: string): Promise<UserProfile> {
+    return this.userService.removeAvatar(userId);
   }
 }

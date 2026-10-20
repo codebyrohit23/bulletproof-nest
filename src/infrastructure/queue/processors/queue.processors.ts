@@ -57,6 +57,18 @@ export class ImportsQueueProcessor extends WorkerHost {
 }
 
 @Injectable()
+@Processor(QUEUE.MEDIA, { concurrency: QUEUE_SETTINGS[QUEUE.MEDIA].concurrency })
+export class MediaQueueProcessor extends WorkerHost {
+  constructor(private readonly runner: JobRunner) {
+    super();
+  }
+
+  async process(job: Job<JobEnvelope<unknown>>): Promise<void> {
+    await this.runner.run(QUEUE.MEDIA, job);
+  }
+}
+
+@Injectable()
 @Processor(QUEUE.DEFAULT, { concurrency: QUEUE_SETTINGS[QUEUE.DEFAULT].concurrency })
 export class DefaultQueueProcessor extends WorkerHost {
   constructor(private readonly runner: JobRunner) {

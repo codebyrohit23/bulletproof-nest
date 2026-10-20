@@ -1,6 +1,8 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
+import { idSchema } from '#/shared/schemas/index.js';
+
 const updateProfileSchema = z
   .object({
     firstName: z.string().trim().min(1, 'First name is required').max(100).optional(),
@@ -8,6 +10,8 @@ const updateProfileSchema = z
     lastName: z.string().trim().min(1, 'Last name is required').max(100).optional(),
 
     displayName: z.string().trim().min(1, 'Display name is required').max(150).optional(),
+
+    avatarFileId: idSchema.optional(),
   })
   .strict()
   .check((ctx) => {

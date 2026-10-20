@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpStatus, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpStatus, Patch } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CurrentAdminId } from '#/core/context/index.js';
@@ -12,13 +12,13 @@ import { AnyAdmin } from '#/core/permissions/index.js';
 import { ADMIN_PROFILE_API_TAG, ApiVersion } from '#/shared/constants/index.js';
 
 import { AdminProfileDto, UpdateAdminProfileDto, type AdminProfile } from '../dto/index.js';
-import { AdminService } from '../services/admin.service.js';
+import { AdminProfileService } from '../services/admin-profile.service.js';
 
 /** Mounted under `admin/` — that path is what makes these admin-audience routes. */
 @ApiTags(ADMIN_PROFILE_API_TAG.name)
 @Controller({ path: 'admin/me', version: ApiVersion.V1 })
 export class AdminProfileController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminProfile: AdminProfileService) {}
 
   /**
    * Get Profile
@@ -37,7 +37,7 @@ export class AdminProfileController {
   @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND)
   @ResponseMessage('Profile fetched successfully')
   getProfile(@CurrentAdminId() adminId: string): Promise<AdminProfile> {
-    return this.adminService.getProfile(adminId);
+    return this.adminProfile.getProfile(adminId);
   }
 
   /**
@@ -50,19 +50,47 @@ export class AdminProfileController {
     description:
       'Changes only the fields that are sent — at least one is required. `email` cannot be ' +
       'changed here. `displayName` is not derived from the name fields, so send it too if it ' +
-      'should follow a rename.',
+      'should follow a rename. `avatarFileId` sets or replaces the avatar from an upload; ' +
+      'until it is processed, `avatar` is null. This never removes the avatar — ' +
+      '`DELETE /admin/me/avatar` does.',
   })
   @ApiDeviceIdHeader()
   @ApiSuccessResponse(AdminProfileDto, {
     status: HttpStatus.OK,
     description: 'The profile after the update.',
   })
-  @ApiErrorResponses(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND)
+  @ApiErrorResponses(
+    HttpStatus.UNPROCESSABLE_ENTITY,
+    HttpStatus.UNAUTHORIZED,
+    HttpStatus.NOT_FOUND,
+    HttpStatus.CONFLICT,
+  )
   @ResponseMessage('Profile updated successfully')
   updateProfile(
     @CurrentAdminId() adminId: string,
     @Body() body: UpdateAdminProfileDto,
   ): Promise<AdminProfile> {
-    return this.adminService.updateProfile(adminId, body);
+    return this.adminProfile.updateProfile(adminId, body);
+  }
+
+  /**
+   * Remove Avatar
+   */
+  @Delete('avatar')
+  @AnyAdmin()
+  @ApiOperation({
+    summary: 'Remove the admin avatar',
+    description:
+      'Succeeds when there is no avatar too. To set or replace one, use `PATCH /admin/me`.',
+  })
+  @ApiDeviceIdHeader()
+  @ApiSuccessResponse(AdminProfileDto, {
+    status: HttpStatus.OK,
+    description: 'The profile without an avatar.',
+  })
+  @ApiErrorResponses(HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND, HttpStatus.CONFLICT)
+  @ResponseMessage('Avatar removed successfully')
+  removeAvatar(@CurrentAdminId() adminId: string): Promise<AdminProfile> {
+    return this.adminProfile.removeAvatar(adminId);
   }
 }

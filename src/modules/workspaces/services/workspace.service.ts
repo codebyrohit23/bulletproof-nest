@@ -1,11 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { WorkspaceStatus } from '@prisma/client';
+import { FilePurpose, WorkspaceStatus } from '@prisma/client';
 
 import { AppLoggerService } from '#/core/logger/index.js';
 import {
   isUniqueConstraintViolation,
   TransactionService,
 } from '#/infrastructure/database/prisma/index.js';
+import { FilesService, workspaceUploader } from '#/modules/files/index.js';
 import { buildOffsetPagination, paginate } from '#/shared/pagination/index.js';
 
 import {
@@ -21,8 +22,10 @@ import type {
   CurrentWorkspace,
   ListMyWorkspacesQuery,
   MyWorkspacePage,
+  UpdateWorkspaceInput,
   Workspace,
 } from '../dto/index.js';
+import type { WorkspaceSnapshot } from '../interfaces/index.js';
 import {
   toCreateWorkspaceRow,
   toCurrentWorkspace,
@@ -39,6 +42,7 @@ export class WorkspaceService {
     private readonly workspaceRepo: WorkspaceRepository,
     private readonly memberRepo: WorkspaceMemberRepository,
     private readonly transaction: TransactionService,
+    private readonly files: FilesService,
   ) {}
 
   async createWorkspace(ownerUserId: string, input: CreateWorkspaceInput): Promise<Workspace> {
@@ -62,7 +66,7 @@ export class WorkspaceService {
           return created;
         });
 
-        return toWorkspace(workspace, ownerUserId);
+        return toWorkspace(workspace, ownerUserId, null);
       } catch (error) {
         if (!isUniqueConstraintViolation(error)) {
           throw error;
@@ -96,16 +100,93 @@ export class WorkspaceService {
       throw new NotFoundException(WORKSPACE_ERROR_MESSAGE.WORKSPACE_NOT_FOUND);
     }
 
-    return toCurrentWorkspace(membership, userId);
+    const logo = await this.files.attachedImage(membership.workspace.logoFileId);
+
+    return toCurrentWorkspace(membership, userId, logo);
   }
 
+  /** Every logo on the page in one query, not one per workspace. */
   async listMyWorkspaces(userId: string, query: ListMyWorkspacesQuery): Promise<MyWorkspacePage> {
     const { rows, total } = await this.memberRepo.findPageForUser(userId, query);
+    const logos = await this.files.attachedImages(rows.map((row) => row.workspace.logoFileId));
 
     return paginate(
-      rows.map((row) => toMyWorkspace(row, userId)),
+      rows.map((row) => {
+        const logoFileId = row.workspace.logoFileId;
+
+        return toMyWorkspace(row, userId, logoFileId ? (logos.get(logoFileId) ?? null) : null);
+      }),
       buildOffsetPagination(total, query.page, query.limit),
     );
+  }
+
+  /**
+   * A `logoFileId` attaches that file — the caller's own upload in this
+   * workspace — and releases the logo it replaces. This never removes the
+   * logo; `removeLogo` does.
+   */
+  async updateWorkspace(
+    workspaceId: string,
+    memberId: string,
+    userId: string,
+    input: UpdateWorkspaceInput,
+  ): Promise<CurrentWorkspace> {
+    await this.transaction.run(async () => {
+      const workspace = await this.findOrThrow(workspaceId);
+      const next = input.logoFileId;
+
+      if (next && next !== workspace.logoFileId) {
+        await this.files.attach(next, {
+          purpose: FilePurpose.WORKSPACE_LOGO,
+          uploader: workspaceUploader(userId, workspaceId),
+        });
+
+        await this.moveLogo(workspaceId, workspace.logoFileId, next);
+      }
+    });
+
+    return this.getCurrentWorkspace(workspaceId, memberId, userId);
+  }
+
+  /** Succeeds when there is no logo too — the result is what was asked for. */
+  async removeLogo(
+    workspaceId: string,
+    memberId: string,
+    userId: string,
+  ): Promise<CurrentWorkspace> {
+    await this.transaction.run(async () => {
+      const workspace = await this.findOrThrow(workspaceId);
+
+      if (workspace.logoFileId) {
+        await this.moveLogo(workspaceId, workspace.logoFileId, null);
+      }
+    });
+
+    return this.getCurrentWorkspace(workspaceId, memberId, userId);
+  }
+
+  private async findOrThrow(workspaceId: string): Promise<WorkspaceSnapshot> {
+    const workspace = await this.workspaceRepo.findById(workspaceId);
+
+    if (workspace === null) {
+      throw new NotFoundException(WORKSPACE_ERROR_MESSAGE.WORKSPACE_NOT_FOUND);
+    }
+
+    return workspace;
+  }
+
+  private async moveLogo(
+    workspaceId: string,
+    from: string | null,
+    to: string | null,
+  ): Promise<void> {
+    if (!(await this.workspaceRepo.replaceLogo(workspaceId, from, to))) {
+      throw new ConflictException(WORKSPACE_ERROR_MESSAGE.LOGO_CHANGED);
+    }
+
+    if (from !== null) {
+      await this.files.release(from);
+    }
   }
 
   private async assertCanCreate(ownerUserId: string, explicitSlug?: string): Promise<void> {

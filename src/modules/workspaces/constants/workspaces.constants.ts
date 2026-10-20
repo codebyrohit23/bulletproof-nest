@@ -79,6 +79,7 @@ export const WORKSPACE_SELECT = {
   currency: true,
   reraNumber: true,
   reviewNote: true,
+  logoFileId: true,
   onboardingCompletedAt: true,
   createdAt: true,
 } as const satisfies Prisma.WorkspaceSelect;
@@ -103,6 +104,7 @@ export const MY_WORKSPACE_SELECT = {
       status: true,
       ownerUserId: true,
       reviewNote: true,
+      logoFileId: true,
     },
   },
 } as const satisfies Prisma.WorkspaceMemberSelect;

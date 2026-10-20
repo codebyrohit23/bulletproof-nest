@@ -1,3 +1,5 @@
+import type { AttachedImage } from '#/modules/files/index.js';
+
 import type { UpdateProfileInput, UserProfile } from '../dto/index.js';
 import type { UpdateUserInput, UserSnapshot } from '../interfaces/index.js';
 
@@ -12,12 +14,13 @@ export function toUserSnapshot(user: UserSnapshot): UserSnapshot {
   };
 }
 
-export function toUserProfile(user: UserSnapshot): UserProfile {
+export function toUserProfile(user: UserSnapshot, avatar: AttachedImage | null): UserProfile {
   return {
     id: user.id,
     firstName: user.firstName,
     lastName: user.lastName,
     displayName: user.displayName,
+    avatar,
   };
 }
 

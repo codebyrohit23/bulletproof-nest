@@ -26,6 +26,7 @@ export const PRISMA_ERROR_CODE = {
 export const SOFT_DELETABLE_MODELS = [
   'User',
   'Admin',
+  'StoredFile',
 ] as const satisfies readonly Prisma.ModelName[];
 
 export const SOFT_DELETE_FIELD = 'deletedAt';

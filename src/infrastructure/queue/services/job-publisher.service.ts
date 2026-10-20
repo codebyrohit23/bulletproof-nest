@@ -21,12 +21,14 @@ export class JobPublisher {
     @InjectQueue(QUEUE.EMAIL) email: Queue,
     @InjectQueue(QUEUE.WEBHOOKS) webhooks: Queue,
     @InjectQueue(QUEUE.IMPORTS) imports: Queue,
+    @InjectQueue(QUEUE.MEDIA) media: Queue,
     @InjectQueue(QUEUE.DEFAULT) fallback: Queue,
   ) {
     this.queues = {
       [QUEUE.EMAIL]: email,
       [QUEUE.WEBHOOKS]: webhooks,
       [QUEUE.IMPORTS]: imports,
+      [QUEUE.MEDIA]: media,
       [QUEUE.DEFAULT]: fallback,
     };
   }

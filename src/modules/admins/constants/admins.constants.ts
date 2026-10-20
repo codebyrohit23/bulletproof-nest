@@ -8,6 +8,7 @@ export const ADMIN_SNAPSHOT_SELECT = {
   firstName: true,
   lastName: true,
   displayName: true,
+  avatarFileId: true,
   status: true,
   emailVerifiedAt: true,
 } as const satisfies Prisma.AdminSelect;

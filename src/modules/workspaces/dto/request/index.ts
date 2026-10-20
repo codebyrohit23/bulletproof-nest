@@ -16,3 +16,5 @@ export {
   ListMyWorkspacesQueryDto,
   type ListMyWorkspacesQuery,
 } from './list-my-workspaces-query.dto.js';
+
+export { UpdateWorkspaceDto, type UpdateWorkspaceInput } from './update-workspace.dto.js';

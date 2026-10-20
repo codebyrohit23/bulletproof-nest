@@ -1,3 +1,5 @@
+import type { AttachedImage } from '#/modules/files/index.js';
+
 import type { AdminProfile, UpdateAdminProfileInput } from '../dto/index.js';
 import type { AdminSnapshot, UpdateAdminInput } from '../interfaces/index.js';
 
@@ -8,18 +10,20 @@ export function toAdminSnapshot(admin: AdminSnapshot): AdminSnapshot {
     firstName: admin.firstName,
     lastName: admin.lastName,
     displayName: admin.displayName,
+    avatarFileId: admin.avatarFileId,
     status: admin.status,
     emailVerifiedAt: admin.emailVerifiedAt,
   };
 }
 
-export function toAdminProfile(admin: AdminSnapshot): AdminProfile {
+export function toAdminProfile(admin: AdminSnapshot, avatar: AttachedImage | null): AdminProfile {
   return {
     id: admin.id,
     email: admin.email,
     firstName: admin.firstName,
     lastName: admin.lastName,
     displayName: admin.displayName,
+    avatar,
   };
 }
 

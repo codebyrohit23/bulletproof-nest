@@ -25,10 +25,18 @@ export const WORKSPACE_ROLES_API_TAG: ApiTag = {
   description: 'The permission catalogue and the roles a workspace grants it through.',
 };
 
+export const FILES_API_TAG: ApiTag = {
+  name: 'Files',
+  description:
+    'Uploading a file straight to storage and following it until it is ready. A file is used ' +
+    'by sending its id to the route that owns it — a profile, a workspace.',
+};
+
 export const USER_API_TAGS: readonly ApiTag[] = [
   HEALTH_API_TAG,
   USER_AUTH_API_TAG,
   USER_PROFILE_API_TAG,
   WORKSPACES_API_TAG,
   WORKSPACE_ROLES_API_TAG,
+  FILES_API_TAG,
 ];
