@@ -1,5 +1,7 @@
 export const FILE_JOB = {
   PROCESS: 'files.process',
+  PURGE_UNATTACHED: 'files.purge-unattached',
+  PURGE_DELETED: 'files.purge-deleted',
 } as const;
 
 export const CONTENT_SNIFF_BYTES = 4_100;

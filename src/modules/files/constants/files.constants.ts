@@ -1,3 +1,5 @@
+export const FILES_LOG_CONTEXT = 'Files';
+
 const HOUR_MS = 60 * 60 * 1000;
 
 const GIBIBYTE = 1024 * 1024 * 1024;

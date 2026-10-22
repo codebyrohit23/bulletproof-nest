@@ -4,14 +4,9 @@ import type { Queue } from 'bullmq';
 
 import { withTimeout } from '#/shared/utils/index.js';
 
-import {
-  DISPATCH_TIMEOUT_MS,
-  JOB_DEFAULTS,
-  QUEUE,
-  QUEUE_SETTINGS,
-  type QueueName,
-} from '../constants/queue.constants.js';
-import type { PublishableJob } from '../interfaces/index.js';
+import { DISPATCH_TIMEOUT_MS, QUEUE, type QueueName } from '../constants/queue.constants.js';
+import type { JobEnvelope, PublishableJob, ScheduledJobDefinition } from '../interfaces/index.js';
+import { queueJobOptions } from '../utils/job-options.util.js';
 
 @Injectable()
 export class JobPublisher {
@@ -34,26 +29,40 @@ export class JobPublisher {
   }
 
   async publish(job: PublishableJob): Promise<void> {
-    const settings = QUEUE_SETTINGS[job.queue];
+    const defaults = queueJobOptions(job.queue);
 
     const added = this.queues[job.queue].add(job.jobName, job.envelope, {
+      ...defaults,
+
       jobId: job.jobId,
 
-      attempts: job.options.attempts ?? settings.attempts,
+      attempts: job.options.attempts ?? defaults.attempts,
 
       ...(job.options.delayMs !== undefined ? { delay: job.options.delayMs } : {}),
       ...(job.options.priority !== undefined ? { priority: job.options.priority } : {}),
-
-      backoff: {
-        type: JOB_DEFAULTS.BACKOFF_TYPE,
-        delay: JOB_DEFAULTS.BACKOFF_DELAY_MS,
-      },
-
-      removeOnComplete:
-        settings.keepCompletedJobs === 0 ? true : { count: settings.keepCompletedJobs },
-      removeOnFail: { age: JOB_DEFAULTS.REMOVE_ON_FAIL_AGE_SECONDS },
     });
 
     await withTimeout(added, DISPATCH_TIMEOUT_MS, `Dispatch of ${job.jobName}`);
+  }
+
+  async upsertSchedule(
+    schedule: ScheduledJobDefinition,
+    envelope: JobEnvelope<Record<string, never>>,
+  ): Promise<void> {
+    await this.queues[schedule.queue].upsertJobScheduler(
+      schedule.jobName,
+      { pattern: schedule.pattern, tz: 'UTC' },
+      { name: schedule.jobName, data: envelope, opts: queueJobOptions(schedule.queue) },
+    );
+  }
+
+  async scheduleIds(queue: QueueName): Promise<string[]> {
+    const schedulers = await this.queues[queue].getJobSchedulers();
+
+    return schedulers.map((scheduler) => scheduler.id ?? scheduler.key);
+  }
+
+  async removeSchedule(queue: QueueName, jobName: string): Promise<void> {
+    await this.queues[queue].removeJobScheduler(jobName);
   }
 }

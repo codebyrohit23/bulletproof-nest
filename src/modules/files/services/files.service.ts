@@ -23,8 +23,11 @@ export class FilesService {
 
   async attach(fileId: string, input: AttachFileInput): Promise<void> {
     const file = await this.files.findOwn(fileId, input.uploader);
+    const now = new Date();
 
-    if (file === null) {
+    // An expired upload is answered as a missing one, as `complete` does: the
+    // purge may be removing it.
+    if (file === null || (file.expiresAt !== null && file.expiresAt <= now)) {
       throw new NotFoundException(FILE_ERROR_MESSAGE.NOT_FOUND);
     }
 
@@ -40,7 +43,7 @@ export class FilesService {
       throw new ConflictException(FILE_ERROR_MESSAGE.NOT_ATTACHABLE);
     }
 
-    if (!(await this.files.attach(file.id, new Date()))) {
+    if (!(await this.files.attach(file.id, now))) {
       throw new ConflictException(FILE_ERROR_MESSAGE.ALREADY_ATTACHED);
     }
   }

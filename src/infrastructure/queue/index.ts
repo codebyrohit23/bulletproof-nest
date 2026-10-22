@@ -76,6 +76,8 @@ export { JobDispatcher } from './services/job-dispatcher.service.js';
 
 export { JobHandler } from './decorators/job-handler.decorator.js';
 
+export { ScheduledJob } from './decorators/scheduled-job.decorator.js';
+
 export { QueueHealthIndicator } from './indicators/queue-health.indicator.js';
 
 export { WorkerHealthIndicator } from './indicators/worker-health.indicator.js';
@@ -94,4 +96,5 @@ export type {
   DispatchOptions,
   JobHandler as JobHandlerContract,
   JobMeta,
+  ScheduledJobOptions,
 } from './interfaces/index.js';

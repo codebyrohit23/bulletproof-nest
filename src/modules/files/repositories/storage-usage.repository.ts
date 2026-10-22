@@ -15,6 +15,27 @@ export class StorageUsageRepository {
     return row === null ? 0 : Number(row.usedBytes);
   }
 
+  /**
+   * Gives back usage for several workspaces in one statement — a purge batch
+   * spans many. Never below zero: if the counter has drifted, a purge that
+   * would push it negative must not fail on the check constraint every run.
+   */
+  async subtract(bytesByWorkspace: ReadonlyMap<string, number>): Promise<void> {
+    if (bytesByWorkspace.size === 0) {
+      return;
+    }
+
+    const workspaceIds = [...bytesByWorkspace.keys()];
+    const bytes = [...bytesByWorkspace.values()];
+
+    await this.prisma.db.$executeRaw`
+      UPDATE "workspace_storage_usage" AS u
+      SET "used_bytes" = GREATEST(u."used_bytes" - d."bytes", 0),
+          "updated_at" = now()
+      FROM unnest(${workspaceIds}::uuid[], ${bytes}::bigint[]) AS d("workspace_id", "bytes")
+      WHERE u."workspace_id" = d."workspace_id"`;
+  }
+
   async adjust(workspaceId: string, deltaBytes: number): Promise<void> {
     await this.prisma.db.workspaceStorageUsage.update({
       where: { workspaceId },

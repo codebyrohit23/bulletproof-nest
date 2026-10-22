@@ -12,6 +12,7 @@ import {
   WebhooksQueueProcessor,
 } from './processors/queue.processors.js';
 import { JobHandlerRegistry } from './registry/job-handler.registry.js';
+import { JobScheduleRegistry } from './registry/job-schedule.registry.js';
 import { JobPublisher } from './services/job-publisher.service.js';
 import { JobRunner } from './services/job-runner.service.js';
 
@@ -21,6 +22,7 @@ import { JobRunner } from './services/job-runner.service.js';
 
   providers: [
     JobHandlerRegistry,
+    JobScheduleRegistry,
     JobRunner,
     WorkerHealthIndicator,
 

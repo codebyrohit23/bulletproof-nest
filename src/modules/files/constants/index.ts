@@ -8,10 +8,13 @@ export {
 
 export { FILE_PURPOSE_POLICY } from './file-policy.constants.js';
 
+export { FILE_PURGE, FILE_SCHEDULE } from './file-purge.constants.js';
+
 export { FILE_SCOPE, type FileScope } from './file-scope.constants.js';
 
 export {
   FILE_NAME_MAX_LENGTH,
+  FILES_LOG_CONTEXT,
   INCOMING_KEY_PREFIX,
   MAX_UNATTACHED_UPLOADS,
   UNATTACHED_FILE_TTL_MS,
